@@ -17,7 +17,7 @@ class BuildState(TypedDict):
     graph_reviewer_agent_approved: bool
 
 
-def build_graph(llm: Optional[Callable[[str], str]] = None, *, dry_run: bool = True,):
+def build_graph(llm: Optional[Callable[[str], str]] = None):
 
     def graph_swe_agent(state: BuildState) -> BuildState:
         attempt = int(state.get("graph_attempt", 0))
@@ -56,22 +56,24 @@ def build_graph(llm: Optional[Callable[[str], str]] = None, *, dry_run: bool = T
     return graph
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="SWE + Reviewer LangGraph pipeline")
+    parser.add_argument("--task-description", type=str, default="Create an email spam graph", help="Description of the graph to build")
     parser.add_argument("--max-graphs-check", type=int, default=3, help="Maximum revision attempts before giving up on the graphs")
-    parser.add_argument("--test-run", action="store_true", help="Use offline simulators instead of real LLMs")
+    parser.add_argument("--test-run", action="store_true", help="Use gpt-4o-mini instead of gpt5")
     parser.add_argument("--api-key", type=str, default="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", help="OpenAI API key")
     args = parser.parse_args(argv)
 
-
     initial_state: BuildState = {
-        "Task_definition": "1. Create a graph for a dataset of emails labeled spam or legitimate, where each record includes a header, body, and spam label. 2. Build two independent models that, given an email’s header and body, each predict whether the email is spam. 3. Add constraints on the two models’ outputs to enforce consistency. For example, if Model 1 predicts “spam,” Model 2 must not predict “not spam.",
+        "Task_definition": args.task_description,
         "max_graphs_check": int(args.max_graphs_check),
         "attempt": 0,
         "graph_approved": False,
     }
     llm=LLM(test_run=args.test_run,api_key=args.api_key)
-    graph = build_graph(llm=llm, dry_run=args.test_run)
+    graph = build_graph(llm=llm)
+
+    last_graph_code: Optional[str] = None
     try:
         print("Start")
         for event in graph.stream(initial_state):
@@ -80,7 +82,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if node == "graph_swe_agent" and "graph_code_draft" in delta:
                     print("\n--- Drafted code (truncated) ---")
                     code = delta["graph_code_draft"]
-                    print(code[-1])
+                    last_graph_code = code[-1] if code else None
+                    print(last_graph_code)
                     print("--- end ---\n")
                 if node == "graph_reviewer":
                     approved = delta.get("graph_reviewer_agent_approved")
@@ -93,8 +96,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("End")
     except Exception as e:
         print("Execution error:", e)
-        return 1
-    return 0
+        return 1, None
+    return 0, last_graph_code
 
 if __name__ == "__main__":
     main()

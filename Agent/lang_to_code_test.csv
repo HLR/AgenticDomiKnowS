@@ -312,13 +312,12 @@ This structure ensures a systematic classification of images based on broader ca
 Task Concepts: ['largeomnivoresandherbivores' 'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'.
  'reptiles' 'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake','fruitandvegetables' 'pear', 'orange', 'apple', 'mushroom', 'sweetpepper', 'people' 'boy', 'baby', 'girl', 'woman', 'man','fish' 'flatfish', 'shark', 'trout', 'ray', 'aquariumfish', 'householdelectricaldevices' 'keyboard', 'clock', 'telephone', 'television', 'lamp', 'vehicles1' 'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle', 'foodcontainers' 'can', 'bowl', 'bottle', 'cup', 'plate', 'largenaturaloutdoorscenes' 'mountain', 'cloud', 'sea', 'plain', 'forest', 'trees' 'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree', 'flowers' 'tulip', 'sunflower', 'orchid', 'poppy', 'rose', 'largeman-madeoutdoorthings' 'bridge', 'skyscraper', 'road', 'house', 'castle', 'largecarnivores' 'wolf', 'lion', 'bear', 'leopard', 'tiger','smallmammals' 'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse',
  'householdfurniture' 'table', 'couch', 'bed', 'wardrobe', 'chair','mediummammals' 'skunk', 'raccoon', 'fox', 'porcupine', 'possum','vehicles2' 'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket','insects' 'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach', 'non-insectinvertebrates' 'spider', 'worm', 'snail', 'lobster', 'crab', 'aquaticmammals' 'seal', 'beaver', 'whale', 'otter', 'dolphin']"
-6,Email Spam Classification,NLP,Emails,Objective: The objective of the task is to develop a machine learning model for classifying emails as either spam or non-spam (ham) based on the content of the emails.,An email is either spam or not; it can't be both.,"with Graph('global') as graph:
+6,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('global') as graph:
   email = Concept(name='email')
  
-  Spam = email(name='spam')
- 
-  Regular = email(name='regular')","# The constraint of
-  orL(andL(notL(Spam), Regular, andL(notL(Regular), Spam)))",binary,1,no,"
+  spam1 = email(name='spam1')
+  spam2 = email(name='spam2')","# The constraint of
+  xorL(spam1, spam2)",binary,1,no,"
 Basic Concepts: ['email'] 
 
 Task Concepts: ['Spam', 'Regular']"
