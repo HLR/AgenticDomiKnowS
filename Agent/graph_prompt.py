@@ -1,10 +1,11 @@
+import pandas as pd
 
-def get_graph_prompt(task_definition):
+
+def get_graph_prompt():
 
     graph_instructions = f"""
     You are an expert DomiKnowS knowledge-graph author.
     The DomiKnowS library lets you **declare knowledge** about a domain and use it during training and inference with deep learning models. Each graph must define (1) concepts, (2) relations, and (3) constraints over those concepts.
-    Problem definition: {task_definition}
     
     Framework basics
     - A `Graph` is a container for `Concept`s, relations, and constraints. 
@@ -77,9 +78,8 @@ def get_graph_prompt(task_definition):
         atMostL and atMostAL are similar.
     """
 
-    graph_examples= ["""
-    Problem definition: We have a collections of images with given pixels and dimentions each with some regions. each region has a bounding box, some textual clues and some textual inferences. we want to find the correct inference for each region. If there are at least 3 useful clues related to an inference, that inference must be correct.
-    Output Graph:
+    graph_examples= ["""Problem definition: We have a collections of images with given pixels and dimentions each with some regions. each region has a bounding box, some textual clues and some textual inferences. we want to find the correct inference for each region. If there are at least 3 useful clues related to an inference, that inference must be correct.
+    ""","""
     with Graph('sherlockgraph') as graph:
         image = Concept(name='image')
 
@@ -109,7 +109,54 @@ def get_graph_prompt(task_definition):
 
         ifL(region("x"),
             exactL(true_inference("y",path=("x",region_contains_inference)),1),
-        )
+        
+    ""","""
+    Problem definition: The problem is defined over a collection of CSP instances, where each CSP contains several ranges (or “bags”), and each range contains a number of orbs. Among these orbs, some are marked as colored. The task is to enforce certain conditions on the distribution of colored orbs depending on the type of constraint selected. In the simplest case, the constraint applies globally, requiring that the total number of colored orbs across all ranges falls between a minimum and maximum bound. Alternatively, the constraints can apply at the level of each individual bag. In this case, a bag may be required to contain at least a given number of colored orbs, at most a given number, at least one colored orb, or at least one orb that is not colored. If the specified constraint does not match any of these cases, then no restriction is enforced. In essence, the problem is about controlling the presence and count of colored orbs across collections and subcollections in a structured way, either globally or locally, depending on the chosen constraint.
+    ""","""
+    with Graph('global') as graph:
+    
+        csp = Concept(name='csp')
+        csp_range = Concept(name='csp_range')
+        enforce_csp_range = csp_range(name='enforce_csp_range')
+    
+        orbs = Concept(name='orbs')
+    
+        (csp_contains_csp_range,) = csp.contains(csp_range)
+        (csp_range_contains_orbs,) = csp_range.contains(orbs)
+    
+        colored_orbs=orbs(name='colored_orbs')
+        if constraint=="simple_constraint":
+            atMostAL(colored_orbs,atmost)
+            atLeastAL(colored_orbs,atleast)
+        elif constraint=="foreach_bag_atLeastAL":
+            ifL(csp_range("x"), 
+                atLeastAL(colored_orbs("y",path=("x",csp_range_contains_orbs)),atleast)
+            )
+        elif constraint=="foreach_bag_atMostAL":
+            ifL(csp_range("x"), 
+                atMostAL(colored_orbs("y",path=("x",csp_range_contains_orbs)),atmost)
+            )
+        elif constraint=="foreach_bag_existsL":
+            ifL(csp_range("x"), 
+                existsL(colored_orbs("y",path=("x",csp_range_contains_orbs)))
+            )
+        elif constraint=="foreach_bag_existsL_notL": # try with --colored
+            ifL(csp_range("x"), 
+                existsL(notL(colored_orbs("y",path=("x",csp_range_contains_orbs))))
+            )
+        else:
+            print("no contraint")
     """]
-    additional_graph_examples= "" # TODO
-    return graph_instructions + "\n\n" + "Examples:\n\n" + "\n\n".join(graph_examples) + "\n\n"
+    return graph_instructions, graph_examples
+
+def load_all_graphs():
+    data = pd.read_csv('lang_to_code_test.csv')
+    example_graphs = []
+    for i in data.index:
+        row = data.loc[i]
+        desc = (row.get("description") or "").strip()
+        constr = (row.get("description_constraint") or "").strip()
+        gold_graph = (row.get("graph") or "") + "\n" + (row.get("constraints") or "").strip()
+        task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
+        example_graphs.extend([task_text, gold_graph])
+    return example_graphs

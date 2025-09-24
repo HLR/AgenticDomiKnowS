@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from Agent.main import main as run_main
 
-def _run_single(task_id: str, task_name: str, task_text: str, test_run: bool) -> Dict[str, Any]:
-    argv: List[str] = ["--task-description", task_text]
+def _run_single(task_id: str, task_name: str, task_text: str,graph_examples: List[str], test_run: bool) -> Dict[str, Any]:
+    argv: List[str] = ["--task-id", task_id ,"--task-description", task_text, "--graph-examples", *graph_examples]
     if test_run:
         argv.append("--test-run")
 
@@ -67,15 +67,16 @@ def main(argv: List[str] | None = None) -> int:
         task_name = str(row.get("name", "")).strip()
         desc = (row.get("description") or "").strip()
         constr = (row.get("description_constraint") or "").strip()
+        gold_graph = (row.get("graph") or "")+"\n"+(row.get("constraints") or "").strip()
         task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
-        tasks.append((task_id, task_name, task_text))
+        tasks.append((task_id, task_name, task_text, gold_graph))
 
     print(f"Starting {len(tasks)} tasks with {args.workers} workers. Output -> {out_path}")
     results: List[Dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=args.workers) as ex:
         fut_to_idx = {
-            ex.submit(_run_single, task_id, task_name, task_text, args.test_run): i
-            for i, (task_id, task_name, task_text) in enumerate(tasks)
+            ex.submit(_run_single, task_id, task_name, task_text,[x for j in tasks if j != gold_graph for x in (j[2], j[3])], args.test_run): i
+            for i, (task_id, task_name, task_text, gold_graph) in enumerate(tasks)
         }
         for fut in as_completed(fut_to_idx):
             res = fut.result()

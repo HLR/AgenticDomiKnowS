@@ -129,46 +129,6 @@ This dataset has ten image classes: airplane, dog, truck, automobile, bird, cat,
 The parent-child relationship must be respected. For example, an image can not be both a bird and a vehicle.
  ","with Graph('CIFAR10') as graph:
   Image = Concept(name='image')
-  vehicle = Image(name=""vehicle"")
-  animal = Image(name=""animal"")
- 
-  airplane = vehicle(name='airplane')
-  dog = animal(name='dog')
-  truck = vehicle(name='truck')
-  automobile = vehicle(name='automobile')
-  bird = animal(name='bird')
-  cat = animal(name='cat')
-  deer = animal(name='deer')
-  frog = animal(name='frog')
-  horse = animal(name='horse')
-  ship = vehicle(name='ship')","disjoint(truck, dog, airplane, automobile, bird, cat, deer, frog, horse, ship)
-  nandL(animal, vehicle)
- 
-  nandL(animal, airplane)
-  nandL(animal, truck)
-  nandL(animal, automobile)
-  nandL(animal, ship)
- 
-  nandL(vehicle, dog)
-  nandL(vehicle, bird)
-  nandL(vehicle, cat)
-  nandL(vehicle, deer)
-  nandL(vehicle, frog)
-  nandL(vehicle, horse)
-  l = [truck, dog, airplane, automobile, bird, cat, deer, frog, horse, ship]
-  for i in range(len(l)):
-  for j in range(i,len(l)):
-  if l[i] != l[j]:
-  nandL(l[i],l[j])",binary,1,yes,"Basic Concepts: ['image'] 
-
-Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
-4,Hierarchica Image Classification,Vision,CIFAR10,"Objective: The objective of the Hierarchical Image Classification task is to accurately classify images from the CIFAR10 dataset based on their visual content, using AI and machine learning techniques.
-
-This dataset has ten image classes: airplane, dog, truck, automobile, bird, cat, deer, frog, horse, and ship. Additionally, we group these images into two primary groups: vehicle and animal.","
-  
-The parent-child relationship must be respected. For example, an image can not be both a bird and a vehicle.
- ","with Graph('CIFAR10') as graph:
-  Image = Concept(name='image')
   Category = Image(name=""category"", ConceptClass=EnumConcept, values=[""animal"", ""vehicle""])
   Label = Image(name=""tag"", ConceptClass=EnumConcept, values=[""airplane"", ""dog"", ""truck"", ""automobile"", ""bird"", ""cat"", ""deer"", ""frog"", ""horse"", ""ship""])","nandL(Category.animal('x'), Label.airplane)
   nandL(Category.animal, Label.truck)
@@ -189,7 +149,7 @@ The parent-child relationship must be respected. For example, an image can not b
   nandL(l1, l2)",multi,1,yes,"Basic Concepts: ['image'] 
 
 Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
-5,Hierarchica Image Classification,Vision,CIFAR100,"Objective: The objective of the task is to perform hierarchical image classification on the CIFAR100 dataset.
+4,Hierarchica Image Classification,Vision,CIFAR100,"Objective: The objective of the task is to perform hierarchical image classification on the CIFAR100 dataset.
 
 The label for the parent images comprises aquatic mammals, fish, flowers,  food containers, fruit and vegetables, household electrical devices, household furniture, insects, large carnivores, large man-made outdoor things, large natural outdoor scenes, large omnivores and herbivores, medium mammals, non-insect invertebrates, people, reptiles, small mammals, trees,vehicles1, and vehicles2.
 
@@ -312,7 +272,7 @@ This structure ensures a systematic classification of images based on broader ca
 Task Concepts: ['largeomnivoresandherbivores' 'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'.
  'reptiles' 'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake','fruitandvegetables' 'pear', 'orange', 'apple', 'mushroom', 'sweetpepper', 'people' 'boy', 'baby', 'girl', 'woman', 'man','fish' 'flatfish', 'shark', 'trout', 'ray', 'aquariumfish', 'householdelectricaldevices' 'keyboard', 'clock', 'telephone', 'television', 'lamp', 'vehicles1' 'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle', 'foodcontainers' 'can', 'bowl', 'bottle', 'cup', 'plate', 'largenaturaloutdoorscenes' 'mountain', 'cloud', 'sea', 'plain', 'forest', 'trees' 'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree', 'flowers' 'tulip', 'sunflower', 'orchid', 'poppy', 'rose', 'largeman-madeoutdoorthings' 'bridge', 'skyscraper', 'road', 'house', 'castle', 'largecarnivores' 'wolf', 'lion', 'bear', 'leopard', 'tiger','smallmammals' 'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse',
  'householdfurniture' 'table', 'couch', 'bed', 'wardrobe', 'chair','mediummammals' 'skunk', 'raccoon', 'fox', 'porcupine', 'possum','vehicles2' 'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket','insects' 'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach', 'non-insectinvertebrates' 'spider', 'worm', 'snail', 'lobster', 'crab', 'aquaticmammals' 'seal', 'beaver', 'whale', 'otter', 'dolphin']"
-6,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('global') as graph:
+5,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('global') as graph:
   email = Concept(name='email')
  
   spam1 = email(name='spam1')
@@ -321,7 +281,7 @@ Task Concepts: ['largeomnivoresandherbivores' 'cattle', 'kangaroo', 'chimpanzee'
 Basic Concepts: ['email'] 
 
 Task Concepts: ['Spam', 'Regular']"
-7,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
+6,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
  ","with Graph('global') as graph:
   review = Concept(name='review')
  
@@ -329,7 +289,7 @@ Task Concepts: ['Spam', 'Regular']"
   negative = review(name='negative')","disjoint(positive, negative)",binary,1,no,"Basic Concepts: ['review'] 
 
 Task Concepts: ['positive', 'negative']"
-8,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
+7,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
 
 Given a procedural paragraph, the model must show the state of procedures in consequent steps. In this manner, each procedure contains steps, each of which is identified by its location, which can be non-existence, known, or unknown.
 
@@ -354,7 +314,7 @@ For a transition between two states of a step, an action is required, which can 
   ifL(destroy(""x"")), andL(orL(known_loc(path=(""x"", ""arg1"")), unknown_loc(path=(""x"", ""arg1""))), non_existence(path=(""x"", ""arg2"")))",binray,4,yes,"Basic Concepts: ['procedure','step','before','action'] 
 
 Task Concepts: ['create','destroy','other', 'non_existence','unknown_loc', 'known_loc']"
-9,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
+8,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
 
 Each paragraph in this task is a procedural text that describes the cause-and-effect relations between a series of events. Consequently, each paragraph contains a list of questions about the relations between the events in this paragraph, which would be more (positive effect), less (negative effect), or no effect.
 ","There are two types of constraints between questions related to a paragraph in this task: symmetric and transitivity.
@@ -396,7 +356,7 @@ if q1 is more and q2 is less then q3 is less","with Graph('WIQA_graph') as graph
     ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1.reversed)), is_less(path=('x', t_arg2.reversed))),is_less(path=('x', t_arg3))))",binray,3,yes,"Basic Concepts: ['paragraph','question','symmetric','transitive'] 
 
 Task Concepts: ['is_more','is_less','no_effect']"
-10,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
+9,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
 
 Here, we have a collection of entities and a list of sentences that describe an attribute of those entities. Some of these attributes are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two attributes that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between attributes that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an attribute applies to an entity. In that case, all attributes with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
 
@@ -415,7 +375,7 @@ Here, we have a collection of entities and a list of sentences that describe an 
     ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', nimplication)))), notL(fact_check(path=('s', ni_arg2))))",binray,2,yes,"Basic Concepts: ['subject','implication','nimplication'] 
 
 Task Concepts: ['facts']"
-11,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
+10,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
 
 Here, we have a paragraph that describes logical reasoning rules in natural language. For each paragraph, we have a list of questions that ask for the True or False state of a fact. The model should look at the paragraph to determine whether the fact is stated or inferred based on the implication rules.
 
@@ -432,7 +392,7 @@ Here, we have a paragraph that describes logical reasoning rules in natural lang
     i_arg1, i_arg2 = implication.has_a(arg1=Question, arg2=Question)","    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', implication)))), qlabel(path=('s', i_arg2)))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
 
 Task Concepts: ['qlabel']"
-12,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
+11,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
 
 In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 9. Here, the sum of the pairs of digits is also provided.
 
@@ -479,7 +439,7 @@ In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 
             ifL(getattr(s, sum_nm)('x'),orL(*sum_combinations))",binary,3,yes,"Basic Concepts: ['image_batch','image','digit','image_pair','summations'] 
 
 Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9','s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18']"
-13,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
+12,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
 
 The input is a partially filled Sudoku puzzle that must be filled. The model should model the entire Suduko, its rows, columns, and tables.","No number should be repeated more than once inside any row, column, or table.","with Graph('sudoko') as graph:
 
@@ -505,7 +465,7 @@ The input is a partially filled Sudoku puzzle that must be filled. The model sho
         ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))",multi,2,yes,"Basic Concepts: ['sudoku','empty_entry','same_row','same_col','same_table','empty_entry_label'] 
 
 Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9']"
-14,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
+13,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
 
 Here, the input would be a chess board with some queens already placed on it. The chess board with its cells should be modeled, and the remaining queens should be correctly placed.",No two queens should be able to attack each other.,"with Graph('chess_graph') as graph:
     chess_board = Concept(name='chess_board')
