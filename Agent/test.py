@@ -49,7 +49,7 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("--csv-path", type=str, default="lang_to_code_test.csv")
     parser.add_argument("--output-path", type=str, default="test_results.csv")
     parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
-    parser.add_argument("--test-run", default=True, action="store_true", help="Use gpt-4o-mini instead of gpt5")
+    parser.add_argument("--test-run", default=False, action="store_true", help="Use gpt-4o-mini instead of gpt5")
     args = parser.parse_args(argv)
 
     csv_path = Path(args.csv_path)
@@ -75,7 +75,7 @@ def main(argv: List[str] | None = None) -> int:
     results: List[Dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=args.workers) as ex:
         fut_to_idx = {
-            ex.submit(_run_single, task_id, task_name, task_text,[x for j in tasks if j != gold_graph for x in (j[2], j[3])], args.test_run): i
+            ex.submit(_run_single, task_id, task_name, task_text,[x for j in tasks if j[3] != gold_graph for x in (j[2], j[3])], args.test_run): i
             for i, (task_id, task_name, task_text, gold_graph) in enumerate(tasks)
         }
         for fut in as_completed(fut_to_idx):

@@ -88,7 +88,7 @@ def main(argv: Optional[List[str]] = None):
     parser.add_argument("--task-id", type=int, default=0, help="Task ID")
     parser.add_argument("--task-description", type=str, default="Create an email spam graph", help="Description of the graph to build")
     parser.add_argument("--graph-examples", nargs="+", type=str,default=load_all_graphs(), help="List of other examples (paths or text) for RAG")
-    parser.add_argument("--rag-k", type=int, default=0, help="Number of relevant examples to retrieve with RAG (0 to disable)")
+    parser.add_argument("--rag-k", type=int, default=3, help="Number of relevant examples to retrieve with RAG (0 to disable)")
     parser.add_argument("--max-graphs-check", type=int, default=3, help="Maximum revision attempts before giving up on the graphs")
     parser.add_argument("--test-run", action="store_true", help="Use gpt-4o-mini instead of gpt5")
     parser.add_argument("--api-key", type=str, default="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", help="OpenAI API key")
@@ -100,11 +100,13 @@ def main(argv: Optional[List[str]] = None):
         "attempt": 0,
         "graph_approved": False,
     }
-    # Ensure the API key is visible to libraries that read from env
+
     if args.api_key:
         os.environ["OPENAI_API_KEY"] = args.api_key
     llm = LLM(test_run=args.test_run, api_key=args.api_key)
     graph_DB = upsert_examples(task_id = args.task_id,examples=args.graph_examples or [], api_key=args.api_key,forced=True)
+    print("RAG DB created.")
+    print("Building graph...")
     graph = build_graph(
         llm=llm,
         rag_candidates=args.graph_examples or [],
