@@ -11,6 +11,7 @@ from Agent.utils import extract_python_code
 class BuildState(TypedDict):
     Task_definition: str
 
+    graph_rag_examples: List[str]
     graph_max_attempts: int
     graph_attempt: int
     graph_code_draft: List[str]
@@ -63,6 +64,7 @@ def build_graph(
         drafts = list(state.get("graph_code_draft", []))
         drafts.append(code)
         return {
+            "graph_rag_examples":rag_selected,
             "graph_attempt": attempt + 1,
             "graph_code_draft": drafts,
             "graph_reviewer_agent_approved": False,
@@ -114,7 +116,7 @@ def build_graph(
             graph_review_notes = list(state.get("graph_review_notes", []))
             graph_review_notes.append(raw)
             graph_reviewer_agent_approved = False
-            if "approved" in raw:
+            if "approve" in raw:
                 graph_reviewer_agent_approved = True
             return {
                 "graph_review_notes": graph_review_notes,
@@ -231,6 +233,7 @@ def main(argv: Optional[List[str]] = None):
 
     initial_state: BuildState = {
         "Task_definition": args.task_description,
+        "graph_rag_examples":[],
         "graph_max_attempts": int(args.max_graphs_check),
         "graph_attempt": 0,
         "graph_code_draft": [],

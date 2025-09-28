@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, csv, io, os
+import argparse, csv, io, os, json
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
@@ -16,13 +16,19 @@ def _run_single(task_id: str, task_name: str, task_text: str,graph_examples: Lis
     buf_err = io.StringIO()
     rc: int = 1
     graph_code: Optional[str] = None
+    state: Optional[Dict[str, Any]] = None
     exc: Optional[str] = None
 
     try:
         with redirect_stdout(buf_out), redirect_stderr(buf_err):
             result = run_main(argv)
         if isinstance(result, tuple) and len(result) == 2:
-            rc, graph_code = int(result[0]), result[1]["graph_code_draft"][-1]
+            rc = int(result[0])
+            state = result[1]
+            try:
+                graph_code = state.get("graph_code_draft", [])[-1]
+            except Exception:
+                graph_code = None
         else:
             rc = int(result)
     except Exception as e:
@@ -39,6 +45,7 @@ def _run_single(task_id: str, task_name: str, task_text: str,graph_examples: Lis
         "task_description": task_text,
         "return_code": rc,
         "graph_code": graph_code,
+        "state": state,
         "stdout": stdout,
         "stderr": stderr,
         "exception": exc,
@@ -87,6 +94,7 @@ def main(argv: List[str] | None = None) -> int:
         "name",
         "task_description",
         "graph_code",
+        "state",
         "generated_at",
         "test_run",
     ]
@@ -100,6 +108,8 @@ def main(argv: List[str] | None = None) -> int:
             row["name"] = res["name"]
             row["task_description"] = res["task_description"]
             row["graph_code"] = res["graph_code"]
+            # Serialize the full returned state so we keep all information, not just final code
+            row["state"] = json.dumps(res.get("state"), ensure_ascii=False)
             row["generated_at"] = generated_at
             row["test_run"] = bool(args.test_run)
             writer.writerow(row)
