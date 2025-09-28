@@ -32,12 +32,15 @@ def upsert_examples(task_id, examples: List[str], api_key: str, forced: bool = F
     return DB
 
 
-def select_graph_examples(DB: Chroma, task_desc: str, k: int) -> List[str]:
+def select_graph_examples(DB: Chroma, task_desc: str, k: int, review: bool = False) -> List[str]:
     if not k or k<=0:
         return []
     results = DB.similarity_search(task_desc or "", k=k)
     out = []
     for d in results:
         md = d.metadata or {}
-        out.extend([md.get("desc", d.page_content)] + ([md["code"]] if md.get("code") else []))
+        if not review:
+            out.extend([md.get("desc", d.page_content)] + ([md["code"]] if md.get("code") else []))
+        else:
+            out.extend([md.get("desc", d.page_content) +"\n"+ md["code"], "approve"])
     return out

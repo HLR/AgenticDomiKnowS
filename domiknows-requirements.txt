@@ -2,8 +2,9 @@ acls==1.0.2
 Owlready2
 gurobipy
 pandas>=1.1.5
-torch>=1.8.1
-transformers==4.6
+transformers>=4.36,<5
+tokenizers>=0.14,<0.16
+torch==2.8.0
 ordered-set
 setuptools
 graphviz

@@ -12,7 +12,11 @@ class LLM:
             self.reviewer_llm = ChatOpenAI(model="gpt-5", reasoning={"effort": "medium"}, api_key=self.api_key)
 
     def __call__(self, msgs):
-        return self.swe_llm.invoke(msgs).content
+        msg = self.swe_llm.invoke(msgs).content
+        if isinstance(msg, list): return msg[0]["text"]
+        return msg
 
     def review(self, msgs):
-        return self.reviewer_llm.invoke(msgs).content
+        msg = self.reviewer_llm.invoke(msgs).content
+        if isinstance(msg, list): return msg[0]["text"]
+        return msg

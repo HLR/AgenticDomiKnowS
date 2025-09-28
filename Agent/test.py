@@ -22,7 +22,7 @@ def _run_single(task_id: str, task_name: str, task_text: str,graph_examples: Lis
         with redirect_stdout(buf_out), redirect_stderr(buf_err):
             result = run_main(argv)
         if isinstance(result, tuple) and len(result) == 2:
-            rc, graph_code = int(result[0]), result[1]
+            rc, graph_code = int(result[0]), result[1]["graph_code_draft"][-1]
         else:
             rc = int(result)
     except Exception as e:
