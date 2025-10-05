@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, END, START
 from Agent.rag import upsert_examples, select_graph_examples
 from domiknows.graph import *
 from Agent.utils import extract_python_code
+from langgraph.checkpoint.memory import InMemorySaver
 
 class BuildState(TypedDict):
     Task_definition: str
@@ -131,14 +132,14 @@ def build_graph(
             }
 
     def join_review_exe(state: BuildState) -> BuildState:
-        return state
+        return {}
 
     def graph_human_agent(state: BuildState) -> BuildState:
         human_approved = state.get("human_approved", "")
         if human_approved:
             return state
         else:
-            graph_review_notes = state.get("graph_review_notes", "")
+            graph_review_notes = state.get("graph_review_notes", [])
             graph_review_notes.append(state.get("human_notes", ""))
             return {
                 "graph_review_notes": graph_review_notes,
@@ -189,52 +190,19 @@ def build_graph(
             "reform": "graph_swe_agent",
         },
     )
-
-    graph = builder.compile()
+    checkpointer = InMemorySaver()
+    graph = builder.compile(
+        checkpointer=checkpointer,
+        interrupt_before=["join_review_exe","graph_human"],
+        #interrupt_after=["graph_swe_agent"],
+    )
     return graph
 
-def main(argv: Optional[List[str]] = None):
-    parser = argparse.ArgumentParser(
-        description="SWE + Reviewer + Exec (parallel) + Human LangGraph pipeline"
-    )
-    parser.add_argument("--task-id", type=int, default=0, help="Task ID")
-    parser.add_argument(
-        "--task-description",
-        type=str,
-        default="Create an email spam graph",
-        help="Description of the graph to build",
-    )
-    parser.add_argument(
-        "--graph-examples",
-        nargs="+",
-        type=str,
-        default=load_all_graphs(),
-        help="List of other examples (paths or text) for RAG",
-    )
-    parser.add_argument(
-        "--rag-k", type=int, default=3, help="Number of relevant examples to retrieve with RAG (0 to disable)"
-    )
-    parser.add_argument(
-        "--max-graphs-check",
-        type=int,
-        default=3,
-        help="Maximum revision attempts before triggering human final approval",
-    )
-    parser.add_argument(
-        "--test-run", action="store_true", help="Use gpt-4o-mini instead of gpt5"
-    )
-    parser.add_argument(
-        "--api-key",
-        type=str,
-        default="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",
-        help="OpenAI API key",
-    )
-    args = parser.parse_args(argv)
-
+def pre_process_graph(test_run = False, task_id=0, task_description="", graph_examples=load_all_graphs(), rag_k=3, max_graphs_check=3):
     initial_state: BuildState = {
-        "Task_definition": args.task_description,
-        "graph_rag_examples":[],
-        "graph_max_attempts": int(args.max_graphs_check),
+        "Task_definition": task_description,
+        "graph_rag_examples": [],
+        "graph_max_attempts": int(max_graphs_check),
         "graph_attempt": 0,
         "graph_code_draft": [],
         "graph_review_notes": [],
@@ -244,62 +212,51 @@ def main(argv: Optional[List[str]] = None):
         "human_approved": True,
         "human_notes": "",
     }
-
-    if args.api_key:
-        os.environ["OPENAI_API_KEY"] = args.api_key
-    llm = LLM(test_run=args.test_run, api_key=args.api_key)
-    graph_DB = upsert_examples(
-        task_id=args.task_id, examples=args.graph_examples or [], api_key=args.api_key, forced=True
-    )
+    llm = LLM(test_run=test_run)
+    graph_DB = upsert_examples(task_id=task_id, examples=graph_examples or [], forced=True)
     print("RAG DB created.")
     print("Building graph...")
     graph = build_graph(
         llm=llm,
         graph_DB=graph_DB,
-        rag_k=int(args.rag_k or 0),
+        rag_k=int(rag_k or 0),
+    )
+    return initial_state, graph
+
+def main(argv: Optional[List[str]] = None):
+    parser = argparse.ArgumentParser(description="SWE + Reviewer + Exec (parallel) + Human LangGraph pipeline")
+    parser.add_argument("--task-id", type=int, default=0, help="Task ID")
+    parser.add_argument("--task-description",type=str,default="Create an email spam graph",help="Description of the graph to build",)
+    parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_graphs(),help="List of other examples (paths or text) for RAG",)
+    parser.add_argument("--rag-k", type=int, default=3, help="Number of relevant examples to retrieve with RAG (0 to disable)")
+    parser.add_argument("--max-graphs-check",type=int,default=3,help="Maximum revision attempts before triggering human final approval",)
+    parser.add_argument("--test-run", default=True, action="store_true", help="Use gpt-4o-mini instead of gpt5")
+    args = parser.parse_args(argv)
+
+    initial_state, graph = pre_process_graph(
+        test_run=args.test_run,
+        task_id=args.task_id,
+        task_description=args.task_description,
+        graph_examples=args.graph_examples,
+        rag_k=args.rag_k,
+        max_graphs_check=args.max_graphs_check
     )
 
-    final_state = None
+
+    snap = None
     print("Start")
-    for mode, event in graph.stream(initial_state, stream_mode=["updates", "values"]):
-        if mode == "values":
-            final_state = event
-        else:
-            for node, delta in event.items():
-                print(f"[{node}] -> keys updated: {list(delta.keys())}")
-                if node == "graph_swe_agent" and "graph_code_draft" in delta:
-                    print("\n--- Drafted code (truncated) ---")
-                    code = delta["graph_code_draft"]
-                    last_graph_code = code[-1] if code else None
-                    print(last_graph_code)
-                    print("--- end ---\n")
-                if node == "graph_reviewer":
-                    rev_ok = delta.get("graph_reviewer_agent_approved")
-                    if rev_ok is not None:
-                        print(f"Reviewer approved? {rev_ok}")
-                    if delta.get("graph_review_notes"):
-                        print("Reviewer notes:")
-                        for c in delta.get("graph_review_notes", []) or []:
-                            print(f" - {c}")
-                if node == "graph_exe_agent":
-                    exe_ok = delta.get("graph_exe_agent_approved")
-                    if exe_ok is not None:
-                        print(f"Executor approved? {exe_ok}")
-                    if delta.get("graph_exe_notes"):
-                        print("Executor notes:")
-                        for c in delta.get("graph_exe_notes", []) or []:
-                            print(f" - {c}")
-                if node == "graph_human":
-                    happr = delta.get("human_approved")
-                    hnotes = delta.get("human_notes")
-                    print(f"Human approved? {happr}")
-                    if hnotes:
-                        print("Human notes:")
-                        for c in hnotes:
-                            print(f" - {c}")
+    config = {"configurable": {"thread_id": "ID: "+str(args.task_id)}}
+    snap = graph.invoke(initial_state, config=config, stream_mode="updates")
+    while True:
+        snap = graph.get_state(config=config)
+        print(snap.next)
+        if not snap.next:
+            break
+        graph.update_state(config,{"human_approved":True},as_node="graph_human")
+        graph.invoke(None, config=config)
     print("End")
 
-    return 0, final_state
+    return 0, snap.values
 
 if __name__ == "__main__":
     main()
