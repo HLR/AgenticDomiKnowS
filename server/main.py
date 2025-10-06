@@ -14,7 +14,7 @@ app.add_middleware(
 )
 
 initial_state, graph = pre_process_graph(
-        test_run=True,
+        test_run=False,
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_graphs("static/"),
