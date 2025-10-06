@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd, os
 
 
 def get_graph_prompt():
@@ -149,8 +149,11 @@ def get_graph_prompt():
     """]
     return graph_instructions, graph_examples
 
-def load_all_graphs():
-    data = pd.read_csv('lang_to_code_test.csv')
+def load_all_graphs(address=""):
+    if address:
+        data = pd.read_csv(address+'lang_to_code_test.csv')
+    else:
+        data = pd.read_csv(os.path.dirname(os.path.abspath(__file__))+'/lang_to_code_test.csv')
     example_graphs = []
     for i in data.index:
         row = data.loc[i]
