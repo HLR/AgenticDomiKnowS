@@ -1,0 +1,485 @@
+ID,name,domain,dataset,description,description_constraint,graph,constraints,class type,difficulty,predefined dataset,classes
+1,Hierarchical News Classification,NLP,20 News Dataset,"Objective: The objective of the task is to perform hierarchical news topic classification in the domain of NLP using the 20 News Dataset. 
+
+The categories are hierarchical and have three levels of hierarchy. Not every news article belongs to a level. Not every news at lower levels has a parent, and not every news at a higher level has children. 
+
+The relationship between levels is as such: At Level One, news can be one of the following classes: comp, rec, sci, misc, talk, alt, and soc. 
+
+At Level Two, news can be one of the following classes: os, sys, windows, graphics, motorcycles, sport, autos, religion, electronics, med, space, forsale, politics, crypt. 
+
+And finally, at Level Three, news has the following classes: misc, guns, IBM, mac, baseball, hockey, and Mideast.
+   	  
+ ","There are hierarchical constraints between the three levels of classes as such:
+ 
+comp comprises graphics, os, sys, and windows. 
+rec comprises autos, motorcycles, and sport.
+sci comprises crypt, electronics, med, and space.
+misc comprises forsale
+Talk comprises politics, and religion,
+Politics comprises misc, guns, and Mideast.
+sys comprises ibm and mac.
+sport comprises hockey and baseball.
+   
+Categorization has to respect this hierarchy, and if a child is chosen, so must its father.	  
+  ","with Graph('20news') as graph:
+ 
+  news_group = Concept(name=""news_group"")
+  
+  news = Concept(name = 'news')
+  news_group_contains, = news_group.contains(news)
+  
+  level1_list = [ 
+  ""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""
+  ]
+  level2_list = [
+  ""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"",
+  ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""religion"", ""crypt"", ""None""
+  ]
+  level3_list = [
+  ""misc"", ""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""
+  ]
+  
+  level1 = news(name=""level1"", ConceptClass=EnumConcept, values=[""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""])
+  
+  level2 = news(name=""level2"", ConceptClass=EnumConcept, values=[""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""])
+  
+  level3 = news(name=""level3"", ConceptClass=EnumConcept, values=[""misc"", ""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""])
+  
+  hierarchy_1 = {""comp"": {""graphics"", ""os"", ""sys"", ""windows""}, ""rec"": {""autos"", ""motorcycles"", ""sport""},
+  ""sci"": {""crypt"", ""electronics"", ""med"", ""space""}, ""misc"": {""forsale""}, 
+  ""talk"": {""politics"", ""religion""}, ""alt"": {}, ""soc"": {}, ""None"": {},
+  }
+  hierarchy_2 = {
+  ""windows"": {}, ""os"": {}, ""religion"": {}, ""politics"": {""misc"", ""guns"", ""mideast""},
+  ""sys"": {""ibm"", ""mac""}, ""sport"": {""hockey"", ""baseball""}
+  }","for _parent in level1_list:
+  if _parent in hierarchy_1.keys():
+  if len(hierarchy_1[_parent]):
+  ifL(level1.__getattr__(_parent), exactL(*[level2.__getattr__(key1) for key1 in hierarchy_1[_parent]]))
+  else:
+  ifL(level1.__getattr__(_parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
+  else:
+  ifL(level1.__getattr__(_parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
+  
+  
+  for _parent in level2_list:
+  if _parent in hierarchy_2.keys():
+  if len(hierarchy_2[_parent]):
+  ifL(level2.__getattr__(_parent), exactL(*[level3.__getattr__(key1) for key1 in hierarchy_2[_parent]]))
+  else:
+  ifL(level2.__getattr__(_parent), level3.__getattr__(""None""))
+  else:
+  ifL(level2.__getattr__(_parent), level3.__getattr__(""None""))",multi,3,yes,"
+Basic Concepts: ['news_group','news','level1_list','level2_list','level3_list'] 
+
+Task Concepts: ['comp', 'rec', 'sci', 'misc', 'talk', 'alt', 'soc', 'os', 'sys', 'windows', 'graphics', 'motorcycles', 'sport', 'autos', 'religion', 'electronics', 'med', 'space', 'forsale', 'politics', 'crypt', 'None' ,'misc', 'guns', 'ibm', 'mac', 'baseball', 'hockey', 'mideast']
+ 
+
+
+"
+2,Hierarchica Image Classification,Vision,Animals and Flowers Pictures,"Objective: Hierarchical Image Classification in the Animals and Flowers Pictures dataset domain.
+
+Here, we have two primary classes that should be assigned to each image: Animals and Flowers.
+
+After that, we can assign more specific classes to each image: cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, or tulip.","
+  
+Every image must belong to a primary and a specific category, and the parent-child relationship must be respected. For example, an image can not be both an Animal and a daisy at the same time.
+ ","with Graph('AnimalAndFlower') as graph:
+  image_group = Concept(name='image_group')
+  image = Concept(name='image')
+  image_group_contains, = image_group.contains(image)
+ 
+  animal = image(name='animal')
+  cat = animal(name='cat')
+  dog = animal(name='dog')
+  monkey = animal(name='monkey')
+  squirrel = animal(name='squirrel')
+ 
+  flower = image(name='flower')
+  daisy = flower(name='daisy')
+  dandelion = flower(name='dandelion')
+  rose = flower(name='rose')
+  sunflower = flower(name='sunflower')
+  tulip = flower(name='tulip')","ifL(cat('x'), animal('x'))
+  ifL(dog('x'), animal('x'))
+  ifL(monkey('x'), animal('x'))
+  ifL(squirrel('x'), animal('x'))
+ 
+  ifL(daisy('x'), flower('x'))
+  ifL(dandelion('x'), flower('x'))
+  ifL(rose('x'), flower('x'))
+  ifL(sunflower('x'), flower('x'))
+  ifL(tulip('x'), flower('x'))
+  ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
+  ifL(animal, orL(cat, dog, monkey, squirrel))
+  disjoint(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip)
+ 
+  for l1, l2 in combinations([daisy, dandelion, rose, sunflower, tulip, cat, dog, monkey, squirrel], 2):
+  # TODO isn't this the same as disjoint?
+  nandL(l1, l2)
+ 
+  for l1, l2 in combinations([animal, flower], 2):
+  nandL(l1, l2)",binary,2,no,"Basic Concepts: ['image'] 
+
+Task Concepts: ['animal', 'cat', 'dog', 'monkey', 'squirrel', 'flower', 'daisy', 'dandelion', 'rose', 'sunflower', 'tulip']"
+3,Hierarchica Image Classification,Vision,CIFAR10,"Objective: The objective of the Hierarchical Image Classification task is to accurately classify images from the CIFAR10 dataset based on their visual content, using AI and machine learning techniques.
+
+This dataset has ten image classes: airplane, dog, truck, automobile, bird, cat, deer, frog, horse, and ship. Additionally, we group these images into two primary groups: vehicle and animal.","
+  
+The parent-child relationship must be respected. For example, an image can not be both a bird and a vehicle.
+ ","with Graph('CIFAR10') as graph:
+  Image = Concept(name='image')
+  Category = Image(name=""category"", ConceptClass=EnumConcept, values=[""animal"", ""vehicle""])
+  Label = Image(name=""tag"", ConceptClass=EnumConcept, values=[""airplane"", ""dog"", ""truck"", ""automobile"", ""bird"", ""cat"", ""deer"", ""frog"", ""horse"", ""ship""])","nandL(Category.animal('x'), Label.airplane)
+  nandL(Category.animal, Label.truck)
+  nandL(Category.animal, Label.automobile)
+  nandL(Category.animal, Label.ship)
+ 
+  nandL(Category.vehicle, Label.dog)
+  nandL(Category.vehicle, Label.bird)
+  nandL(Category.vehicle, Label.cat)
+  nandL(Category.vehicle, Label.deer)
+  nandL(Category.vehicle, Label.frog)
+  nandL(Category.vehicle, Label.horse)
+ 
+  for l1, l2 in combinations(Category.attributes, 2):
+  nandL(l1, l2)
+ 
+  for l1, l2 in combinations(Label.attributes, 2):
+  nandL(l1, l2)",multi,1,yes,"Basic Concepts: ['image'] 
+
+Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
+4,Hierarchica Image Classification,Vision,CIFAR100,"Objective: The objective of the task is to perform hierarchical image classification on the CIFAR100 dataset.
+
+The label for the parent images comprises aquatic mammals, fish, flowers,  food containers, fruit and vegetables, household electrical devices, household furniture, insects, large carnivores, large man-made outdoor things, large natural outdoor scenes, large omnivores and herbivores, medium mammals, non-insect invertebrates, people, reptiles, small mammals, trees,vehicles1, and vehicles2.
+
+     
+The label for the children images comprises beaver, dolphin, otter, seal, whale, aquarium fish, flatfish, ray, shark, trout, orchids, poppies, roses, sunflowers, tulips, bottles, bowls, cans, cups, plates, apples, mushrooms, oranges, pears, sweet peppers, clock, computer keyboard, lamp, telephone, television, bed, chair, couch, table, wardrobe, bee, beetle, butterfly, caterpillar, cockroach, bear, leopard, lion, tiger, wolf, bridge, castle, house, road, skyscraper, cloud, forest, mountain, plain, sea, camel, cattle, chimpanzee, elephant, kangaroo, fox, porcupine, possum, raccoon, skunk, crab, lobster, snail, spider, worm, baby, boy, girl, man, woman, crocodile, dinosaur, lizard, snake, turtle, hamster, mouse, rabbit, shrew, squirrel, maple, oak, palm, pine, willow, bicycle, bus, motorcycle, pickup truck, train, lawn-mower, rocket, streetcar, tank, and tractor.","Each child image can be a parent image as such:
+     
+large omnivores and herbivores comprise cattle, kangaroo, chimpanzee, elephant, and camel.
+reptiles comprise dinosaur, lizard, crocodile, turtle, and snake.
+fruit and vegetables comprise pear, orange, apple, mushroom, and sweetpepper.
+people comprise boy, baby, girl, woman, and man.
+fish comprise flatfish, shark, trout, ray, and aquariumfish.
+household electrical devices comprise keyboard, clock, telephone, television, and lamp.
+vehicles1 comprise pickuptruck, bicycle, bus, train, and motorcycle.
+food containers comprise can, bowl, bottle, cup, and plate.
+large natural outdoor scenes comprise mountain, cloud, sea, plain, and forest.
+trees comprise of palmtree, willowtree, mapletree, pinetree, and oaktree.
+flowers comprise tulip, sunflower, orchid, poppy, and rose.
+large man-made outdoor things comprise bridge, skyscraper, road, house, and castle.
+large carnivores comprise wolf, lion, bear, leopard, and tiger.
+small mammals comprise squirrel, shrew, rabbit, hamster, and mouse.
+householdfurniture comprise table, couch, bed, wardrobe, and chair.
+medium mammals comprise skunk, raccoon, fox, porcupine, and possum.
+vehicles2 comprise of lawnmower, tank, streetcar, tractor, and rocket.
+insects comprise bee, beetle, caterpillar, butterfly, and cockroach.
+non-insect invertebrates comprise spider, worm, snail, lobster, and crab.
+aquaticmammals comprise seal, beaver, whale, otter, and dolphin.
+
+This structure ensures a systematic classification of images based on broader categories and their respective specific labels.	  
+ 
+ 
+
+","with Graph('CIFAR100') as graph:
+  image_group = Concept(name='image_group')
+  image = Concept(name='image')
+  image_group_contains, = image_group.contains(image)
+ 
+  category = image(name=""category"", ConceptClass=EnumConcept,
+  values=['aquaticmammals', 'fish', 'flowers', 'foodcontainers', 'fruitandvegetables',
+  'householdelectricaldevices', 'householdfurniture', 'insects', 'largecarnivores',
+  'largeman-madeoutdoorthings', 'largenaturaloutdoorscenes', 'largeomnivoresandherbivores',
+  'mediummammals', 'non-insectinvertebrates', 'people', 'reptiles', 'smallmammals', 'trees',
+  'vehicles1', 'vehicles2'])
+  Label = image(name=""tag"", ConceptClass=EnumConcept,
+  values=['apple', 'aquariumfish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle',
+  'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle',
+  'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch',
+  'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest', 'fox',
+  'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawnmower', 'leopard', 'lion',
+  'lizard', 'lobster', 'man', 'mapletree', 'motorcycle', 'mountain', 'mouse', 'mushroom',
+  'oaktree', 'orange', 'orchid', 'otter', 'palmtree', 'pear', 'pickuptruck', 'pinetree',
+  'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road',
+  'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake',
+  'spider', 'squirrel', 'streetcar', 'sunflower', 'sweetpepper', 'table', 'tank', 'telephone',
+  'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale',
+  'willowtree', 'wolf', 'woman', 'worm'])
+  parent_names = {j:i for j, i in
+  enumerate(['aquaticmammals', 'fish', 'flowers', 'foodcontainers', 'fruitandvegetables',
+  'householdelectricaldevices', 'householdfurniture', 'insects', 'largecarnivores',
+  'largeman-madeoutdoorthings', 'largenaturaloutdoorscenes', 'largeomnivoresandherbivores',
+  'mediummammals', 'non-insectinvertebrates', 'people', 'reptiles', 'smallmammals',
+  'trees',
+  'vehicles1', 'vehicles2'])}
+ 
+  children_names = {j:i for j, i in
+  enumerate(['apple', 'aquariumfish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle',
+  'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle',
+  'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch',
+  'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest',
+  'fox',
+  'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawnmower', 'leopard',
+  'lion',
+  'lizard', 'lobster', 'man', 'mapletree', 'motorcycle', 'mountain', 'mouse', 'mushroom',
+  'oaktree', 'orange', 'orchid', 'otter', 'palmtree', 'pear', 'pickuptruck', 'pinetree',
+  'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road',
+  'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail',
+  'snake',
+  'spider', 'squirrel', 'streetcar', 'sunflower', 'sweetpepper', 'table', 'tank',
+  'telephone',
+  'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe',
+  'whale',
+  'willowtree', 'wolf', 'woman', 'worm'])}
+  structure = {'largeomnivoresandherbivores': {'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'},
+  'reptiles': {'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake'},
+  'fruitandvegetables': {'pear', 'orange', 'apple', 'mushroom', 'sweetpepper'},
+  'people': {'boy', 'baby', 'girl', 'woman', 'man'},
+  'fish': {'flatfish', 'shark', 'trout', 'ray', 'aquariumfish'},
+  'householdelectricaldevices': {'keyboard', 'clock', 'telephone', 'television', 'lamp'},
+  'vehicles1': {'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle'},
+  'foodcontainers': {'can', 'bowl', 'bottle', 'cup', 'plate'},
+  'largenaturaloutdoorscenes': {'mountain', 'cloud', 'sea', 'plain', 'forest'},
+  'trees': {'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree'},
+  'flowers': {'tulip', 'sunflower', 'orchid', 'poppy', 'rose'},
+  'largeman-madeoutdoorthings': {'bridge', 'skyscraper', 'road', 'house', 'castle'},
+  'largecarnivores': {'wolf', 'lion', 'bear', 'leopard', 'tiger'},
+  'smallmammals': {'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse'},
+  'householdfurniture': {'table', 'couch', 'bed', 'wardrobe', 'chair'},
+  'mediummammals': {'skunk', 'raccoon', 'fox', 'porcupine', 'possum'},
+  'vehicles2': {'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket'},
+  'insects': {'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach'},
+  'non-insectinvertebrates': {'spider', 'worm', 'snail', 'lobster', 'crab'},
+  'aquaticmammals': {'seal', 'beaver', 'whale', 'otter', 'dolphin'}}","NEW_LC = True
+ 
+  if NEW_LC:
+  counter = 0
+  exactL(*[Label.__getattr__(i[1]) for i in Label.attributes])
+  exactL(*[category.__getattr__(i[1]) for i in category.attributes])
+  for i in category.attributes:
+  lj = [Label.get_concept(l) for l in structure[i[1]]]
+  ifL(category.__getattr__(i[1]), orL(*[Label.__getattr__(ii[1]) for ii in lj]))
+  #ifL(category.__getattr__(i[1])(""x""), orL(*[Label.__getattr__(ii[1])(""x"") for ii in lj]))
+  else:
+  relations = 0
+  for i in category.attributes:
+  for j in Label.attributes:
+  if not j[1] in structure[i[1]]:
+  nandL(i, j)
+  else:
+  relations += 1",multi,5,yes,"Basic Concepts: ['image_group','image'] 
+
+Task Concepts: ['largeomnivoresandherbivores' 'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'.
+ 'reptiles' 'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake','fruitandvegetables' 'pear', 'orange', 'apple', 'mushroom', 'sweetpepper', 'people' 'boy', 'baby', 'girl', 'woman', 'man','fish' 'flatfish', 'shark', 'trout', 'ray', 'aquariumfish', 'householdelectricaldevices' 'keyboard', 'clock', 'telephone', 'television', 'lamp', 'vehicles1' 'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle', 'foodcontainers' 'can', 'bowl', 'bottle', 'cup', 'plate', 'largenaturaloutdoorscenes' 'mountain', 'cloud', 'sea', 'plain', 'forest', 'trees' 'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree', 'flowers' 'tulip', 'sunflower', 'orchid', 'poppy', 'rose', 'largeman-madeoutdoorthings' 'bridge', 'skyscraper', 'road', 'house', 'castle', 'largecarnivores' 'wolf', 'lion', 'bear', 'leopard', 'tiger','smallmammals' 'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse',
+ 'householdfurniture' 'table', 'couch', 'bed', 'wardrobe', 'chair','mediummammals' 'skunk', 'raccoon', 'fox', 'porcupine', 'possum','vehicles2' 'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket','insects' 'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach', 'non-insectinvertebrates' 'spider', 'worm', 'snail', 'lobster', 'crab', 'aquaticmammals' 'seal', 'beaver', 'whale', 'otter', 'dolphin']"
+5,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('global') as graph:
+  email = Concept(name='email')
+ 
+  spam1 = email(name='spam1')
+  spam2 = email(name='spam2')","# The constraint of
+  xorL(spam1, spam2)",binary,1,no,"
+Basic Concepts: ['email'] 
+
+Task Concepts: ['Spam', 'Regular']"
+6,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
+ ","with Graph('global') as graph:
+  review = Concept(name='review')
+ 
+  positive = review(name='positive')
+  negative = review(name='negative')","disjoint(positive, negative)",binary,1,no,"Basic Concepts: ['review'] 
+
+Task Concepts: ['positive', 'negative']"
+7,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
+
+Given a procedural paragraph, the model must show the state of procedures in consequent steps. In this manner, each procedure contains steps, each of which is identified by its location, which can be non-existence, known, or unknown.
+
+For a transition between two states of a step, an action is required, which can be create, destroy, or other.","Steps should have a fixed order. Also, if an order is to create, then the location of a step should change from known or unknown to non-existence. Similarly, if an order is to destroy, then the location of a step should change from non-existence to known or unknown.","with Graph('global') as graph:
+  procedure = Concept(""procedure"")
+  step = Concept(""step"")
+  (procedure_contain_step, ) = procedure.contains(step)
+ # entity = Concept(""entity"")
+  non_existence = step(""non_existence"")
+  unknown_loc = step(""unknown_location"")
+  known_loc = step(""known_location"")
+  before = Concept(""before"")
+  (before_arg1, before_arg2) = before.has_a(arg1=step, arg2=step)
+  action = Concept(""action"")
+  (action_arg1, action_arg2) = action.has_a(arg1=step, arg2=step)
+  create = action(name=""create"")
+  destroy = action(name=""destroy"")
+  other = action(name=""other"")","nandL(create, destroy, other)
+  nandL(known_loc, unknown_loc, non_existence)
+  
+  ifL(create(""x""), andL(non_existence(path=(""x"", ""arg1"")), orL(known_loc(path=(""x"", ""arg2"")), unknown_loc(path=(""x"", ""arg2"")))))
+  ifL(destroy(""x"")), andL(orL(known_loc(path=(""x"", ""arg1"")), unknown_loc(path=(""x"", ""arg1""))), non_existence(path=(""x"", ""arg2"")))",binray,4,yes,"Basic Concepts: ['procedure','step','before','action'] 
+
+Task Concepts: ['create','destroy','other', 'non_existence','unknown_loc', 'known_loc']"
+8,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
+
+Each paragraph in this task is a procedural text that describes the cause-and-effect relations between a series of events. Consequently, each paragraph contains a list of questions about the relations between the events in this paragraph, which would be more (positive effect), less (negative effect), or no effect.
+","There are two types of constraints between questions related to a paragraph in this task: symmetric and transitivity.
+
+Symmetric: If two questions are symmetric, the answer to them would also reflect that as such:
+more -> less
+less -> more
+no effect -> no effect
+
+Transitivity: If three  questions have transitivity between them, meaning that:
+1. The effect of the first question is the cause of the second question
+2. The cause of the first question is the cause of the third question
+3. The effect of the second question is the effect of the third question
+
+They must follow these two rules:
+if q1 is more and q2 is more then q3 is more
+if q1 is more and q2 is less then q3 is less","with Graph('WIQA_graph') as graph:
+    paragraph = Concept(name='paragraph')
+    question = Concept(name='question')
+    para_quest_contains, = paragraph.contains(question)
+
+    is_more = question(name='is_more')
+    is_less = question(name='is_less')
+    no_effect = question(name='no_effect')
+
+    
+    exactL(is_more, is_less, no_effect)","    symmetric = Concept(name='symmetric')
+    s_arg1, s_arg2 = symmetric.has_a(arg1=question, arg2=question)
+
+
+    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1.reversed)), is_less(path=('x', s_arg2.reversed))))
+    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1.reversed)), is_less(path=('x', s_arg2.reversed))))
+	
+    transitive = Concept(name='transitive')
+    t_arg1, t_arg2, t_arg3 = transitive.has_a(arg11=question, arg22=question, arg33=question)
+
+    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1.reversed)), is_more(path=('x', t_arg2.reversed))),is_more(path=('x', t_arg3))))
+
+    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1.reversed)), is_less(path=('x', t_arg2.reversed))),is_less(path=('x', t_arg3))))",binray,3,yes,"Basic Concepts: ['paragraph','question','symmetric','transitive'] 
+
+Task Concepts: ['is_more','is_less','no_effect']"
+9,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
+
+Here, we have a collection of entities and a list of sentences that describe an attribute of those entities. Some of these attributes are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two attributes that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between attributes that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an attribute applies to an entity. In that case, all attributes with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
+
+","with Graph('belief_bank') as graph:
+
+    subject = Concept(name='subject')
+    facts = Concept(name='facts')
+    subject_facts_contains, = subject.contains(facts)
+
+    fact_check = facts(name='fact_check')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(arg1=facts, arg2=facts)
+
+    nimplication = Concept(name='nimplication')
+    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)","    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', implication)))), fact_check(path=('s', i_arg2)))
+    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', nimplication)))), notL(fact_check(path=('s', ni_arg2))))",binray,2,yes,"Basic Concepts: ['subject','implication','nimplication'] 
+
+Task Concepts: ['facts']"
+10,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
+
+Here, we have a paragraph that describes logical reasoning rules in natural language. For each paragraph, we have a list of questions that ask for the True or False state of a fact. The model should look at the paragraph to determine whether the fact is stated or inferred based on the implication rules.
+
+
+
+","The constraints here are between the questions of a paragraph. Imagine an implication rule in the paragraph that states if fact1, then fact2. Then, if the model answers True to the question ""Is fact1 correct,"" it must answer True to the question ""Is fact2 correct?"" as well.","with Graph('ruletaker_bank') as graph:
+
+    Context = Concept(name='context')
+    Question = Concept(name='question')
+    context_question_contains, = Context.contains(Question)
+
+    qlabel = Question(name='qlabel')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(arg1=Question, arg2=Question)","    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', implication)))), qlabel(path=('s', i_arg2)))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
+
+Task Concepts: ['qlabel']"
+11,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
+
+In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 9. Here, the sum of the pairs of digits is also provided.
+
+",The predicted classes of a pair of images must equal their provided sum.,"with Graph(name='MNIST_sum') as graph:
+    image_batch = Concept(name='image_batch')
+    image = Concept(name='image')
+
+    image_contains, = image_batch.contains(image)
+
+    digit = image(name='digits',ConceptClass=EnumConcept,values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
+
+    image_pair = Concept(name='pair')
+    pair_d0, pair_d1 = image_pair.has_a(digit0=image, digit1=image)
+
+    # sum value classes 0-18
+    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])","
+    exactL(*digit.attributes)
+    exactL(*s.attributes)
+
+    fixedL(s(""x"", eqL(image_pair, ""summationEquality"", {True})))
+
+    for sum_val in range(19):
+        sum_combinations = []
+
+        sum_nm = ""s""+str(sum_val)
+
+        for d0_val in range(sum_val + 1):
+            d1_val = sum_val - d0_val
+
+            if d0_val >= 10 or d1_val >= 10:
+                continue
+
+            d0_nm = ""n""+str(d0_val)
+            d1_nm = ""n""+str(d1_val)
+
+            # for each combination of digits that sum to sum_val add constraint to list
+            sum_combinations.append(andL(getattr(digit, d0_nm)(path=('x', pair_d0)),getattr(digit, d1_nm)(path=('x', pair_d1))))
+
+        print(sum_val, '-', sum_combinations)
+
+        if len(sum_combinations) == 1:
+            ifL(getattr(s, sum_nm)('x'),sum_combinations[0])
+        else:
+            ifL(getattr(s, sum_nm)('x'),orL(*sum_combinations))",binary,3,yes,"Basic Concepts: ['image_batch','image','digit','image_pair','summations'] 
+
+Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9','s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18']"
+12,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
+
+The input is a partially filled Sudoku puzzle that must be filled. The model should model the entire Suduko, its rows, columns, and tables.","No number should be repeated more than once inside any row, column, or table.","with Graph('sudoko') as graph:
+
+    sudoku = Concept('sodoku')
+
+    empty_entry = Concept(name='empty_entry')
+    (empty_rel,) = sudoku.contains(empty_entry)
+
+    same_row = Concept(name='same_row')
+    (same_row_arg1, same_row_arg2) = same_row.has_a(arg1=empty_entry, arg2=empty_entry)
+
+    same_col = Concept(name='same_col')
+    (same_col_arg1, same_col_arg2) = same_col.has_a(col1=empty_entry, col2=empty_entry)
+
+    same_table = Concept(name='same_table')
+    (same_table_arg1, same_table_arg2) = same_table.has_a(entry1=empty_entry, entry2=empty_entry)
+
+    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
+","	fixedL(empty_entry_label('x', eqL(empty_entry, 'fixed', {True})))
+    for val in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
+        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))",multi,2,yes,"Basic Concepts: ['sudoku','empty_entry','same_row','same_col','same_table','empty_entry_label'] 
+
+Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9']"
+13,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
+
+Here, the input would be a chess board with some queens already placed on it. The chess board with its cells should be modeled, and the remaining queens should be correctly placed.",No two queens should be able to attack each other.,"with Graph('chess_graph') as graph:
+    chess_board = Concept(name='chess_board')
+    queen_placed = chess_board(name='queen_placed')
+
+    same_row = Concept(name='same_row')
+    (same_row_arg1, same_row_arg2) = same_row.has_a(arg1=queen_placed, arg2=queen_placed)
+
+    same_column = Concept(name='same_column')
+    (same_col_arg1, same_col_arg2) = same_column.has_a(arg1=queen_placed, arg2=queen_placed)
+
+    same_diagonal = Concept(name='same_diagonal')
+    (same_diagonal_arg1, same_diagonal_arg2) = same_diagonal.has_a(arg1=queen_placed, arg2=queen_placed)","    ifL(queen_placed('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), queen_placed('y', path=('z', same_row_arg2))))))
+    ifL(queen_placed('x'), notL(existsL(andL(same_column('z', path=('x', same_col_arg1.reversed)), queen_placed('y', path=('z', same_col_arg2))))))
+    ifL(queen_placed('x'), notL(existsL(andL(same_diagonal('z', path=('x', same_diagonal_arg1.reversed)), queen_placed('y', path=('z', same_diagonal_arg2))))))",binary,2,yes,"Basic Concepts: ['queen_placed','same_row','same_column','same_diagonal'] 
+
+Task Concepts: ['chess_board']"
