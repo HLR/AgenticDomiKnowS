@@ -1,6 +1,7 @@
 from __future__ import annotations
 from fastapi import FastAPI, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import sys; sys.path.append("../")
 from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, model_to_typed_dict, BuildStateModel, typed_dict_changes
 from server.session import *
@@ -45,7 +46,7 @@ def init_graph(task_description: str, ctx = Depends(current_session)):
     config = {"configurable": {"thread_id": "ID: " + str(session_id)}}
     sess["data"]["config"] = config
     graph.invoke(initial_state, config=config)
-    return typed_dict_to_model(graph.get_state(config=config).values)
+    return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
 @app.post("/UI")
 def step_graph(buildstate: BuildStateModel, ctx = Depends(current_session)):
@@ -57,7 +58,7 @@ def step_graph(buildstate: BuildStateModel, ctx = Depends(current_session)):
     if new_changes:
         graph.update_state(ctx["session"]["data"]["config"], state, as_node="graph_human")
     graph.invoke(None, config=ctx["session"]["data"]["config"])
-    return typed_dict_to_model(graph.get_state(config=config).values)
+    return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
 if __name__ == "__main__":
     import uvicorn

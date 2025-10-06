@@ -99,7 +99,7 @@ if __name__ == "__main__":
     }
     example_dict =dict()
     
-    model_instance = typed_dict_to_model(example_dict, BuildStateModel)
+    model_instance = typed_dict_to_model(example_dict, BuildStateModel), 
     print("Pydantic model instance:", model_instance)
 
     roundtrip = model_to_typed_dict(model_instance)

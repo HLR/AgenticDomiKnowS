@@ -1,5 +1,6 @@
 from __future__ import annotations
 import traceback, argparse, os
+import sys; sys.path.append("../")
 from Agent.llm import LLM
 from Agent.graph_prompt import get_graph_prompt, load_all_graphs, get_graph_reviewer_prompt
 from typing import Any, Callable, Dict, List, Optional, TypedDict

@@ -6,23 +6,45 @@ interface ProcessUpdate {
   timestamp: string;
 }
 
+interface BuildState {
+  Task_definition: string;
+  graph_rag_examples: string[];
+  graph_max_attempts: number;
+  graph_attempt: number;
+  graph_code_draft: string[];
+  graph_review_notes: string[];
+  graph_reviewer_agent_approved: boolean;
+  graph_exe_notes: string[];
+  graph_exe_agent_approved: boolean;
+  human_approved: boolean;
+  human_notes: string;
+}
+
 interface ProcessMonitorProps {
   updates: ProcessUpdate[];
   isProcessing: boolean;
+  buildState?: BuildState;
 }
 
-export default function ProcessMonitor({ updates, isProcessing }: ProcessMonitorProps) {
+export default function ProcessMonitor({ updates, isProcessing, buildState }: ProcessMonitorProps) {
   const getStepIcon = (step: string) => {
     switch (step) {
       case 'initialization':
+      case 'rag_selection':
         return '🚀';
       case 'ai_review_1':
       case 'ai_review_2':
       case 'ai_review_3':
+      case 'ai_review':
         return '🤖';
       case 'code_generation':
         return '💻';
+      case 'execution_check':
+        return '⚡';
+      case 'human_review':
+        return '👤';
       case 'finalization':
+      case 'completion':
         return '✅';
       default:
         return '⚡';
@@ -32,14 +54,21 @@ export default function ProcessMonitor({ updates, isProcessing }: ProcessMonitor
   const getStepColor = (step: string) => {
     switch (step) {
       case 'initialization':
+      case 'rag_selection':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'ai_review_1':
       case 'ai_review_2':
       case 'ai_review_3':
+      case 'ai_review':
         return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'code_generation':
         return 'bg-green-50 text-green-700 border-green-200';
+      case 'execution_check':
+        return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'human_review':
+        return 'bg-pink-50 text-pink-700 border-pink-200';
       case 'finalization':
+      case 'completion':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
@@ -122,6 +151,51 @@ export default function ProcessMonitor({ updates, isProcessing }: ProcessMonitor
           <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
             {updates.length} step{updates.length !== 1 ? 's' : ''} completed
           </span>
+        </div>
+      )}
+
+      {/* BuildState Summary */}
+      {buildState && (
+        <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+          <h4 className="text-sm font-medium text-gray-800 flex items-center">
+            <span className="mr-2">📊</span>
+            Build Status
+          </h4>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="font-medium text-gray-600">Attempt</div>
+              <div className="text-gray-800">{buildState.graph_attempt}/{buildState.graph_max_attempts}</div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-2">
+              <div className="font-medium text-gray-600">Code Drafts</div>
+              <div className="text-gray-800">{buildState.graph_code_draft.length}</div>
+            </div>
+            
+            <div className={`rounded-lg p-2 ${buildState.graph_reviewer_agent_approved ? 'bg-green-50' : 'bg-orange-50'}`}>
+              <div className="font-medium text-gray-600">AI Review</div>
+              <div className={buildState.graph_reviewer_agent_approved ? 'text-green-800' : 'text-orange-800'}>
+                {buildState.graph_reviewer_agent_approved ? '✅ Approved' : '⏳ Pending'}
+              </div>
+            </div>
+            
+            <div className={`rounded-lg p-2 ${buildState.graph_exe_agent_approved ? 'bg-green-50' : 'bg-red-50'}`}>
+              <div className="font-medium text-gray-600">Execution</div>
+              <div className={buildState.graph_exe_agent_approved ? 'text-green-800' : 'text-red-800'}>
+                {buildState.graph_exe_agent_approved ? '✅ Passed' : '❌ Failed'}
+              </div>
+            </div>
+          </div>
+
+          {buildState.graph_rag_examples.length > 0 && (
+            <div className="bg-blue-50 rounded-lg p-2">
+              <div className="text-xs font-medium text-blue-800 mb-1">RAG Examples</div>
+              <div className="text-xs text-blue-700">
+                {buildState.graph_rag_examples.length} reference{buildState.graph_rag_examples.length !== 1 ? 's' : ''} used
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
