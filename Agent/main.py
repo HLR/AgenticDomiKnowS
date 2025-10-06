@@ -34,7 +34,7 @@ def build_graph(
         msgs = [{"role": "system", "content": instructions}]
         all_examples = list(examples or [])
         task = state.get("Task_definition", "")
-        rag_selected = select_graph_examples(graph_DB, task, rag_k)
+        rag_selected = list(state.get("graph_rag_examples", []))
         if rag_selected:
             all_examples.extend(rag_selected)
         i = 0
@@ -162,14 +162,23 @@ def build_graph(
             return "approved"
         return "reform"
 
+    def graph_rag_selector(state: BuildState) -> BuildState:
+        task = state.get("Task_definition", "") or ""
+        rag_selected = select_graph_examples(graph_DB, task, rag_k)
+        return {
+            "graph_rag_examples": rag_selected or [],
+        }
+
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent", graph_swe_agent)
     builder.add_node("graph_reviewer", graph_reviewer)
     builder.add_node("graph_exe_agent", graph_exe_agent)
     builder.add_node("join_review_exe", join_review_exe)
     builder.add_node("graph_human", graph_human_agent)
+    builder.add_node("graph_rag_selector", graph_rag_selector)
 
-    builder.add_edge(START, "graph_swe_agent")
+    builder.add_edge(START, "graph_rag_selector")
+    builder.add_edge("graph_rag_selector", "graph_swe_agent")
     builder.add_edge("graph_swe_agent", "graph_reviewer")
     builder.add_edge("graph_swe_agent", "graph_exe_agent")
     builder.add_edge(["graph_reviewer", "graph_exe_agent"], "join_review_exe")
