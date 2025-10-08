@@ -8,10 +8,18 @@ from server.session import *
 from Agent.graph_prompt import load_all_graphs
 
 app = FastAPI()
+origins = [
+    "http://localhost:3000",
+    "http://localhost:49790",
+    "https://hlr-demo.egr.msu.edu",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:49790"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 initial_state, graph = pre_process_graph(
