@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  allowedDevOrigins: ['hlr-demo.egr.msu.edu', '*.hlr-demo.egr.msu.edu'],
 };
 
-export default nextConfig;
+module.exports = nextConfig;
+
