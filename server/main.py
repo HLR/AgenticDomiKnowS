@@ -10,7 +10,7 @@ from Agent.graph_prompt import load_all_graphs
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:49790"],
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 

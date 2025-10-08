@@ -4,6 +4,7 @@ interface ProcessUpdate {
   step: string;
   message: string;
   timestamp: string;
+  status?: 'pending' | 'active' | 'completed';
 }
 
 interface BuildState {
@@ -109,29 +110,55 @@ export default function ProcessMonitor({ updates, isProcessing, buildState }: Pr
       )}
 
       <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar">
-        {updates.map((update, index) => (
-          <div 
-            key={index} 
-            className={`flex items-start space-x-3 p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${getStepColor(update.step)}`}
-          >
-            <span className="text-xl flex-shrink-0 mt-0.5">{getStepIcon(update.step)}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium leading-relaxed">
-                {update.message}
-              </p>
-              <div className="flex items-center mt-2">
-                <span className="text-xs opacity-75">
-                  {formatTime(update.timestamp)}
-                </span>
-                <div className="ml-auto">
-                  <div className="w-2 h-2 bg-current rounded-full opacity-50"></div>
+        {updates.map((update, index) => {
+          const isActive = update.status === 'active';
+          const isCompleted = update.status === 'completed';
+          
+          return (
+            <div 
+              key={index} 
+              className={`flex items-start space-x-3 p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                isActive ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 animate-pulse' :
+                isCompleted ? getStepColor(update.step) :
+                'bg-gray-50 border-gray-200 opacity-60'
+              }`}
+            >
+              <span className="text-xl flex-shrink-0 mt-0.5">{getStepIcon(update.step)}</span>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium leading-relaxed ${
+                  isActive ? 'text-blue-900' : 
+                  isCompleted ? 'text-gray-800' : 
+                  'text-gray-600'
+                }`}>
+                  {update.message}
+                </p>
+                <div className="flex items-center mt-2">
+                  <span className={`text-xs ${
+                    isActive ? 'text-blue-700' : 
+                    isCompleted ? 'text-gray-600' : 
+                    'text-gray-500'
+                  }`}>
+                    {formatTime(update.timestamp)}
+                  </span>
+                  <div className="ml-auto flex items-center space-x-1">
+                    {isActive && (
+                      <div className="flex space-x-1">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    )}
+                    {isCompleted && (
+                      <div className="w-2 h-2 bg-current rounded-full opacity-50"></div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         
-        {isProcessing && (
+        {isProcessing && updates.length === 0 && (
           <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
             <div className="flex-1">
@@ -162,15 +189,28 @@ export default function ProcessMonitor({ updates, isProcessing, buildState }: Pr
             Build Status
           </h4>
           
+          {/* Task Definition Display */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-100">
+            <div className="text-xs font-medium text-blue-800 mb-1">Current Task</div>
+            <div className="text-xs text-blue-900 font-medium">
+              {buildState.Task_definition || 'No task defined'}
+            </div>
+          </div>
+
+          {/* Progress Grid */}
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-gray-50 rounded-lg p-2">
               <div className="font-medium text-gray-600">Attempt</div>
-              <div className="text-gray-800">{buildState.graph_attempt}/{buildState.graph_max_attempts}</div>
+              <div className="text-gray-800 font-semibold">
+                {buildState.graph_attempt}/{buildState.graph_max_attempts}
+              </div>
             </div>
             
             <div className="bg-gray-50 rounded-lg p-2">
               <div className="font-medium text-gray-600">Code Drafts</div>
-              <div className="text-gray-800">{buildState.graph_code_draft.length}</div>
+              <div className="text-gray-800 font-semibold">
+                {buildState.graph_code_draft.length}
+              </div>
             </div>
             
             <div className={`rounded-lg p-2 ${buildState.graph_reviewer_agent_approved ? 'bg-green-50' : 'bg-orange-50'}`}>
@@ -188,11 +228,67 @@ export default function ProcessMonitor({ updates, isProcessing, buildState }: Pr
             </div>
           </div>
 
+          {/* RAG Examples Section */}
           {buildState.graph_rag_examples.length > 0 && (
-            <div className="bg-blue-50 rounded-lg p-2">
-              <div className="text-xs font-medium text-blue-800 mb-1">RAG Examples</div>
-              <div className="text-xs text-blue-700">
-                {buildState.graph_rag_examples.length} reference{buildState.graph_rag_examples.length !== 1 ? 's' : ''} used
+            <div className="bg-purple-50 rounded-lg p-3 border border-purple-100">
+              <div className="text-xs font-medium text-purple-800 mb-1.5 flex items-center">
+                <span className="mr-1">📚</span>
+                RAG Examples Used
+              </div>
+              <div className="text-xs text-purple-700">
+                {buildState.graph_rag_examples.length} reference{buildState.graph_rag_examples.length !== 1 ? 's' : ''} loaded
+              </div>
+              {buildState.graph_rag_examples.slice(0, 3).map((example, idx) => (
+                <div key={idx} className="text-xs text-purple-600 mt-1 truncate">
+                  • {example}
+                </div>
+              ))}
+              {buildState.graph_rag_examples.length > 3 && (
+                <div className="text-xs text-purple-500 mt-1">
+                  +{buildState.graph_rag_examples.length - 3} more...
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Review Notes Section */}
+          {buildState.graph_review_notes.length > 0 && buildState.graph_review_notes[buildState.graph_review_notes.length - 1] && (
+            <div className="bg-amber-50 rounded-lg p-3 border border-amber-100">
+              <div className="text-xs font-medium text-amber-800 mb-1 flex items-center">
+                <span className="mr-1">📝</span>
+                Latest Review Note
+              </div>
+              <div className="text-xs text-amber-700 italic">
+                "{buildState.graph_review_notes[buildState.graph_review_notes.length - 1]}"
+              </div>
+            </div>
+          )}
+
+          {/* Execution Notes Section */}
+          {buildState.graph_exe_notes.length > 0 && buildState.graph_exe_notes[buildState.graph_exe_notes.length - 1] && (
+            <div className={`rounded-lg p-3 border ${buildState.graph_exe_agent_approved ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+              <div className={`text-xs font-medium mb-1 flex items-center ${buildState.graph_exe_agent_approved ? 'text-green-800' : 'text-red-800'}`}>
+                <span className="mr-1">⚡</span>
+                Latest Execution Note
+              </div>
+              <div className={`text-xs italic ${buildState.graph_exe_agent_approved ? 'text-green-700' : 'text-red-700'}`}>
+                "{buildState.graph_exe_notes[buildState.graph_exe_notes.length - 1]}"
+              </div>
+            </div>
+          )}
+
+          {/* Human Feedback Section */}
+          {buildState.human_notes && buildState.human_notes.trim() !== '' && (
+            <div className="bg-pink-50 rounded-lg p-3 border border-pink-100">
+              <div className="text-xs font-medium text-pink-800 mb-1 flex items-center">
+                <span className="mr-1">👤</span>
+                Human Feedback
+              </div>
+              <div className="text-xs text-pink-700 italic">
+                "{buildState.human_notes}"
+              </div>
+              <div className="text-xs text-pink-600 mt-1">
+                Status: {buildState.human_approved ? '✅ Approved' : '🔄 Needs Revision'}
               </div>
             </div>
           )}

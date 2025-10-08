@@ -23,15 +23,16 @@ interface HumanReviewInterfaceProps {
 }
 
 export default function HumanReviewInterface({ taskId, buildState, onApproval }: HumanReviewInterfaceProps) {
-  const [feedback, setFeedback] = useState('');
+  // Initialize feedback with existing human_notes if any
+  const [feedback, setFeedback] = useState(buildState.human_notes || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleApproval = async (approved: boolean) => {
     setIsSubmitting(true);
     try {
-      // Call the parent component's handler instead of making direct API calls
+      // Pass the feedback as human_notes to the backend
       onApproval(approved, feedback);
-      setFeedback('');
+      // Don't clear feedback - it will be preserved in buildState.human_notes
     } catch (error) {
       console.error('Error submitting approval:', error);
     } finally {
@@ -76,6 +77,20 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           {latestReview && (
             <p className="text-xs text-green-700 mt-1 italic">"{latestReview}"</p>
           )}
+          {buildState.graph_review_notes.length > 1 && (
+            <details className="mt-2">
+              <summary className="text-xs text-green-600 cursor-pointer hover:text-green-800">
+                View all {buildState.graph_review_notes.length} review notes
+              </summary>
+              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                {buildState.graph_review_notes.slice(0, -1).reverse().map((note, idx) => (
+                  <p key={idx} className="text-xs text-green-600 border-l-2 border-green-300 pl-2">
+                    #{buildState.graph_review_notes.length - idx - 1}: {note}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
 
         <div className="bg-purple-50 rounded-xl p-4">
@@ -89,37 +104,85 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           {latestExeNotes && (
             <p className="text-xs text-purple-700 mt-1 italic">"{latestExeNotes}"</p>
           )}
+          {buildState.graph_exe_notes.length > 1 && (
+            <details className="mt-2">
+              <summary className="text-xs text-purple-600 cursor-pointer hover:text-purple-800">
+                View all {buildState.graph_exe_notes.length} execution notes
+              </summary>
+              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                {buildState.graph_exe_notes.slice(0, -1).reverse().map((note, idx) => (
+                  <p key={idx} className="text-xs text-purple-600 border-l-2 border-purple-300 pl-2">
+                    #{buildState.graph_exe_notes.length - idx - 1}: {note}
+                  </p>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </div>
 
       {/* Generated Code */}
       {latestCode && (
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-800 flex items-center">
-            <span className="mr-2">💻</span>
-            Latest Generated Code
-          </h4>
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-gray-800 flex items-center">
+              <span className="mr-2">💻</span>
+              Latest Generated Code (Draft #{buildState.graph_code_draft.length})
+            </h4>
+            {buildState.graph_code_draft.length > 1 && (
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {buildState.graph_code_draft.length} versions
+              </span>
+            )}
+          </div>
           <div className="bg-gray-900 rounded-xl p-4 max-h-60 overflow-y-auto">
             <pre className="text-green-400 text-sm font-mono">
               <code>{latestCode}</code>
             </pre>
           </div>
+          
+          {/* Show previous code drafts */}
+          {buildState.graph_code_draft.length > 1 && (
+            <details className="bg-gray-50 rounded-lg p-3">
+              <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800 font-medium">
+                📜 View previous code versions ({buildState.graph_code_draft.length - 1} older)
+              </summary>
+              <div className="mt-3 space-y-3">
+                {buildState.graph_code_draft.slice(0, -1).reverse().map((code, idx) => (
+                  <div key={idx} className="border border-gray-300 rounded-lg overflow-hidden">
+                    <div className="bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700">
+                      Draft #{buildState.graph_code_draft.length - idx - 1}
+                    </div>
+                    <div className="bg-gray-900 p-3 max-h-40 overflow-y-auto">
+                      <pre className="text-green-400 text-xs font-mono">
+                        <code>{code}</code>
+                      </pre>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       )}
 
       {/* Feedback Input */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          Your Feedback (Optional)
+          Your Feedback {!buildState.graph_reviewer_agent_approved || !buildState.graph_exe_agent_approved ? '(Required for revision)' : '(Optional)'}
         </label>
         <textarea
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Provide specific feedback on what needs to be improved or changed..."
+          placeholder="Provide specific feedback on what needs to be improved or changed. This will be saved as human_notes in the BuildState..."
           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
           rows={3}
           disabled={isSubmitting}
         />
+        <div className="text-xs text-gray-500 flex items-center justify-between">
+          <span>💡 This feedback helps the AI understand what to improve</span>
+          <span>{feedback.length} characters</span>
+        </div>
       </div>
 
       {/* Action Buttons */}

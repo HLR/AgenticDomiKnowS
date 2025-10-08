@@ -5,6 +5,7 @@ import ChatInterface from '@/components/ChatInterface';
 import ProcessMonitor from '@/components/ProcessMonitor';
 import GraphVisualization from '@/components/GraphVisualization';
 import HumanReviewInterface from '@/components/HumanReviewInterface';
+import { useOptimisticProgress } from '@/hooks/useOptimisticProgress';
 
 interface ProcessUpdate {
   step: string;
@@ -55,6 +56,9 @@ export default function MainApp() {
   const [buildState, setBuildState] = useState<BuildState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+
+  // Generate optimistic progress updates from BuildState changes
+  const progressUpdates = useOptimisticProgress(buildState, isProcessing);
 
   // Get session info on mount
   useEffect(() => {
@@ -192,6 +196,30 @@ export default function MainApp() {
   const showResult = buildState && buildState.human_approved;
   const hasActiveTask = buildState !== null;
 
+  // Generate mock graph visualization from code
+  const generateGraphResult = (code: string): GraphResult | null => {
+    if (!code) return null;
+    
+    // Parse code to extract graph structure (simplified)
+    // In a real implementation, you'd parse the actual DomiKnows code
+    return {
+      nodes: [
+        { id: '1', label: 'Concept 1', type: 'concept', x: 50, y: 100 },
+        { id: '2', label: 'Concept 2', type: 'concept', x: 200, y: 100 },
+        { id: '3', label: 'Relation', type: 'relation', x: 125, y: 200 }
+      ],
+      edges: [
+        { id: 'e1', source: '1', target: '3', label: 'relates_to' },
+        { id: 'e2', source: '2', target: '3', label: 'associates_with' }
+      ],
+      code: code
+    };
+  };
+
+  const graphResult = showResult && buildState?.graph_code_draft.length > 0
+    ? generateGraphResult(buildState.graph_code_draft[buildState.graph_code_draft.length - 1])
+    : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Header */}
@@ -244,29 +272,23 @@ export default function MainApp() {
             )}
             
             {/* Graph Result */}
-            {showResult && buildState && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                  ✅ Task Completed Successfully!
-                </h3>
-                <div className="bg-green-50 rounded-xl p-4 mb-4">
-                  <h4 className="font-medium text-green-900 mb-2">Final Result</h4>
-                  <p className="text-green-800">Task: {buildState.Task_definition}</p>
-                  <p className="text-green-700 text-sm mt-1">
-                    Completed after {buildState.graph_attempt} attempt(s)
-                  </p>
+            {showResult && buildState && graphResult && (
+              <div className="space-y-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                    ✅ Task Completed Successfully!
+                  </h3>
+                  <div className="bg-green-50 rounded-xl p-4">
+                    <h4 className="font-medium text-green-900 mb-2">Final Result</h4>
+                    <p className="text-green-800">Task: {buildState.Task_definition}</p>
+                    <p className="text-green-700 text-sm mt-1">
+                      Completed after {buildState.graph_attempt} attempt(s)
+                    </p>
+                  </div>
                 </div>
                 
-                {buildState.graph_code_draft.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="font-medium text-gray-800">Generated Code:</h4>
-                    <div className="bg-gray-900 rounded-xl p-4 max-h-60 overflow-y-auto">
-                      <pre className="text-green-400 text-sm font-mono">
-                        <code>{buildState.graph_code_draft[buildState.graph_code_draft.length - 1]}</code>
-                      </pre>
-                    </div>
-                  </div>
-                )}
+                {/* Graph Visualization Component */}
+                <GraphVisualization result={graphResult} />
               </div>
             )}
           </div>
@@ -274,7 +296,7 @@ export default function MainApp() {
           {/* Process Monitor */}
           <div className="xl:col-span-1">
             <ProcessMonitor 
-              updates={[]} // No real-time updates in this version
+              updates={progressUpdates}
               isProcessing={isProcessing}
               buildState={buildState || undefined}
             />
