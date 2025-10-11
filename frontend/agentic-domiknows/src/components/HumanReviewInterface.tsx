@@ -175,7 +175,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
           placeholder="Provide specific feedback on what needs to be improved or changed. This will be saved as human_notes in the BuildState..."
-          className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+          className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500"
           rows={3}
           disabled={isSubmitting}
         />

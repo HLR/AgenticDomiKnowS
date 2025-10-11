@@ -13,13 +13,10 @@ origins = [
     "http://localhost:49790",
     "https://hlr-demo.egr.msu.edu",
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
 initial_state, graph = pre_process_graph(
@@ -43,7 +40,7 @@ def logout(response: Response, ctx = Depends(current_session)):
     SESSIONS.pop(sid, None)
     response.delete_cookie(SESSION_COOKIE)
     return {"ok": True}
-@app.get("/UI")
+@app.get("/initialize-graph")
 def init_graph(task_description: str, ctx = Depends(current_session)):
     sess = ctx["session"]
     sess.setdefault("data", {})
@@ -53,10 +50,10 @@ def init_graph(task_description: str, ctx = Depends(current_session)):
     new_state["Task_definition"] = task_description
     config = {"configurable": {"thread_id": "ID: " + str(session_id)}}
     sess["data"]["config"] = config
-    graph.invoke(initial_state, config=config)
+    graph.invoke(new_state, config=config)  # FIXED: Use new_state instead of initial_state
     return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
-@app.post("/UI")
+@app.post("/continue-graph")
 def step_graph(buildstate: BuildStateModel, ctx = Depends(current_session)):
     config = ctx["session"]["data"]["config"]
 

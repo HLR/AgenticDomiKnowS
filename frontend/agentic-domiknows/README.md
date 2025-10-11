@@ -3,6 +3,22 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ## Getting Started
 
 First, run the development server:
+# Navigate to frontend directory
+```bash
+cd frontend/agentic-domiknows
+```
+# Install dependencies (if not already installed)
+```bash
+npm install
+```
+# Build for production (creates optimized build)
+```bash
+npm run build
+```
+# Start production server
+```bash
+npm run start
+```
 
 ```bash
 npm run dev

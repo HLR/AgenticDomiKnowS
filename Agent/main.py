@@ -92,7 +92,8 @@ def build_graph(
                 "graph_exe_notes": exe_notes,
                 "graph_exe_agent_approved": False,
             }
-        return {"graph_exe_notes": exe_notes+[""],"graph_exe_agent_approved": True}
+        exe_notes.append("")
+        return {"graph_exe_notes": exe_notes,"graph_exe_agent_approved": True}
 
     def graph_reviewer(state: BuildState) -> BuildState:
         instructions, examples = get_graph_reviewer_prompt()
@@ -137,15 +138,24 @@ def build_graph(
 
     def graph_human_agent(state: BuildState) -> BuildState:
         human_approved = state.get("human_approved", "")
+        print(f"🤖 === GRAPH_HUMAN_AGENT CALLED ===")
+        print(f"🤖 Current human_approved: {human_approved}")
+        print(f"🤖 Type of human_approved: {type(human_approved)}")
+        print(f"🤖 Boolean evaluation: {bool(human_approved)}")
+        
         if human_approved:
+            print(f"✅ Human already approved - returning state unchanged")
             return state
         else:
-            graph_review_notes = state.get("graph_review_notes", [])
+            print(f"❌ Human not approved - processing rejection/revision")
+            graph_review_notes = list(state.get("graph_review_notes", []))
             graph_review_notes.append(state.get("human_notes", ""))
+            graph_exe_notes = list(state.get("graph_exe_notes", []))
+            graph_exe_notes.append("")
             return {
                 "graph_review_notes": graph_review_notes,
                 "graph_reviewer_agent_approved": False,
-                "graph_exe_notes": state.get("graph_exe_notes", []) +[""],
+                "graph_exe_notes": graph_exe_notes,
                 "graph_exe_agent_approved": False,
             }
 
@@ -209,7 +219,7 @@ def build_graph(
     return graph
 
 def pre_process_graph(test_run = False, task_id=0, task_description="", graph_examples=load_all_graphs(), rag_k=3, max_graphs_check=3):
-    initial_state: BuildState = {
+    initial_state = {
         "Task_definition": task_description,
         "graph_rag_examples": [],
         "graph_max_attempts": int(max_graphs_check),
@@ -219,9 +229,15 @@ def pre_process_graph(test_run = False, task_id=0, task_description="", graph_ex
         "graph_reviewer_agent_approved": False,
         "graph_exe_notes": [],
         "graph_exe_agent_approved": False,
-        "human_approved": True,
+        "human_approved": False,  # Fixed: Should start as False
         "human_notes": "",
     }
+    
+    print(f"🏁 === INITIAL STATE CREATED ===")
+    print(f"🏁 human_approved set to: {initial_state['human_approved']}")
+    print(f"🏁 Type: {type(initial_state['human_approved'])}")
+    print(f"🏁 Full initial_state: {initial_state}")
+    
     llm = LLM(test_run=test_run)
     graph_DB = upsert_examples(task_id=task_id, examples=graph_examples or [], forced=True)
     print("RAG DB created.")

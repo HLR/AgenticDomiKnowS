@@ -62,19 +62,24 @@ export function useOptimisticProgress(
     }
 
     // Step 3: Code Generation Attempts
+    const totalAttempts = Math.max(state.graph_attempt, state.graph_max_attempts);
     for (let i = 0; i < state.graph_attempt; i++) {
       steps.push({
         step: `code_generation_${i + 1}`,
-        message: `Attempt ${i + 1}/${state.graph_max_attempts}: Generated code draft`,
+        message: `Attempt ${i + 1}/${totalAttempts}: Generated code draft`,
         timestamp: now,
         status: 'completed'
       });
 
       // Show review if exists
       if (state.graph_review_notes[i]) {
+        const reviewNote = state.graph_review_notes[i];
+        const isApproved = reviewNote.toLowerCase().includes('approve');
         steps.push({
           step: `ai_review_${i + 1}`,
-          message: `AI Review: ${state.graph_review_notes[i].substring(0, 60)}${state.graph_review_notes[i].length > 60 ? '...' : ''}`,
+          message: isApproved 
+            ? `AI Review (Attempt ${i + 1}): ✅ Approved - ${reviewNote.substring(0, 50)}${reviewNote.length > 50 ? '...' : ''}`
+            : `AI Review (Attempt ${i + 1}): 🔄 ${reviewNote.substring(0, 60)}${reviewNote.length > 60 ? '...' : ''}`,
           timestamp: now,
           status: 'completed'
         });
@@ -82,16 +87,31 @@ export function useOptimisticProgress(
 
       // Show execution if exists
       if (state.graph_exe_notes[i]) {
-        const passed = state.graph_exe_agent_approved;
+        const exeNote = state.graph_exe_notes[i];
+        const passed = !exeNote.toLowerCase().includes('error') && !exeNote.toLowerCase().includes('failed');
         steps.push({
           step: `execution_check_${i + 1}`,
           message: passed 
-            ? `Execution Check: ✅ Passed` 
-            : `Execution Check: ❌ ${state.graph_exe_notes[i].substring(0, 50)}...`,
+            ? `Execution (Attempt ${i + 1}): ✅ Passed validation` 
+            : `Execution (Attempt ${i + 1}): ❌ ${exeNote.substring(0, 50)}${exeNote.length > 50 ? '...' : ''}`,
           timestamp: now,
           status: 'completed'
         });
       }
+    }
+
+    // Step 3.5: Show if currently waiting for next iteration
+    const bothApproved = state.graph_reviewer_agent_approved && state.graph_exe_agent_approved;
+    const maxAttemptsReached = state.graph_attempt >= state.graph_max_attempts;
+    
+    if (!bothApproved && !maxAttemptsReached && state.graph_attempt > 0) {
+      const totalAttempts = Math.max(state.graph_attempt + 1, state.graph_max_attempts);
+      steps.push({
+        step: 'iterating',
+        message: `Processing next iteration (${state.graph_attempt + 1}/${totalAttempts})...`,
+        timestamp: now,
+        status: 'active'
+      });
     }
 
     // Step 4: Human Review Stage
@@ -107,14 +127,29 @@ export function useOptimisticProgress(
       });
     }
 
-    // Step 5: Completion
-    if (state.human_approved) {
+    // Step 5: Completion - ONLY when ALL THREE conditions are met
+    // Must have: human_approved: true AND graph_reviewer_agent_approved: true AND graph_exe_agent_approved: true
+    const isFullyCompleted = state.human_approved === true && 
+                             state.graph_reviewer_agent_approved === true && 
+                             state.graph_exe_agent_approved === true;
+    
+    // Debug logging for completion logic
+    console.log('🏁 === COMPLETION CHECK ===');
+    console.log('🏁 human_approved:', state.human_approved);
+    console.log('🏁 graph_reviewer_agent_approved:', state.graph_reviewer_agent_approved);
+    console.log('🏁 graph_exe_agent_approved:', state.graph_exe_agent_approved);
+    console.log('🏁 isFullyCompleted (all three must be true):', isFullyCompleted);
+    
+    if (isFullyCompleted) {
+      console.log('✅ All three approvals confirmed - showing completion step');
       steps.push({
         step: 'completion',
         message: '✅ Task completed successfully!',
         timestamp: now,
         status: 'completed'
       });
+    } else {
+      console.log('⏳ Not all approvals completed yet - no completion step');
     }
 
     return steps;
@@ -191,27 +226,27 @@ export function useOptimisticProgress(
 
   }, []);
 
-  // When processing starts, show simulated progress
-  useEffect(() => {
-    if (isProcessing && !buildState) {
-      simulateProgress();
-    }
-  }, [isProcessing, buildState, simulateProgress]);
-
-  // When buildState arrives, replace simulated with real progress
+  // Update progress when buildState changes (real-time updates during polling)
   useEffect(() => {
     if (buildState) {
-      // Clear simulation timers
-      simulationTimerRef.current.forEach(timer => clearTimeout(timer));
-      simulationTimerRef.current = [];
-      
-      // Show real progress
       const steps = generateProgressFromState(buildState);
       setProgressSteps(steps);
     } else if (!isProcessing) {
       setProgressSteps([]);
     }
   }, [buildState, isProcessing, generateProgressFromState]);
+
+  // Show initial processing step when started
+  useEffect(() => {
+    if (isProcessing && !buildState) {
+      setProgressSteps([{
+        step: 'processing',
+        message: 'Initializing task...',
+        timestamp: new Date().toISOString(),
+        status: 'active'
+      }]);
+    }
+  }, [isProcessing, buildState]);
 
   // Cleanup timers on unmount
   useEffect(() => {

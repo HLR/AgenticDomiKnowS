@@ -35,7 +35,7 @@ export default function ChatInterface({ onSubmit, isProcessing }: ChatInterfaceP
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe the knowledge graph you want to create using the DomiKnows framework. Be as detailed as possible..."
-            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200 bg-gray-50 focus:bg-white text-gray-700 placeholder-gray-400"
+            className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200 bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500 font-medium"
             rows={5}
             disabled={isProcessing}
           />

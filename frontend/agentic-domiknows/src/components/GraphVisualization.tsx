@@ -26,14 +26,58 @@ interface GraphVisualizationProps {
 export default function GraphVisualization({ result }: GraphVisualizationProps) {
   const [activeTab, setActiveTab] = useState<'graph' | 'code'>('graph');
 
+  // Debug logging for what GraphVisualization receives
+  console.log('🎨 === GRAPH VISUALIZATION RECEIVED ===');
+  console.log('📊 Result object:', result);
+  console.log('📊 Nodes received:', result.nodes.length);
+  console.log('📊 Edges received:', result.edges.length);
+  console.log('📊 Code length:', result.code.length);
+  
+  console.log('🔍 === DETAILED NODE ANALYSIS ===');
+  result.nodes.forEach((node, index) => {
+    console.log(`Node ${index + 1}:`, {
+      id: node.id,
+      label: node.label,
+      type: node.type,
+      position: { x: node.x, y: node.y },
+      svgX: node.x * 1.2,
+      svgY: node.y * 1.1
+    });
+  });
+  
+  console.log('🔍 === DETAILED EDGE ANALYSIS ===');
+  result.edges.forEach((edge, index) => {
+    const sourceNode = result.nodes.find(n => n.id === edge.source);
+    const targetNode = result.nodes.find(n => n.id === edge.target);
+    console.log(`Edge ${index + 1}:`, {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label,
+      sourceNode: sourceNode ? { id: sourceNode.id, label: sourceNode.label } : 'NOT FOUND',
+      targetNode: targetNode ? { id: targetNode.id, label: targetNode.label } : 'NOT FOUND'
+    });
+  });
+
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'concept':
-        return 'fill-blue-100 stroke-blue-400 text-blue-800';
+        return 'fill-blue-100 stroke-blue-400';
       case 'relation':
-        return 'fill-emerald-100 stroke-emerald-400 text-emerald-800';
+        return 'fill-emerald-100 stroke-emerald-400';
       default:
-        return 'fill-gray-100 stroke-gray-400 text-gray-800';
+        return 'fill-gray-100 stroke-gray-400';
+    }
+  };
+
+  const getNodeTextColor = (type: string) => {
+    switch (type) {
+      case 'concept':
+        return 'fill-blue-900'; // Dark blue for better contrast
+      case 'relation':
+        return 'fill-emerald-900'; // Dark emerald for better contrast
+      default:
+        return 'fill-gray-900'; // Dark gray for better contrast
     }
   };
 
@@ -136,7 +180,7 @@ export default function GraphVisualization({ result }: GraphVisualizationProps) 
                         x={(sourceNode.x * 1.2 + targetNode.x * 1.2) / 2}
                         y={(sourceNode.y * 1.1 + targetNode.y * 1.1) / 2 - 8}
                         textAnchor="middle"
-                        className="text-xs fill-gray-600 font-medium"
+                        className="text-xs fill-gray-800 font-bold"
                       >
                         {edge.label}
                       </text>
@@ -159,7 +203,7 @@ export default function GraphVisualization({ result }: GraphVisualizationProps) 
                       x={node.x * 1.2}
                       y={node.y * 1.1 + 5}
                       textAnchor="middle"
-                      className="text-sm font-semibold fill-current"
+                      className={`text-sm font-bold ${getNodeTextColor(node.type)}`}
                     >
                       {node.label}
                     </text>
@@ -179,8 +223,8 @@ export default function GraphVisualization({ result }: GraphVisualizationProps) 
                   <div key={node.id} className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-200">
                     <div className={`w-5 h-5 rounded-lg border-2 ${getNodeColor(node.type).replace('fill-', 'bg-').replace('stroke-', 'border-')}`}></div>
                     <div>
-                      <span className="text-sm font-medium text-gray-800">{node.label}</span>
-                      <p className="text-xs text-gray-500 capitalize">{node.type}</p>
+                      <span className="text-sm font-medium text-gray-900">{node.label}</span>
+                      <p className="text-xs text-gray-600 capitalize">{node.type}</p>
                     </div>
                   </div>
                 ))}
