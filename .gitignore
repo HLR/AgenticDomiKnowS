@@ -16,3 +16,9 @@ out/
 
 # Logs
 *.log
+
+#Graph Img
+graph_images/
+
+#py cache
+.pyc

@@ -15,11 +15,13 @@ interface ProcessUpdate {
 }
 
 interface BuildState {
+  Task_ID?: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
   graph_attempt: number;
   graph_code_draft: string[];
+  graph_visual_tools?: { [key: string]: any };
   graph_review_notes: string[];
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
@@ -42,31 +44,11 @@ export default function MainApp() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const humanReviewRef = useRef<HTMLDivElement>(null);
 
-  // Debug buildState changes
+  // Debug buildState changes - only log when received
   useEffect(() => {
-    console.log('🔄 === BUILD STATE CHANGED ===');
     if (buildState) {
-      console.log('📊 New BuildState received:');
-      console.log('📊 - Task:', buildState.Task_definition);
-      console.log('📊 - Attempt:', buildState.graph_attempt, '/', buildState.graph_max_attempts);
-      console.log('📊 - Code drafts count:', buildState.graph_code_draft?.length || 0);
-      console.log('📊 - Reviewer approved:', buildState.graph_reviewer_agent_approved);
-      console.log('📊 - Executor approved:', buildState.graph_exe_agent_approved);
-      console.log('📊 - Human approved:', buildState.human_approved);
-      
-      if (buildState.graph_code_draft && buildState.graph_code_draft.length > 0) {
-        console.log('📄 === LATEST CODE DRAFT ===');
-        const latestCode = buildState.graph_code_draft[buildState.graph_code_draft.length - 1];
-        console.log('📄 Latest code (full):');
-        console.log(latestCode);
-        console.log('📄 Code preview:', latestCode.substring(0, 200) + '...');
-      } else {
-        console.log('⚠️ No code drafts in BuildState');
-      }
-      
-      console.log('📊 Full BuildState object:', buildState);
-    } else {
-      console.log('📊 BuildState is null');
+      console.log('� === BUILDSTATE RECEIVED BY FRONTEND ===');
+      console.log('� Full BuildState object:', buildState);
     }
   }, [buildState]);
 
@@ -95,7 +77,6 @@ export default function MainApp() {
 
     try {
       // Step 1: Initialize the graph with task description
-      console.log('🚀 Initializing graph with task:', prompt);
       const initResponse = await fetch(`http://localhost:8000/initialize-graph?task_description=${encodeURIComponent(prompt)}`, {
         method: 'GET',
         credentials: 'include'
@@ -112,6 +93,7 @@ export default function MainApp() {
             graph_max_attempts: 3,
             graph_attempt: 0,
             graph_code_draft: [],
+            graph_visual_tools: {},
             graph_review_notes: [],
             graph_reviewer_agent_approved: false,
             graph_exe_notes: [],
@@ -128,80 +110,28 @@ export default function MainApp() {
       }
 
       let currentState = await initResponse.json();
-      console.log('✅ Initial state received from /initialize-graph:');
-      console.log('📦 Full initial state:', currentState);
-      console.log('📊 Initial state summary:', {
-        attempt: currentState.graph_attempt,
-        max_attempts: currentState.graph_max_attempts,
-        reviewer_approved: currentState.graph_reviewer_agent_approved,
-        executor_approved: currentState.graph_exe_agent_approved,
-        both_approved: currentState.graph_reviewer_agent_approved && currentState.graph_exe_agent_approved,
-        task: currentState.Task_definition
-      });
-      
-      // Check if we're already done (edge case)
-      if (currentState.graph_reviewer_agent_approved && currentState.graph_exe_agent_approved) {
-        console.log('⚠️ WARNING: Both agents already approved in initial state!');
-        console.log('⚠️ This means the loop will exit immediately without polling');
-      }
-      if (currentState.graph_attempt >= currentState.graph_max_attempts) {
-        console.log('⚠️ WARNING: Max attempts already reached in initial state!');
-        console.log(`⚠️ Attempt: ${currentState.graph_attempt} >= Max: ${currentState.graph_max_attempts}`);
-        console.log('⚠️ This means the loop will exit immediately without polling');
-      }
-      
       setBuildState(currentState);
 
       // Step 2: Polling loop - keep calling continue-graph until both approvals are true
-      let maxIterations = 20; // Safety limit to prevent infinite loops
+      let maxIterations = 20;
       let iterations = 0;
 
-      console.log('🔁 === STARTING POLLING LOOP ===');
-      console.log(`🔁 Max iterations allowed: ${maxIterations}`);
-
       while (iterations < maxIterations) {
-        console.log(`\n🔄 === LOOP ITERATION ${iterations + 1} ===`);
-        
-        // Check if both reviewer and execution agents have approved
         const bothApproved = currentState.graph_reviewer_agent_approved && currentState.graph_exe_agent_approved;
         
-        console.log(`📊 Current state check:`, {
-          iteration: iterations + 1,
-          attempt: currentState.graph_attempt,
-          max_attempts: currentState.graph_max_attempts,
-          reviewer_approved: currentState.graph_reviewer_agent_approved,
-          executor_approved: currentState.graph_exe_agent_approved,
-          both_approved: bothApproved,
-          task: currentState.Task_definition?.substring(0, 50) + '...'
-        });
-
         if (bothApproved) {
-          console.log('✅ Both agents approved! Stopping polling.');
-          console.log('✅ Loop will EXIT after this iteration');
           break;
         }
 
-        // Check if max attempts reached (fallback condition)
         if (currentState.graph_attempt >= currentState.graph_max_attempts) {
-          console.log('⚠️ Max attempts reached. Stopping polling.');
-          console.log(`⚠️ Attempts: ${currentState.graph_attempt} >= Max: ${currentState.graph_max_attempts}`);
           break;
         }
 
-        console.log(`⏳ Waiting 1.5 seconds before next API call...`);
-        // Wait a bit before next call (to avoid hammering the server)
         await new Promise(resolve => setTimeout(resolve, 1500));
-        console.log(`✅ Wait complete. Making API call now...`);
 
-        // Call continue-graph with current state
         try {
-          console.log(`🔄 Calling continue-graph (iteration ${iterations + 1})...`);
-          console.log(`📤 Request payload:`, {
-            Task_definition: currentState.Task_definition,
-            graph_attempt: currentState.graph_attempt,
-            reviewer_approved: currentState.graph_reviewer_agent_approved,
-            executor_approved: currentState.graph_exe_agent_approved
-          });
+          console.log('� === SENDING BUILDSTATE TO BACKEND ===');
+          console.log('📤 BuildState being sent:', currentState);
           
           const stepResponse = await fetch('http://localhost:8000/continue-graph', {
             method: 'POST',
@@ -212,57 +142,23 @@ export default function MainApp() {
             body: JSON.stringify(currentState),
           });
 
-          console.log(`📡 Response status: ${stepResponse.status} ${stepResponse.statusText}`);
-
           if (!stepResponse.ok) {
             const errorText = await stepResponse.text();
             console.error('❌ Server error during step:', errorText);
-            console.error('❌ Breaking out of loop due to server error');
-            break; // Stop polling on error
+            break;
           }
 
           const newState = await stepResponse.json();
-          console.log('✅ New state received from server:');
-          console.log('📥 Response data:', {
-            attempt: newState.graph_attempt,
-            reviewer_approved: newState.graph_reviewer_agent_approved,
-            executor_approved: newState.graph_exe_agent_approved,
-            review_notes_count: newState.graph_review_notes?.length || 0,
-            exe_notes_count: newState.graph_exe_notes?.length || 0,
-            code_draft_count: newState.graph_code_draft?.length || 0
-          });
-          
           currentState = newState;
-          console.log('🔄 Updated currentState variable with new state');
-          setBuildState(newState); // Update UI with new state
-          console.log('🔄 Updated React state (setBuildState called)');
+          setBuildState(newState);
           
         } catch (stepError) {
           console.error('❌ Error during continue-graph:', stepError);
-          console.error('❌ Breaking out of loop due to error');
-          break; // Stop polling on error
+          break;
         }
 
         iterations++;
-        console.log(`✅ Incremented iterations to ${iterations}`);
-        console.log(`🔁 Loop condition check: ${iterations} < ${maxIterations} = ${iterations < maxIterations}`);
       }
-
-      if (iterations >= maxIterations) {
-        console.warn('⚠️ Max iterations reached in polling loop');
-        console.warn(`⚠️ Stopped at iteration ${iterations}/${maxIterations}`);
-      } else {
-        console.log(`✅ Loop exited normally at iteration ${iterations}/${maxIterations}`);
-      }
-
-      console.log('\n🏁 === POLLING LOOP COMPLETE ===');
-      console.log('🏁 Final state:', {
-        attempt: currentState.graph_attempt,
-        max_attempts: currentState.graph_max_attempts,
-        reviewer_approved: currentState.graph_reviewer_agent_approved,
-        executor_approved: currentState.graph_exe_agent_approved,
-        total_iterations: iterations
-      });
 
       setIsProcessing(false);
 
@@ -276,6 +172,7 @@ export default function MainApp() {
         graph_max_attempts: 3,
         graph_attempt: 1,
         graph_code_draft: [`# Generated code for: ${prompt}\nfrom domiknows.graph import Graph\ngraph = Graph('demo_graph')`],
+        graph_visual_tools: {},
         graph_review_notes: ["Initial code structure looks good"],
         graph_reviewer_agent_approved: true,
         graph_exe_notes: ["Code syntax is valid"],
@@ -292,10 +189,6 @@ export default function MainApp() {
   const handleHumanApproval = async (approved: boolean, notes: string) => {
     if (!buildState) return;
 
-    console.log('👤 === HUMAN APPROVAL SUBMITTED ===');
-    console.log('👤 Approved:', approved);
-    console.log('👤 Notes:', notes);
-
     setIsProcessing(true);
     
     try {
@@ -308,10 +201,8 @@ export default function MainApp() {
         human_notes: notes
       };
 
-      console.log('👤 Sending updated state to /continue-graph:', updatedState);
-      if (shouldRestart) {
-        console.log('👤 Resetting human_approved to false due to suggestions provided');
-      }
+      console.log('� === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
+      console.log('� BuildState being sent:', updatedState);
 
       const response = await fetch('http://localhost:8000/continue-graph', {
         method: 'POST',
@@ -333,13 +224,10 @@ export default function MainApp() {
       }
 
       const newState = await response.json();
-      console.log('👤 Received new state after human approval:', newState);
       setBuildState(newState);
       
       // If human provided suggestions (regardless of approval), restart the AI review cycle
       if (notes && notes.trim() !== '') {
-        console.log('👤 Human provided suggestions - starting polling for new iterations...');
-        
         let currentState = newState;
         let maxIterations = 20;
         let iterations = 0;
@@ -347,27 +235,20 @@ export default function MainApp() {
         while (iterations < maxIterations) {
           const bothApproved = currentState.graph_reviewer_agent_approved && currentState.graph_exe_agent_approved;
           
-          console.log(`🔄 Post-rejection iteration ${iterations + 1}:`, {
-            attempt: currentState.graph_attempt,
-            reviewer_approved: currentState.graph_reviewer_agent_approved,
-            executor_approved: currentState.graph_exe_agent_approved,
-            both_approved: bothApproved
-          });
-
           if (bothApproved) {
-            console.log('✅ Both agents approved after revision! Stopping polling.');
             break;
           }
 
           if (currentState.graph_attempt >= currentState.graph_max_attempts) {
-            console.log('⚠️ Max attempts reached after revision. Stopping polling.');
             break;
           }
 
           await new Promise(resolve => setTimeout(resolve, 1500));
 
           try {
-            console.log(`🔄 Calling continue-graph (post-rejection iteration ${iterations + 1})...`);
+            console.log('� === SENDING BUILDSTATE TO BACKEND (Post-suggestion iteration) ===');
+            console.log('📤 BuildState being sent:', currentState);
+            
             const stepResponse = await fetch('http://localhost:8000/continue-graph', {
               method: 'POST',
               headers: {
@@ -414,66 +295,17 @@ export default function MainApp() {
                          (buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved ||
                           buildState.graph_attempt >= buildState.graph_max_attempts);
   
-  // Debug logging for human review visibility
-  useEffect(() => {
-    if (buildState) {
-      console.log('👤 === HUMAN REVIEW VISIBILITY CHECK ===');
-      console.log('👤 buildState exists:', !!buildState);
-      console.log('👤 human_approved:', buildState.human_approved);
-      console.log('👤 isProcessing:', isProcessing);
-      console.log('👤 graph_reviewer_agent_approved:', buildState.graph_reviewer_agent_approved);
-      console.log('👤 graph_exe_agent_approved:', buildState.graph_exe_agent_approved);
-      console.log('👤 graph_attempt:', buildState.graph_attempt);
-      console.log('👤 graph_max_attempts:', buildState.graph_max_attempts);
-      
-      const bothAgentsApproved = buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved;
-      const maxAttemptsReached = buildState.graph_attempt >= buildState.graph_max_attempts;
-      const shouldShowHumanReview = !buildState.human_approved && !isProcessing && (bothAgentsApproved || maxAttemptsReached);
-      
-      console.log('👤 bothAgentsApproved:', bothAgentsApproved);
-      console.log('👤 maxAttemptsReached:', maxAttemptsReached);
-      console.log('👤 shouldShowHumanReview:', shouldShowHumanReview);
-      console.log('👤 showHumanReview variable:', showHumanReview);
-      
-      if (buildState.human_approved) {
-        console.log('⚠️ ALERT: human_approved is TRUE - this should only happen after explicit user approval!');
-        console.log('⚠️ If you did not approve manually, this is a bug!');
-      }
-    }
-  }, [buildState, showHumanReview]);
-  
   // Auto-scroll to human review interface when it becomes visible
   useEffect(() => {
     if (showHumanReview && humanReviewRef.current) {
-      console.log('🎯 === AUTO-SCROLLING TO HUMAN REVIEW ===');
       setTimeout(() => {
         humanReviewRef.current?.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'center' 
         });
-      }, 500); // Small delay to ensure rendering is complete
+      }, 500);
     }
   }, [showHumanReview]);
-
-  // Force re-render when both agents become approved
-  useEffect(() => {
-    if (buildState && 
-        buildState.graph_reviewer_agent_approved && 
-        buildState.graph_exe_agent_approved && 
-        !buildState.human_approved) {
-      console.log('🚨 === BOTH AGENTS APPROVED - SHOULD SHOW HUMAN REVIEW ===');
-      console.log('🚨 Reviewer approved:', buildState.graph_reviewer_agent_approved);
-      console.log('🚨 Executor approved:', buildState.graph_exe_agent_approved);
-      console.log('🚨 Human approved:', buildState.human_approved);
-      console.log('🚨 Processing:', isProcessing);
-      console.log('🚨 showHumanReview calculated:', showHumanReview);
-      
-      // Force a small state update to trigger re-render if needed
-      if (!showHumanReview) {
-        console.log('⚠️ WARNING: showHumanReview is false but should be true!');
-      }
-    }
-  }, [buildState?.graph_reviewer_agent_approved, buildState?.graph_exe_agent_approved, buildState?.human_approved, isProcessing]);
   
   // Only show final result when human has approved AND both agents approved
   const showResult = buildState && buildState.human_approved && 
@@ -489,63 +321,22 @@ export default function MainApp() {
   // Parse DomiKnows code to generate graph visualization
   const generateGraphResult = (code: string): GraphResult | null => {
     if (!code || code.trim().length === 0) {
-      console.log('⚠️ No code provided to generateGraphResult');
       return null;
     }
     
     try {
-      console.log('🔍 === GRAPH PARSING DEBUG ===');
-      console.log('📄 Full code being parsed:');
-      console.log(code);
-      console.log('📏 Code length:', code.length);
-      console.log('🔍 Calling parseDomiKnowsCode...');
-      
       const result = parseDomiKnowsCode(code);
-      
-      console.log('✅ === PARSING RESULT ===');
-      console.log('📊 Total nodes found:', result.nodes.length);
-      console.log('📊 Total edges found:', result.edges.length);
-      console.log('🔍 Detailed nodes:');
-      result.nodes.forEach((node, index) => {
-        console.log(`  Node ${index + 1}:`, {
-          id: node.id,
-          label: node.label,
-          type: node.type,
-          position: { x: node.x, y: node.y }
-        });
-      });
-      console.log('🔍 Detailed edges:');
-      result.edges.forEach((edge, index) => {
-        console.log(`  Edge ${index + 1}:`, {
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          label: edge.label
-        });
-      });
       
       // If parsing resulted in no nodes, return fallback
       if (result.nodes.length === 0) {
-        console.log('⚠️ No nodes found in parsed result, using fallback');
         const fallback = createFallbackGraph(code);
-        console.log('🔄 Fallback graph created:', {
-          nodes: fallback.nodes.length,
-          edges: fallback.edges.length
-        });
         return fallback;
       }
       
-      console.log('✅ Returning parsed result with', result.nodes.length, 'nodes and', result.edges.length, 'edges');
       return result;
     } catch (error) {
       console.error('❌ Error parsing graph code:', error);
-      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown error');
-      console.log('🔄 Creating fallback graph due to error...');
       const fallback = createFallbackGraph(code);
-      console.log('🔄 Fallback graph created:', {
-        nodes: fallback.nodes.length,
-        edges: fallback.edges.length
-      });
       return fallback;
     }
   };
@@ -555,36 +346,8 @@ export default function MainApp() {
     ? generateGraphResult(buildState.graph_code_draft[buildState.graph_code_draft.length - 1])
     : null;
   
-  // Debug logging for what's being passed to GraphVisualization
-  if (graphResult) {
-    console.log('🎯 === GRAPH RESULT FOR VISUALIZATION ===');
-    console.log('📊 Graph result that will be passed to GraphVisualization:');
-    console.log('📊 Nodes count:', graphResult.nodes.length);
-    console.log('📊 Edges count:', graphResult.edges.length);
-    console.log('📊 Full graph result object:', JSON.stringify(graphResult, null, 2));
-  } else {
-    console.log('⚠️ No graphResult generated - GraphVisualization will not be shown');
-    if (buildState) {
-      console.log('🔍 BuildState exists:', {
-        hasCodeDrafts: buildState.graph_code_draft?.length > 0,
-        codeDraftsCount: buildState.graph_code_draft?.length || 0,
-        latestCode: buildState.graph_code_draft?.length > 0 
-          ? buildState.graph_code_draft[buildState.graph_code_draft.length - 1].substring(0, 100) + '...'
-          : 'No code'
-      });
-    }
-  }
-  
   // Show graph whenever we have code, not just on final approval
   const showGraph = buildState && buildState.graph_code_draft.length > 0 && graphResult;
-  
-  console.log('🎯 === SHOW GRAPH DECISION ===');
-  console.log('🔍 showGraph will be:', showGraph);
-  console.log('🔍 Conditions:', {
-    hasBuildState: !!buildState,
-    hasCodeDrafts: (buildState?.graph_code_draft?.length || 0) > 0,
-    hasGraphResult: !!graphResult
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -704,8 +467,13 @@ export default function MainApp() {
                   </div>
                 )}
                 
-                {/* Graph Visualization Component */}
-                <GraphVisualization result={graphResult!} />
+                {/* Graph Visualization Component with Code - Merged View */}
+                <GraphVisualization 
+                  result={graphResult!} 
+                  taskId={buildState?.Task_ID}
+                  graphAttempt={buildState?.graph_attempt}
+                  codeHistory={buildState?.graph_code_draft || []}
+                />
               </div>
             )}
           </div>

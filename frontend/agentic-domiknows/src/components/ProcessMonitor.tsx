@@ -10,11 +10,13 @@ interface ProcessUpdate {
 }
 
 interface BuildState {
+  Task_ID?: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
   graph_attempt: number;
   graph_code_draft: string[];
+  graph_visual_tools?: { [key: string]: any };
   graph_review_notes: string[];
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
@@ -127,7 +129,9 @@ export default function ProcessMonitor({ updates, isProcessing, buildState }: Pr
           const isActive = update.status === 'active';
           const isCompleted = update.status === 'completed';
           const isExpanded = expandedSteps.has(index);
-          const isLongMessage = update.message.length > 100;
+          // Make AI review steps always expandable, regardless of length
+          const isAIReview = update.step.startsWith('ai_review') || update.message.includes('AI Review');
+          const isLongMessage = update.message.length > 100 || isAIReview;
           
           return (
             <div 

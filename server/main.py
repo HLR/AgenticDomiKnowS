@@ -1,7 +1,9 @@
 from __future__ import annotations
-from fastapi import FastAPI, Request, Response, Depends
+from fastapi import FastAPI, Request, Response, Depends, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys; sys.path.append("../")
+import os
 from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, model_to_typed_dict, BuildStateModel, typed_dict_changes
 from server.session import *
@@ -65,6 +67,34 @@ def step_graph(buildstate: BuildStateModel, ctx = Depends(current_session)):
         graph.update_state(ctx["session"]["data"]["config"], state, as_node="graph_human")
     graph.invoke(None, config=ctx["session"]["data"]["config"])
     return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
+
+@app.get("/graph-image/{task_id}/{attempt}")
+def get_graph_image(task_id: str, attempt: int):
+    """
+    Retrieve the graph visualization image for a specific task and attempt.
+    Images are stored in graph_images/{task_id}_{attempt}.png
+    """
+    # Construct the file path
+    image_filename = f"{task_id}_{attempt}.png.png"
+    image_path = os.path.join("graph_images", image_filename)
+    
+    # Check if file exists
+    if not os.path.exists(image_path):
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Graph image not found for task {task_id} at attempt {attempt}"
+        )
+    
+    # Return the image file
+    return FileResponse(
+        image_path,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

@@ -10,11 +10,13 @@ interface ProcessStep {
 }
 
 interface BuildState {
+  Task_ID?: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
   graph_attempt: number;
   graph_code_draft: string[];
+  graph_visual_tools?: { [key: string]: any };
   graph_review_notes: string[];
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];

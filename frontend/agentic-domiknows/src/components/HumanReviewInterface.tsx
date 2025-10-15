@@ -3,11 +3,13 @@
 import { useState } from 'react';
 
 interface BuildState {
+  Task_ID?: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
   graph_attempt: number;
   graph_code_draft: string[];
+  graph_visual_tools?: { [key: string]: any };
   graph_review_notes: string[];
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
@@ -93,7 +95,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           )}
         </div>
 
-        <div className="bg-purple-50 rounded-xl p-4">
+        {/* <div className="bg-purple-50 rounded-xl p-4">
           <h4 className="font-medium text-purple-900 mb-2 flex items-center">
             <span className="mr-2">⚡</span>
             Execution Status
@@ -118,7 +120,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
               </div>
             </details>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Generated Code */}
@@ -174,7 +176,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         <textarea
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Provide specific feedback on what needs to be improved or changed. This will be saved as human_notes in the BuildState..."
+          placeholder="Provide specific feedback on what needs to be improved or changed."
           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500"
           rows={3}
           disabled={isSubmitting}
