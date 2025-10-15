@@ -8,20 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def upsert_examples(task_id, examples: List[str], forced: bool = False):
-    persist_directory = f"./rag_examples_{task_id}/"
-    collection_name = f"graph_example_bank{task_id}"
-
-    if forced and os.path.exists(persist_directory):
-        shutil.rmtree(persist_directory, ignore_errors=True)
 
     EMB = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=os.environ["OPENAI_API_KEY"])
 
-    if (not forced) and os.path.exists(persist_directory):
-        return Chroma(collection_name=collection_name, persist_directory=persist_directory, embedding_function=EMB)
-
-    DB = Chroma(collection_name=collection_name, persist_directory=persist_directory, embedding_function=EMB)
+    DB = Chroma(embedding_function=EMB)
     texts, metas, ids = [], [], []
-
 
     for i in range(0, len(examples), 2):
         desc, code = examples[i], examples[i+1]
