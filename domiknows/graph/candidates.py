@@ -30,9 +30,12 @@ class CandidateSelection(LcElement):
 
 # object creating Cartesian product of all candidates
 class combinationC(CandidateSelection):
-    def __init__(self, *e, name = None):
+    def __init__(self, *e, name = None):        
         super().__init__(*e, name = name)
         
+    def strEs(self):
+        return "combinationC(%s)"%(",".join([str(e) for e in self.e]))  
+            
     def __call__(self, candidates_list, keys=None):
         from  itertools import product
         
@@ -61,14 +64,20 @@ def intersection_of_lists(lists):
     return ordered_common_elements
 
 def findDatanodesForRootConcept(dn, rootConcept):
+    if isinstance(rootConcept, str):
+        print(f"Warning: rootConcept {rootConcept} is a string, expected a Concept or Relation object.")
+    
+    # Check if rootConcept is a string
+    concept_name = rootConcept if isinstance(rootConcept, str) else rootConcept.name
+    
     if dn.myBuilder != None and "DataNodesConcepts" in dn.myBuilder:
-        if rootConcept.name in dn.myBuilder["DataNodesConcepts"]:
-            return dn.myBuilder["DataNodesConcepts"][rootConcept.name]
+        if concept_name in dn.myBuilder["DataNodesConcepts"]:
+            return dn.myBuilder["DataNodesConcepts"][concept_name]
 
     dns = dn.findDatanodes(select = rootConcept)
     
     if dn.myBuilder != None:
-        dn.myBuilder["DataNodesConcepts"][rootConcept.name] = dns
+        dn.myBuilder["DataNodesConcepts"][concept_name] = dns
         
     return dns
     
@@ -76,6 +85,7 @@ def getCandidates(dn, e, variable, lcVariablesDns, lc, logger, integrate = False
     conceptName = e[0].name
                         
     # -- Collect dataNode for the logical constraint (path)
+    referredVariableNames = []
     
     dnsList = [] # Stores lists of dataNodes for each corresponding dataNode 
     pathsCount = 0
@@ -146,7 +156,8 @@ def getCandidates(dn, e, variable, lcVariablesDns, lc, logger, integrate = False
             else: # Already defined in the logical constraint from the v part 
                 new_iterate = False
                 referredDns = lcVariablesDns[referredVariableName] # Get DataNodes for referred variables already defined in the logical constraint
-                
+                referredVariableNames.append(referredVariableName)
+
             # Get variables from dataNodes selected  based on referredVariableName
             for indexDn, listOfDataNodes in enumerate(referredDns):
                 eDns = [] 
@@ -233,7 +244,7 @@ def getCandidates(dn, e, variable, lcVariablesDns, lc, logger, integrate = False
     else:
         logger.info('collected %i candidates for %s of which %i is not None - %s'%(len(dnsList),conceptName,countValidC,dnsList))
   
-    return dnsList
+    return dnsList, referredVariableNames
 
 # Find DataNodes starting from the given DataNode following provided path
 #     path can contain eqL statement selecting DataNodes from the DataNodes collecting on the path
