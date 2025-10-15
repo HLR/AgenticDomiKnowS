@@ -919,6 +919,13 @@ class ListConcator(TorchSensor):
         return torch.cat(self.inputs, dim=-1)
 
 
+class SpacyTokenizorSensor(FunctionalSensor):
+    from spacy.lang.en import English
+    nlp = English()
+
+    def forward(self, sentences):
+        tokens = self.nlp.tokenizer.pipe(sentences)
+        return list(tokens)
 
 
 class BertTokenizorSensor(FunctionalSensor):

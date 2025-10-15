@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from domiknows.program.model.pytorch import SolverModel
-
+#from domiknows.graph.LeftLogic import LeftLogicElementOutput
 
 from .program import LearningBasedProgram, get_len
 from ..utils import consume, entuple, detuple
@@ -216,7 +216,7 @@ class LossProgram(LearningBasedProgram):
                 closs, *_ = self.cmodel(output[1])
                 if torch.is_nonzero(closs):
                     loss = mloss + self.beta * closs
-                    self.logger.info('closs is not zero')
+                    # self.logger.info('closs is not zero')
                 else:
                     loss = mloss
 
@@ -240,7 +240,8 @@ class LossProgram(LearningBasedProgram):
 
             # log loss on each update
             if do_update:
-                self.logger.info(f'loss (i={data_idx}) = {batch_loss:.3f}')
+                # self.logger.info(f'loss (i={data_idx}) = {batch_loss:.3f}')
+                pass
 
             # do backwards pass update
             if self.opt is not None and do_update:
@@ -250,8 +251,8 @@ class LossProgram(LearningBasedProgram):
             if (
                 self.copt is not None and
                 iter > c_warmup_iters and
-                do_update
-                # iter - c_update_iter > c_update_freq
+                do_update and
+                iter - c_update_iter > c_update_freq
             ):
                 # NOTE: Based on the face the gradient of lambda in dual
                 #       is reversing signs of their gradient in primal,
@@ -351,7 +352,7 @@ class InferenceProgram(LossProgram):
         acc = 0
         total = 0
 
-        for datanode in self.populate(evaluate_data, device=device):
+        for datanode in tqdm(self.populate(evaluate_data, device=device), total=len(evaluate_data), desc="Evaluating"):
 
             # Finding the label of constraints/condition
             find_constraints_label = datanode.myBuilder.findDataNodesInBuilder(select=datanode.graph.constraint)
