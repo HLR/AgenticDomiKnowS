@@ -87,7 +87,7 @@ def build_graph(
             if latest:
                 exec(extract_python_code(latest), globals(), lcls)
             graph = lcls["graph"]
-            graph.visualize(f"graph_images/{state['Task_ID']}_{len(code_list)}")
+            graph.visualize(f"graph_images/{state['Task_ID']}_{len(code_list)}.png")
             error_msg = ""
         except Exception as e:
             error_msg = traceback.format_exc()
@@ -269,7 +269,20 @@ def main(argv: Optional[List[str]] = None):
     initial_state, graph = pre_process_graph(
         test_run=args.test_run,
         task_id=args.task_id,
-        task_description=args.task_description,
+        task_description="""with Graph('EmailSpam') as graph:
+    email = Concept(name='email')
+
+    model1 = email(name='model1', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+    model2 = email(name='model2', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+
+    # Consistency: the two models must agree (equivalence on the 'spam' label).
+    # We bind the variable to the base concept 'email' and use path=('e',) to reference the same instance.
+    ifL(email('e'),
+        notL(xorL(
+            model1.spam(path=('e',)),
+            model2.spam(path=('e',))
+        ))
+    )""",
         graph_examples=args.graph_examples,
         rag_k=args.rag_k,
         max_graphs_check=args.max_graphs_check
