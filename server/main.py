@@ -48,6 +48,7 @@ def init_graph(task_description: str, ctx = Depends(current_session)):
 
     new_state = initial_state.copy()
     new_state["Task_definition"] = task_description
+    new_state["Task_ID"] = str(session_id)
     config = {"configurable": {"thread_id": "ID: " + str(session_id)}}
     sess["data"]["config"] = config
     graph.invoke(new_state, config=config)  # FIXED: Use new_state instead of initial_state

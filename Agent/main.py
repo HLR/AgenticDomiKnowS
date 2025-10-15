@@ -11,12 +11,15 @@ from Agent.utils import extract_python_code
 from langgraph.checkpoint.memory import InMemorySaver
 
 class BuildState(TypedDict):
+    Task_ID: str
     Task_definition: str
 
     graph_rag_examples: List[str]
     graph_max_attempts: int
     graph_attempt: int
     graph_code_draft: List[str]
+    graph_visual_tools = Dict[Any, Any]
+
     graph_review_notes: List[str]
     graph_reviewer_agent_approved: bool
     graph_exe_notes: List[str]
@@ -75,13 +78,16 @@ def build_graph(
 
     def graph_exe_agent(state: BuildState) -> BuildState:
         try:
+            lcls = locals()
             Graph.clear()
             Concept.clear()
             Relation.clear()
             code_list = state.get("graph_code_draft", [])
             latest = code_list[-1] if code_list else ""
             if latest:
-                exec(extract_python_code(latest))
+                exec(extract_python_code(latest), globals(), lcls)
+            graph = lcls["graph"]
+            graph.visualize(f"graph_images/{state['Task_ID']}_{len(code_list)}")
             error_msg = ""
         except Exception as e:
             error_msg = traceback.format_exc()
@@ -220,6 +226,7 @@ def build_graph(
 
 def pre_process_graph(test_run = False, task_id=0, task_description="", graph_examples=load_all_graphs(), rag_k=3, max_graphs_check=3):
     initial_state = {
+        "Task_ID": str(task_id),
         "Task_definition": task_description,
         "graph_rag_examples": [],
         "graph_max_attempts": int(max_graphs_check),
@@ -229,7 +236,7 @@ def pre_process_graph(test_run = False, task_id=0, task_description="", graph_ex
         "graph_reviewer_agent_approved": False,
         "graph_exe_notes": [],
         "graph_exe_agent_approved": False,
-        "human_approved": False,  # Fixed: Should start as False
+        "human_approved": False,
         "human_notes": "",
     }
     
@@ -256,7 +263,7 @@ def main(argv: Optional[List[str]] = None):
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_graphs(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--rag-k", type=int, default=3, help="Number of relevant examples to retrieve with RAG (0 to disable)")
     parser.add_argument("--max-graphs-check",type=int,default=3,help="Maximum revision attempts before triggering human final approval",)
-    parser.add_argument("--test-run", default=True, action="store_true", help="Use gpt-4o-mini instead of gpt5")
+    parser.add_argument("--test-run", default=False, action="store_true", help="Use gpt-4o-mini instead of gpt5")
     args = parser.parse_args(argv)
 
     initial_state, graph = pre_process_graph(
