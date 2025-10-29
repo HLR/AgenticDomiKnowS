@@ -5,6 +5,7 @@ import ChatInterface from '@/components/ChatInterface';
 import ProcessMonitor from '@/components/ProcessMonitor';
 import GraphVisualization from '@/components/GraphVisualization';
 import HumanReviewInterface from '@/components/HumanReviewInterface';
+import SensorsWorkflow from '@/components/SensorsWorkflow';
 import { useOptimisticProgress } from '@/hooks/useOptimisticProgress';
 import { parseDomiKnowsCode, createFallbackGraph, type GraphResult } from '@/utils/graphParser';
 
@@ -42,12 +43,13 @@ export default function MainApp() {
   const [buildState, setBuildState] = useState<BuildState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'graph' | 'sensors'>('graph');
   const humanReviewRef = useRef<HTMLDivElement>(null);
 
   // Debug buildState changes - only log when received
   useEffect(() => {
     if (buildState) {
-      console.log('� === BUILDSTATE RECEIVED BY FRONTEND ===');
+      console.log('📥 === BUILDSTATE RECEIVED BY FRONTEND ===');
       console.log('� Full BuildState object:', buildState);
     }
   }, [buildState]);
@@ -306,6 +308,15 @@ export default function MainApp() {
       }, 500);
     }
   }, [showHumanReview]);
+
+  // Auto-switch to sensors tab when human approves
+  useEffect(() => {
+    if (buildState && buildState.human_approved && 
+        buildState.graph_reviewer_agent_approved && 
+        buildState.graph_exe_agent_approved) {
+      setActiveTab('sensors');
+    }
+  }, [buildState?.human_approved, buildState?.graph_reviewer_agent_approved, buildState?.graph_exe_agent_approved]);
   
   // Only show final result when human has approved AND both agents approved
   const showResult = buildState && buildState.human_approved && 
@@ -355,9 +366,38 @@ export default function MainApp() {
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Agentic DomiKnows
-            </h1>
+            <div className="flex items-center space-x-6">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Agentic DomiKnows
+              </h1>
+              
+              {/* Tab Navigation - Show only when human has approved */}
+              {showResult && (
+                <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+                  <button
+                    onClick={() => setActiveTab('graph')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      activeTab === 'graph'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    📊 Graph Code
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('sensors')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      activeTab === 'sensors'
+                        ? 'bg-white text-green-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    🔧 Sensors
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <div className="flex items-center space-x-4">
               {sessionId && (
                 <span className="text-sm text-gray-500">Session: {sessionId.slice(0, 8)}...</span>
@@ -380,30 +420,33 @@ export default function MainApp() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Main Content Area */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Chat Interface - Only show if no active task */}
-            {!hasActiveTask && (
-              <ChatInterface 
-                onSubmit={handleSubmitPrompt} 
-                isProcessing={isProcessing}
-              />
-            )}
-            
-            {/* Human Review Interface */}
-            {showHumanReview && buildState && (
-              <div ref={humanReviewRef} key={`human-review-${buildState.graph_attempt}-${buildState.graph_reviewer_agent_approved}-${buildState.graph_exe_agent_approved}`}>
-                <HumanReviewInterface
-                  taskId={sessionId || 'unknown'}
-                  buildState={buildState}
-                  onApproval={handleHumanApproval}
+        {/* Conditionally render based on active tab */}
+        {activeTab === 'graph' ? (
+          /* Graph Code Tab Content */
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Main Content Area */}
+            <div className="xl:col-span-2 space-y-6">
+              {/* Chat Interface - Only show if no active task */}
+              {!hasActiveTask && (
+                <ChatInterface 
+                  onSubmit={handleSubmitPrompt} 
+                  isProcessing={isProcessing}
                 />
-              </div>
-            )}
-            
-            {/* Graph Visualization - Shows during process and on completion */}
-            {showGraph && (
+              )}
+              
+              {/* Human Review Interface */}
+              {showHumanReview && buildState && (
+                <div ref={humanReviewRef} key={`human-review-${buildState.graph_attempt}-${buildState.graph_reviewer_agent_approved}-${buildState.graph_exe_agent_approved}`}>
+                  <HumanReviewInterface
+                    taskId={sessionId || 'unknown'}
+                    buildState={buildState}
+                    onApproval={handleHumanApproval}
+                  />
+                </div>
+              )}
+              
+              {/* Graph Visualization - Shows during process and on completion */}
+              {showGraph && (
               <div className="space-y-6">
                 {/* Show final completion message only when human approved AND both agents approved */}
                 {showResult && (
@@ -487,9 +530,18 @@ export default function MainApp() {
             />
           </div>
         </div>
+        ) : (
+          /* Sensors Tab Content */
+          buildState && showResult && (
+            <SensorsWorkflow 
+              buildState={buildState}
+              sessionId={sessionId || 'unknown'}
+            />
+          )
+        )}
 
-        {/* Build Status Section - Full width underneath everything */}
-        {buildState && (
+        {/* Build Status Section - Full width underneath everything - Only show in Graph tab */}
+        {activeTab === 'graph' && buildState && (
           <div className="w-full mt-6">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
