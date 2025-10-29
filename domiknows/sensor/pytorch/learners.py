@@ -146,3 +146,15 @@ class FullyConnectedLearnerRelu(TorchLearner):
         _tensor = self.inputs[0]
         output = self.model(_tensor)
         return output
+
+class DummyLearner(TorchLearner):
+
+    def __init__(self, *pre, output_size=2):
+        super(DummyLearner, self).__init__(*pre)
+        self.output_size = output_size
+
+    def forward(self, x):
+        result = torch.zeros(len(x), self.output_size)
+        random_indices = torch.randint(0, self.output_size, (len(x),))
+        result[torch.arange(len(x)), random_indices] = 1
+        return result

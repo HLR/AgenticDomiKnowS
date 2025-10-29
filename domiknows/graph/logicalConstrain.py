@@ -5,7 +5,6 @@ from domiknows.graph import Concept
 from domiknows.solver.lcLossSampleBooleanMethods import lcLossSampleBooleanMethods
 import logging
 import torch
-
 myLogger = logging.getLogger(ilpConfig['log_name'])
 ifLog =  ilpConfig['ifLog']
         

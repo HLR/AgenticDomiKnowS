@@ -6,7 +6,8 @@ from typing import Any, Dict
 from collections import OrderedDict
 import torch
 from itertools import product
-
+import torch
+import torch.nn.functional as F
 
 class EdgeSensor(FunctionalSensor):
     def __init__(self, *pres, relation, **kwargs):
@@ -170,3 +171,23 @@ class CandidateEqualSensor(CandidateSensor):
             output[(*index,)] = self.forward("", dns_product[0], dns_product[1])
 
         return output
+
+class EdgeReaderSensor(ReaderSensor, EdgeSensor):
+
+    def forward(self, *pres):
+        relations = self.data
+        x, y = pres
+        return torch.zeros((len(x), len(y)), dtype=torch.long).index_put_(
+            (torch.tensor([i for i, _ in relations[0]], dtype=torch.long),
+             torch.tensor([j for _, j in relations[0]], dtype=torch.long)), torch.tensor(1, dtype=torch.long)).T
+
+class ManyToManyReaderSensor(ReaderSensor, JointSensor):
+
+    def forward(self, *pres):
+        relations = self.data
+        if len(pres) == 2:
+            x, y = pres
+            return ((F.one_hot(torch.tensor([i for i, _ in relations[0]], dtype=torch.long), num_classes=len(x)).long(),
+             F.one_hot(torch.tensor([j for _, j in relations[0]], dtype=torch.long), num_classes=len(y)).long()))
+        elif len(pres) == 3:
+            pass

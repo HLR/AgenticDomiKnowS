@@ -947,3 +947,4 @@ class BertTokenizorSensor(FunctionalSensor):
         )
         tokens['tokens'] = self.tokenizer.convert_ids_to_tokens(tokens['input_ids'], skip_special_tokens=True)
         return tokens
+

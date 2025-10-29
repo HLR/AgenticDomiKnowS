@@ -4,6 +4,7 @@ import pickle
 from typing import Iterable
 
 import torch
+import torch.nn.functional as F
 
 from domiknows.graph import Property, Concept, DataNodeBuilder
 from domiknows.sensor.pytorch.sensors import TorchSensor, ReaderSensor, CacheSensor
@@ -14,6 +15,31 @@ from ..tracker import MacroAverageTracker
 from ..metric import MetricTracker
 from domiknows.utils import setDnSkeletonMode, getDnSkeletonMode
 
+def gumbel_softmax(logits, temperature=1.0, hard=False, dim=-1):
+    """
+    Gumbel-Softmax sampling for differentiable discrete sampling.
+    
+    Args:
+        logits: [..., num_classes] unnormalized log probabilities
+        temperature: controls sharpness (lower = more discrete, higher = more smooth)
+        hard: if True, returns one-hot but backprops through soft (straight-through estimator)
+        dim: dimension to apply softmax
+    
+    Returns:
+        Sampled probabilities (soft or hard)
+    """
+    # Sample from Gumbel(0, 1)
+    gumbels = -torch.empty_like(logits).exponential_().log()
+    gumbels = (logits + gumbels) / temperature
+    y_soft = F.softmax(gumbels, dim=dim)
+    
+    if hard:
+        # Straight-through estimator: forward = one-hot, backward = soft
+        index = y_soft.max(dim, keepdim=True)[1]
+        y_hard = torch.zeros_like(logits).scatter_(dim, index, 1.0)
+        return y_hard - y_soft.detach() + y_soft
+    
+    return y_soft
 
 class TorchModel(torch.nn.Module):
 
@@ -154,10 +180,8 @@ class TorchModel(torch.nn.Module):
     def populate(self):
         raise NotImplementedError
 
-
 def model_helper(Model, *args, **kwargs):
     return lambda graph: Model(graph, *args, **kwargs)
-
 
 class PoiModel(TorchModel):
     def __init__(self, graph, poi=None, loss=None, metric=None, device='auto', ignore_modules=False):
@@ -498,8 +522,123 @@ class SolverModel(PoiModel):
         lose, metric = super().populate(builder, datanode = datanode, run=False)
         
         return datanode, lose, metric
+        
+class GumbelSolverModel(SolverModel):
+    """
+    SolverModel with Gumbel-Softmax support for better discrete optimization.
     
+    Backward compatible: when use_gumbel=False or temperature=1.0, behaves like standard SolverModel.
+    """
+    
+    def __init__(self, graph, poi=None, loss=None, metric=None, inferTypes=None, 
+                 inference_with=None, probKey=("local", "softmax"), device='auto', 
+                 probAcc=None, ignore_modules=False, kwargs=None,
+                 use_gumbel=False, temperature=1.0, hard_gumbel=False,
+                 temperature_schedule='constant', min_temperature=0.5, anneal_rate=0.0003):
+        """
+        Args:
+            ... (same as SolverModel)
+            use_gumbel: If True, use Gumbel-Softmax for 'local/softmax' inference
+            temperature: Initial Gumbel-Softmax temperature (1.0 = standard softmax, lower = more discrete)
+            hard_gumbel: If True, use straight-through estimator (discrete forward, soft backward)
+            temperature_schedule: 'constant', 'exponential', or 'linear'
+            min_temperature: Minimum temperature for annealing
+            anneal_rate: Rate of temperature decay
+        """
+        super().__init__(graph, poi=poi, loss=loss, metric=metric, inferTypes=inferTypes,
+                        inference_with=inference_with, probKey=probKey, device=device,
+                        probAcc=probAcc, ignore_modules=ignore_modules, kwargs=kwargs)
+        
+        self.use_gumbel = use_gumbel
+        self.initial_temperature = temperature
+        self.temperature = temperature
+        self.hard_gumbel = hard_gumbel
+        self.temperature_schedule = temperature_schedule
+        self.min_temperature = min_temperature
+        self.anneal_rate = anneal_rate
+        self._step_count = 0
+    
+    def set_temperature(self, temperature):
+        """Update Gumbel-Softmax temperature (can be called during training)."""
+        self.temperature = max(temperature, self.min_temperature)
+    
+    def anneal_temperature(self):
+        """Anneal temperature according to schedule."""
+        if self.temperature_schedule == 'constant':
+            return
+        
+        self._step_count += 1
+        
+        if self.temperature_schedule == 'exponential':
+            # Exponential decay: T = max(T0 * exp(-rate * step), T_min)
+            new_temp = self.initial_temperature * torch.exp(
+                torch.tensor(-self.anneal_rate * self._step_count)
+            ).item()
+        elif self.temperature_schedule == 'linear':
+            # Linear decay: T = max(T0 - rate * step, T_min)
+            new_temp = self.initial_temperature - self.anneal_rate * self._step_count
+        else:
+            new_temp = self.temperature
+        
+        self.temperature = max(new_temp, self.min_temperature)
+    
+    def reset_temperature(self):
+        """Reset temperature to initial value."""
+        self.temperature = self.initial_temperature
+        self._step_count = 0
+    
+    def inference(self, builder):
+        """
+        Override inference to inject Gumbel-Softmax when use_gumbel=True.
+        """
+        from ...graph.executable import LogicDataset
+        from ...graph.logicalConstrain import LogicalConstrain
 
+        curr_lc = None
+        execute_lc_key = LogicDataset.curr_lc_key
+        if execute_lc_key in builder:
+            curr_lc = builder[execute_lc_key]
+
+        do_switch = LogicDataset.do_switch_key in builder
+        for i, prop in enumerate(self.poi):
+            if do_switch and isinstance(prop.prop_name, LogicalConstrain):
+                if prop.prop_name.lcName != curr_lc:
+                    continue
+
+            for sensor in prop.find(TorchSensor):
+                sensor(builder)
+
+        builder.createBatchRootDN()
+        datanode = builder.getDataNode(device=self.device)
+        
+        if datanode:
+            for infertype in self.inferTypes:
+                # Apply Gumbel-Softmax for local/softmax inference when enabled
+                if self.use_gumbel and infertype in ['local/softmax', 'softmax']:
+                    # Anneal temperature if using scheduling
+                    if self.training:
+                        self.anneal_temperature()
+                    
+                    # Apply Gumbel-Softmax transformation
+                    datanode.inferGumbelLocal(
+                        temperature=self.temperature,
+                        hard=self.hard_gumbel,
+                        keys=("softmax",) if infertype == 'local/softmax' else None
+                    )
+                else:
+                    # Standard inference
+                    {
+                        'local/argmax': lambda: datanode.inferLocal(),
+                        'local/softmax': lambda: datanode.inferLocal(),
+                        'argmax': lambda: datanode.infer(),
+                        'softmax': lambda: datanode.infer(),
+                        'ILP': lambda: datanode.inferILPResults(*self.inference_with, key=self.probKey, 
+                                                                fun=None, epsilon=None, Acc=self.probAcc),
+                        'GBI': lambda: datanode.inferGBIResults(*self.inference_with, model=self, kwargs=self.kwargs),
+                    }[infertype]()
+        
+        return datanode
+    
 class PoiModelToWorkWithLearnerWithLoss(TorchModel):
     def __init__(self, graph, poi=None, device='auto'):
         super().__init__(graph, device=device)
@@ -622,87 +761,6 @@ class PoiModelDictLoss(PoiModel):
         else:
             return super().populate(builder, run=True)
    
-# class PoiModelDictLoss(TorchModel):
-#     def __init__(self, graph, poi=None, loss=None, metric=None):
-#         super().__init__(graph)
-#         if poi is None:
-#             self.poi = self.default_poi()
-#         else:
-#             properties = []
-#             for item in poi:
-#                 if isinstance(item, Property):
-#                     properties.append(item)
-#                 elif isinstance(item, Concept):
-#                     for prop in item.values():
-#                         properties.append(prop)
-#                 else:
-#                     raise ValueError(f'Unexpected type of POI item {type(item)}: Property or Concept expected.')
-#             self.poi = properties
-            
-#         self.loss = loss
-#         if metric is None:
-#             self.metric = None
-#         elif isinstance(metric, dict):
-#             self.metric = metric
-#         else:
-#             self.metric = {'': metric}
-            
-#         self.loss_tracker = MacroAverageTracker()
-#         self.metric_tracker = None
-
-#     def reset(self):
-#         if self.loss_tracker is not None:
-#             self.loss_tracker.reset()
-#         if self.metric_tracker is not None:
-#             self.metric_tracker.reset()
-
-#     def default_poi(self):
-#         poi = []
-#         for prop in self.graph.get_properties():
-#             if len(list(prop.find(TorchSensor))) > 1:
-#                 poi.append(prop)
-#         return poi
-
-#     def populate(self, builder, run=True):
-#         losses = {}
-#         metrics = {}
-        
-#         for prop in self.poi:
-#             # make sure the sensors are evaluated
-#             if run:
-#                 for sensor in prop.find(TorchSensor):
-#                     sensor(builder)
-                            
-#             targets = []
-#             predictors = []
-#             for sensor in prop.find(TorchSensor):
-#                 if self.mode() not in {Mode.POPULATE,}:
-#                     if sensor.label:
-#                         targets.append(sensor)
-#                     else:
-#                         predictors.append(sensor)
-#             for predictor in predictors:
-#                 # TODO: any loss or metric or general function apply to just prediction?
-#                 pass
-#             for target, predictor in product(targets, predictors):
-# #                 print(predictor, predictor(builder))
-#                 if str(predictor.prop.name) in self.loss.keys():
-#                     losses[predictor, target] = self.loss[str(predictor.prop.name)](builder, predictor.prop, predictor(builder), target(builder))
-#                 if predictor._metric is not None:
-#                     metrics[predictor, target] = predictor.metric(builder, target)
-
-#         loss = sum(losses.values())
-#         return loss, metrics
-#     @property
-#     def loss(self):
-#         return self.loss_tracker
-
-#     @property
-#     def metric(self):
-#         # return self.metrics_tracker
-#         pass
-    
-    
 class SolverModelDictLoss(PoiModelDictLoss):
     def __init__(self, graph, poi=None, loss=None, metric=None, dictloss=None, inferTypes=['ILP'], device='auto'):
         super().__init__(graph, poi=poi, loss=loss, metric=metric, dictloss=dictloss, device=device)
@@ -739,5 +797,85 @@ class SolverModelDictLoss(PoiModelDictLoss):
         data_item = self.inference(builder)
         return super().populate(builder, run=False)
 
+class GumbelSolverModelDictLoss(SolverModelDictLoss):
+    """
+    SolverModelDictLoss with Gumbel-Softmax support.
+    """
+    
+    def __init__(self, graph, poi=None, loss=None, metric=None, dictloss=None, 
+                 inferTypes=['ILP'], device='auto',
+                 use_gumbel=False, temperature=1.0, hard_gumbel=False,
+                 temperature_schedule='constant', min_temperature=0.5, anneal_rate=0.0003):
+        super().__init__(graph, poi=poi, loss=loss, metric=metric, dictloss=dictloss,
+                        inferTypes=inferTypes, device=device)
+        
+        self.use_gumbel = use_gumbel
+        self.initial_temperature = temperature
+        self.temperature = temperature
+        self.hard_gumbel = hard_gumbel
+        self.temperature_schedule = temperature_schedule
+        self.min_temperature = min_temperature
+        self.anneal_rate = anneal_rate
+        self._step_count = 0
+    
+    def set_temperature(self, temperature):
+        """Update Gumbel-Softmax temperature."""
+        self.temperature = max(temperature, self.min_temperature)
+    
+    def anneal_temperature(self):
+        """Anneal temperature according to schedule."""
+        if self.temperature_schedule == 'constant':
+            return
+        
+        self._step_count += 1
+        
+        if self.temperature_schedule == 'exponential':
+            new_temp = self.initial_temperature * torch.exp(
+                torch.tensor(-self.anneal_rate * self._step_count)
+            ).item()
+        elif self.temperature_schedule == 'linear':
+            new_temp = self.initial_temperature - self.anneal_rate * self._step_count
+        else:
+            new_temp = self.temperature
+        
+        self.temperature = max(new_temp, self.min_temperature)
+    
+    def reset_temperature(self):
+        """Reset temperature to initial value."""
+        self.temperature = self.initial_temperature
+        self._step_count = 0
+    
+    def inference(self, builder):
+        """Override inference to support Gumbel-Softmax."""
+        for prop in self.poi:
+            for sensor in prop.find(TorchSensor):
+                sensor(builder)
+
+        builder.createBatchRootDN()
+        datanode = builder.getDataNode(device=self.device)
+        
+        for infertype in self.inferTypes:
+            if self.use_gumbel and infertype in ['local/softmax', 'softmax']:
+                # Anneal temperature if using scheduling
+                if self.training:
+                    self.anneal_temperature()
+                
+                # Apply Gumbel-Softmax transformation
+                datanode.inferGumbelLocal(
+                    temperature=self.temperature,
+                    hard=self.hard_gumbel,
+                    keys=("softmax",) if infertype == 'local/softmax' else None
+                )
+            else:
+                {
+                    'ILP': lambda: datanode.inferILPResults(*self.inference_with, fun=None, epsilon=None),
+                    'local/argmax': lambda: datanode.inferLocal(),
+                    'local/softmax': lambda: datanode.inferLocal(),
+                    'argmax': lambda: datanode.infer(),
+                    'softmax': lambda: datanode.infer(),
+                }[infertype]()
+        
+        return builder
+    
 from .iml import IMLModel
 from .ilpu import ILPUModel
