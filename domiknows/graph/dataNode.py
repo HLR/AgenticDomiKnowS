@@ -431,6 +431,14 @@ class DataNode:
             
         return None
 
+    def getResult(self,*keys):
+        ans = self.getAttribute(*keys)
+        if not ans.shape:
+            return ans.item()
+        if len(ans)==1:
+            return ans.item()
+        return torch.argmax(ans,dim=0).item()
+        """Retrieve a specific attribute using a key or a sequence of keys."""
     # --- Relation Link methods
 
     def getRelationLinks(self, relationName = None, conceptName = None):
