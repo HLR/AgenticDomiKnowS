@@ -187,7 +187,20 @@ class ManyToManyReaderSensor(ReaderSensor, JointSensor):
         relations = self.data
         if len(pres) == 2:
             x, y = pres
-            return ((F.one_hot(torch.tensor([i for i, _ in relations[0]], dtype=torch.long), num_classes=len(x)).long(),
-             F.one_hot(torch.tensor([j for _, j in relations[0]], dtype=torch.long), num_classes=len(y)).long()))
+            return (
+                F.one_hot(torch.tensor([i for i, _ in relations[0]], dtype=torch.long), num_classes=len(x)).long(),
+                F.one_hot(torch.tensor([j for _, j in relations[0]], dtype=torch.long), num_classes=len(y)).long()
+            )
         elif len(pres) == 3:
-            pass
+            x, y, z = pres
+            triples = relations[0]
+
+            i_idx = torch.tensor([i for i, _, _ in triples], dtype=torch.long)
+            j_idx = torch.tensor([j for _, j, _ in triples], dtype=torch.long)
+            k_idx = torch.tensor([k for _, _, k in triples], dtype=torch.long)
+
+            return (
+                F.one_hot(i_idx, num_classes=len(x)).long(),
+                F.one_hot(j_idx, num_classes=len(y)).long(),
+                F.one_hot(k_idx, num_classes=len(z)).long(),
+            )
