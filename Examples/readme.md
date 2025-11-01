@@ -107,6 +107,12 @@ Notes:
 
 ## Constraints
 
+Some constraints are inherent to the graph structure and there is no need to express them:
+    1. The labels in the EnumConcepts are mutually exclusive and only one can be true.
+    2. The binary label concepts can be either true or false and not both at the same time. 
+    
+Other constraints are expressed using logical predicates.
+
 Logical predicates:
 - `notL(X)`, `andL(X, Y)`, `orL(X, Y)`, `nandL(X, Y)`, `norL(X, Y)`, `xorL(X, Y)`, `ifL(X, Y)`
   - `notL` takes one argument; `ifL` takes two; others take 2+ arguments.
