@@ -674,10 +674,10 @@ For a transition between two states of a step, an action is required, which can 
     ifL(destroy(""x""),
         andL(
             orL(
-                    known_loc(path=(""x"", ""arg1"")),
-                    unknown_loc(path=(""x"", ""arg1""))
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
                 ),
-                non_existence(path=(""x"", ""arg2""))
+                non_existence(path=(""x"", action_arg2))
         )
     )","with Graph('propara') as graph:
 
@@ -712,10 +712,10 @@ For a transition between two states of a step, an action is required, which can 
     ifL(destroy(""x""),
         andL(
             orL(
-                    known_loc(path=(""x"", ""arg1"")),
-                    unknown_loc(path=(""x"", ""arg1""))
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
                 ),
-                non_existence(path=(""x"", ""arg2""))
+                non_existence(path=(""x"", action_arg2))
         )
     )","import sys
 sys.path.append('../../../')
@@ -766,10 +766,10 @@ with Graph('propara') as graph:
     ifL(destroy(""x""),
         andL(
             orL(
-                    known_loc(path=(""x"", ""arg1"")),
-                    unknown_loc(path=(""x"", ""arg1""))
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
                 ),
-                non_existence(path=(""x"", ""arg2""))
+                non_existence(path=(""x"", action_arg2))
         )
     )
 
