@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
-
+from langchain_openai import OpenAIEmbeddings
 load_dotenv()
 
 class LLM:
@@ -10,6 +10,7 @@ class LLM:
         self.api_key = os.environ["OPENAI_API_KEY"]
         self.swe_llm = ChatOpenAI(model="gpt-5", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
         self.reviewer_llm = ChatOpenAI(model="gpt-5", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
+        self.embedder = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=self.api_key)
 
     def __call__(self, msgs):
         msg = self.swe_llm.invoke(msgs).content

@@ -4,6 +4,14 @@ import io
 from contextlib import redirect_stdout, redirect_stderr
 import re
 import textwrap
+import pandas as pd
+import os
+from typing import List, Tuple
+from langchain_chroma import Chroma
+
+import hashlib
+from dotenv import load_dotenv
+load_dotenv()
 
 _PY_FENCE = re.compile(r"```(?:python|py|python3)(?:[^\n]*)\r?\n(.*?)(?:\r?\n)?```", flags=re.IGNORECASE | re.DOTALL,)
 
@@ -57,3 +65,46 @@ Concept.clear()
 Relation.clear()
 
 """
+
+def load_all_examples_info(address=""):
+    if address:
+        data = pd.read_csv(address+'lang_to_code_test.csv')
+    else:
+        data = pd.read_csv(os.path.dirname(os.path.abspath(__file__))+'/../datasets/lang_to_code_test.csv')
+    example_graphs = []
+    for i in data.index:
+        row = data.loc[i]
+        desc = (row.get("description") or "").strip()
+        constr = (row.get("description_constraint") or "").strip()
+        gold_graph = (row.get("graph") or "") + "\n" + (row.get("constraints") or "").strip()
+        task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
+        sensor_code = (row.get("dummysensor") or "")
+        example_graphs.extend({"task_text":task_text, "gold_graph":gold_graph,"sensor_code":sensor_code})
+    return example_graphs
+
+def upsert_examples(llm, examples: List[str]):
+
+    DB = Chroma(embedding_function=llm.embedder)
+    texts, metas, ids = [], [], []
+    for example in examples:
+        desc, gold_graph, sensor_code = example.get("task_text"), example.get("gold_graph"), example.get("sensor_code")
+        _id = hashlib.sha1(desc.encode("utf-8")).hexdigest()
+        texts.append(desc)
+        metas.append({"desc": desc, "gold_graph": gold_graph, "sensor_code" : sensor_code})
+        ids.append(_id)
+    DB.add_texts(texts=texts, metadatas=metas, ids=ids)
+    return DB
+
+from typing import List
+from langchain_chroma import Chroma
+
+def select_graph_examples(DB: Chroma, task_desc: str, k: int) -> List[str]:
+    if not k or k<=0:
+        return [], []
+    results = DB.similarity_search(task_desc or "", k=k)
+    graph_out,sensor_out = [], []
+    for d in results:
+        md = d.metadata or {}
+        graph_out.extend([md.get("desc", d.page_content)] + ([md["gold_graph"]] if md.get("gold_graph") else []))
+        sensor_out.extend([md.get("desc", d.page_content) + "\n" + md["gold_graph"], md["sensor_code"]])
+    return graph_out, sensor_out

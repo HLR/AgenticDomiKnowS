@@ -2,12 +2,11 @@ from __future__ import annotations
 import argparse
 import sys; sys.path.append("../")
 from Agent.LLM.llm import LLM
-from Agent.Graph.graph_prompt import get_graph_prompt, load_all_graphs, get_graph_reviewer_prompt
+from Agent.Graph.graph_prompt import get_graph_prompt, get_graph_reviewer_prompt
 from Agent.Graph.graph_agent import graph_swe_agent, graph_exe_agent, graph_reviewer_agent
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 from langgraph.graph import StateGraph, END, START
-from Agent.Graph.rag import upsert_examples, select_graph_examples
-from Agent.utils import extract_python_code, code_prefix
+from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples
 from langgraph.checkpoint.memory import InMemorySaver
 
 class BuildState(TypedDict):
@@ -27,6 +26,7 @@ class BuildState(TypedDict):
     graph_human_notes: str
 
     sensor_code: str
+    sensor_rag_examples: List[str]
 
 def build_graph(
     llm: Optional[Callable[[Any], str]] = None,
@@ -65,8 +65,9 @@ def build_graph(
         return "reform"
 
     def graph_rag_selector(state: BuildState) -> BuildState:
-        return {"graph_rag_examples": select_graph_examples(graph_DB, state.get("Task_definition", "") or "", graph_rag_k) or [],}
-
+        graph_out, sensor_out = select_graph_examples(graph_DB, state.get("Task_definition", "") or "", graph_rag_k)
+        return {"graph_rag_examples": graph_out or [], "sensor_rag_examples": sensor_out or []}
+    
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
     builder.add_node("graph_reviewer_agent_node", graph_reviewer_agent_node)
@@ -87,7 +88,7 @@ def build_graph(
     graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent"])
     return graph
 
-def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="", graph_examples=load_all_graphs(), graph_rag_k=3, max_graphs_check=3):
+def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="", graph_examples=load_all_examples_info(), graph_rag_k=3, max_graphs_check=3):
     initial_state = {
         "Task_ID": str(task_id),
         "Task_definition": task_description,
@@ -105,7 +106,7 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
     
     print("=== INITIAL STATE CREATED ===")
     llm = LLM(reasoning_effort=reasoning_effort)
-    graph_DB = upsert_examples(task_id=task_id, examples=graph_examples or [], forced=True)
+    graph_DB = upsert_examples(llm, examples=graph_examples or [])
     print("RAG DB created.")
     print("Building graph...")
     graph = build_graph(llm=llm, graph_DB=graph_DB, graph_rag_k=int(graph_rag_k or 0))
@@ -115,7 +116,7 @@ def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="Coding LangGraph pipeline")
     parser.add_argument("--task-id", type=int, default=0, help="Task ID")
     parser.add_argument("--task-description",type=str,default="Create an email spam graph",help="Description of the graph to build",)
-    parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_graphs(),help="List of other examples (paths or text) for RAG",)
+    parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
     parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
