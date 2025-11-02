@@ -26,12 +26,12 @@ with Graph('CIFAR10_hier') as graph:
     ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))
 
 def random_cifar10_instance():
-    image = [1]
+    image_id = [0]
     coarse = [random.randint(0,1)]
     fine = [random.randint(0, 9)]
 
     data = {
-        "image_id": [i for i in range(len(image))],
+        "image_id": image_id,
         "coarse_id":  [i for i in range(len(coarse))],
         "fine_id":  [i for i in range(len(fine))],
         "image": image,

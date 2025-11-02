@@ -60,7 +60,7 @@ with Graph('20news') as graph:
             ifL(level2.__getattr__(parent), level3.__getattr__("None"))
 
 def random_20news_instance():
-    news_group = [1]
+    news_group = [0]
     num_news = 6
     news_items = list(range(num_news))
     level1_vals = [random.randint(0, 7) for _ in news_items]
@@ -68,7 +68,7 @@ def random_20news_instance():
     level3_vals = [random.randint(0, 6) for _ in news_items]
 
     data = {
-        "news_group_id": [i for i in range(len(news_group))],
+        "news_group_id": news_group,
         "news_id": [i for i in range(len(news_items))],
         "level1_id": [i for i in range(len(news_items))],
         "level2_id": [i for i in range(len(news_items))],

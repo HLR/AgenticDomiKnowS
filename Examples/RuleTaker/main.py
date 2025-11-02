@@ -28,7 +28,7 @@ with Graph('ruletaker_bank') as graph:
 
 
 def random_ruletaker_bank_instance():
-    context = [1]
+    context_id = [0]
     num_questions = 6
     question_ids = list(range(num_questions))
     qlabel = [random.randint(0, 1) for _ in question_ids]
@@ -40,7 +40,7 @@ def random_ruletaker_bank_instance():
     implication_pairs = all_pairs[:max(5, len(all_pairs)//2)]
 
     data = {
-        "context_id": [i for i in range(len(context))],
+        "context_id": context_id,
         "question_id": question_ids,
         "qlabel": qlabel,
         "context_question_contains": [contains_pairs],
@@ -62,6 +62,8 @@ question[qlabel] = DummyLearner('question_id', output_size=2)
 program = SolverPOIProgram(graph, poi=[context, question, qlabel, implication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
 for datanode in program.populate(dataset=dataset):
     datanode.inferILPResults()
+
     for idx, qnode in enumerate(datanode.getChildDataNodes()):
+        print("relations", qnode.impactLinks)
         print(f"question {idx} qlabel :", qnode.getResult(qlabel, "local", "argmax"))
         print(f"question {idx} qlabel ILP:", qnode.getResult(qlabel, "ILP"))

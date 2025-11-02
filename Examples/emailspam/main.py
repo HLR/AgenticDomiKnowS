@@ -23,12 +23,12 @@ with Graph('email_spam_consistency') as graph:
     xorL(m1.spam, m2.not_spam)
 
 def random_emailspam_instance():
-    email = [1]
+    email_id = [0]
     m1 = [random.randint(0,1)]
     m2 = [random.randint(0, 1)]
 
     data = {
-        "email_id": [i for i in range(len(email))],
+        "email_id": email_id,
         "m1_id":  [i for i in range(len(m1))],
         "m2_id":  [i for i in range(len(m2))],
         "email": email,

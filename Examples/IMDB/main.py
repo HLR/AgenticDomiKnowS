@@ -22,11 +22,11 @@ with Graph('IMDB') as graph:
     xorL(positive, negative)
 
 def random_IMDB_instance():
-    reviews = [1]
-    positive = [random.randint(0,1) for _ in reviews]
-    negative = [random.randint(0,1) for _ in reviews]
+    review_id = [0]
+    positive = [random.randint(0,1)]
+    negative = [random.randint(0,1)]
     data = {
-        "review_id": list(range(len(reviews))),
+        "review_id": review_id,
         "positive": positive,
         "negative": negative,
     }

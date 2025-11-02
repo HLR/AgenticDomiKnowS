@@ -43,8 +43,8 @@ with Graph('WIQA_graph') as graph:
     ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))
 
 def random_wiqa_instance():
-    paragraph = [1]
-    questions = [random.randint(0,1) for _ in range(5)]
+    paragraph_id = [0]
+    questions_id = [i for i in range(5)]
     is_more, is_less, no_effect = [], [], []
     for _ in range(5):
         lbl = random.choice([0, 1, 2])
@@ -53,14 +53,12 @@ def random_wiqa_instance():
         no_effect.append(1 if lbl == 2 else 0)
 
     data = {
-        "paragraph_id": [i for i in range(len(paragraph))],
-        "question_id":  [i for i in range(len(questions))],
+        "paragraph_id": paragraph_id,
+        "question_id":  questions_id,
         "is_more_id":  [i for i in range(len(is_more))],
         "is_less_id":  [i for i in range(len(is_less))],
         "no_effect_id":  [i for i in range(len(no_effect))],
 
-        "paragraph": paragraph,
-        "question": questions,
         "is_more": is_more,
         "is_less": is_less,
         "no_effect": no_effect,
@@ -89,26 +87,25 @@ def random_wiqa_instance():
                     continue
                 if random.random() < 0.15:
                     transitive.append((i, j, k))
-    print(transitive)
+
     data["transitive"] = [transitive]
     return data
 
 dataset = [random_wiqa_instance() for _ in range(1)]
 
-paragraph['paragraph'] = ReaderSensor(keyword='paragraph')
+
 paragraph['paragraph_id'] = ReaderSensor(keyword='paragraph_id')
 paragraph['symmetric'] = ReaderSensor(keyword='symmetric')
 paragraph['transitive'] = ReaderSensor(keyword='transitive')
 
-question['question'] = ReaderSensor(keyword='question')
 question['question_id'] = ReaderSensor(keyword='question_id')
 question['is_more_id'] = ReaderSensor(keyword='is_more_id')
 question['is_less_id'] = ReaderSensor(keyword='is_less_id')
 question['no_effect_id'] = ReaderSensor(keyword='no_effect_id')
 
-question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph'], question['question'],keyword='para_quest_contains', relation=para_quest_contains)
-symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question'], question['question'],keyword='symmetric')
-transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question'], question['question'],question['question'],keyword='transitive')
+question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph_id'], question['question_id'],keyword='para_quest_contains', relation=para_quest_contains)
+symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],keyword='symmetric')
+transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],question['question_id'],keyword='transitive')
 
 question[is_more] = LabelReaderSensor(keyword='is_more')
 question[is_less] = LabelReaderSensor(keyword='is_less')

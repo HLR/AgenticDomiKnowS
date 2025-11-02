@@ -47,10 +47,10 @@ with Graph('propara') as graph:
     ifL(destroy("x"),
         andL(
             orL(
-                    known_loc(path=("x", "arg1")),
-                    unknown_loc(path=("x", "arg1"))
+                    known_loc(path=("x", action_arg1)),
+                    unknown_loc(path=("x", action_arg1))
                 ),
-                non_existence(path=("x", "arg2"))
+                non_existence(path=("x", action_arg2))
         )
     )
 
