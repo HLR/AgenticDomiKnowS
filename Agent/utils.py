@@ -8,7 +8,6 @@ import pandas as pd
 import os
 from typing import List, Tuple
 from langchain_chroma import Chroma
-
 import hashlib
 from dotenv import load_dotenv
 load_dotenv()
@@ -94,9 +93,6 @@ def upsert_examples(llm, examples: List[str]):
         ids.append(_id)
     DB.add_texts(texts=texts, metadatas=metas, ids=ids)
     return DB
-
-from typing import List
-from langchain_chroma import Chroma
 
 def select_graph_examples(DB: Chroma, task_desc: str, k: int) -> List[str]:
     if not k or k<=0:
