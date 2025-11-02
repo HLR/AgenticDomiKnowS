@@ -215,7 +215,7 @@ def main(argv: List[str] | None = None) -> int:
                 "stdout": res.get("stdout", ""),
                 "stderr": res.get("stderr", ""),
                 "generated_at": generated_at,
-                "reasoning_effort": bool(args.reasoning_effort),
+                "reasoning_effort": args.reasoning_effort,
             }
             writer.writerow(row)
 
