@@ -106,8 +106,9 @@ Categorization has to respect this hierarchy, and if a child is chosen, so must 
         if hierarchy_2[parent]:
             ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
         else:
-            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","def random_20news_instance():
-    news_group = [1]
+            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","
+def random_20news_instance():
+    news_group = [0]
     num_news = 6
     news_items = list(range(num_news))
     level1_vals = [random.randint(0, 7) for _ in news_items]
@@ -115,7 +116,7 @@ Categorization has to respect this hierarchy, and if a child is chosen, so must 
     level3_vals = [random.randint(0, 6) for _ in news_items]
 
     data = {
-        ""news_group_id"": [i for i in range(len(news_group))],
+        ""news_group_id"": news_group,
         ""news_id"": [i for i in range(len(news_items))],
         ""level1_id"": [i for i in range(len(news_items))],
         ""level2_id"": [i for i in range(len(news_items))],
@@ -217,7 +218,8 @@ Every image must belong to a primary and a specific category, and the parent-chi
     ifL(animal, orL(cat, dog, monkey, squirrel))
 
     ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
-    ifL(image, xorL(animal, flower, 1))","def random_animalandflower_instance():
+    ifL(image, xorL(animal, flower, 1))","
+def random_animalandflower_instance():
     n_images = 6
     image_group_ids = [0]
     image_ids = list(range(n_images))
@@ -337,12 +339,12 @@ The parent-child relationship must be respected. For example, an image can not b
     ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
     ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))","
 def random_cifar10_instance():
-    image = [1]
+    image_id = [0]
     coarse = [random.randint(0,1)]
     fine = [random.randint(0, 9)]
 
     data = {
-        ""image_id"": [i for i in range(len(image))],
+        ""image_id"": image_id,
         ""coarse_id"":  [i for i in range(len(coarse))],
         ""fine_id"":  [i for i in range(len(fine))],
         ""image"": image,
@@ -370,10 +372,7 @@ for datanode in program.populate(dataset=dataset):
     print(f""coarse ILP:"", datanode.getResult(coarse, ""ILP""))
 
     print(f""fine :"",datanode.getResult(fine,""local"",""argmax""))
-    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))
-
-
-",multi,1,yes,"Basic Concepts: ['image'] 
+    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))",multi,1,yes,"Basic Concepts: ['image'] 
 
 Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
 4,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('email_spam_consistency') as graph:
@@ -389,12 +388,12 @@ Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', '
 
     xorL(m1.spam, m2.not_spam)","
 def random_emailspam_instance():
-    email = [1]
+    email_id = [0]
     m1 = [random.randint(0,1)]
     m2 = [random.randint(0, 1)]
 
     data = {
-        ""email_id"": [i for i in range(len(email))],
+        ""email_id"": email_id,
         ""m1_id"":  [i for i in range(len(m1))],
         ""m2_id"":  [i for i in range(len(m2))],
         ""email"": email,
@@ -439,11 +438,11 @@ Task Concepts: ['Spam', 'Regular']"
 
     xorL(positive, negative)","
 def random_IMDB_instance():
-    reviews = [1]
-    positive = [random.randint(0,1) for _ in reviews]
-    negative = [random.randint(0,1) for _ in reviews]
+    review_id = [0]
+    positive = [random.randint(0,1)]
+    negative = [random.randint(0,1)]
     data = {
-        ""review_id"": list(range(len(reviews))),
+        ""review_id"": review_id,
         ""positive"": positive,
         ""negative"": negative,
     }
@@ -699,8 +698,8 @@ if q1 is more and q2 is less then q3 is less","with Graph('WIQA_graph') as graph
     ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
     ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))","
 def random_wiqa_instance():
-    paragraph = [1]
-    questions = [random.randint(0,1) for _ in range(5)]
+    paragraph_id = [0]
+    questions_id = [i for i in range(5)]
     is_more, is_less, no_effect = [], [], []
     for _ in range(5):
         lbl = random.choice([0, 1, 2])
@@ -709,14 +708,12 @@ def random_wiqa_instance():
         no_effect.append(1 if lbl == 2 else 0)
 
     data = {
-        ""paragraph_id"": [i for i in range(len(paragraph))],
-        ""question_id"":  [i for i in range(len(questions))],
+        ""paragraph_id"": paragraph_id,
+        ""question_id"":  questions_id,
         ""is_more_id"":  [i for i in range(len(is_more))],
         ""is_less_id"":  [i for i in range(len(is_less))],
         ""no_effect_id"":  [i for i in range(len(no_effect))],
 
-        ""paragraph"": paragraph,
-        ""question"": questions,
         ""is_more"": is_more,
         ""is_less"": is_less,
         ""no_effect"": no_effect,
@@ -745,26 +742,25 @@ def random_wiqa_instance():
                     continue
                 if random.random() < 0.15:
                     transitive.append((i, j, k))
-    print(transitive)
+
     data[""transitive""] = [transitive]
     return data
 
 dataset = [random_wiqa_instance() for _ in range(1)]
 
-paragraph['paragraph'] = ReaderSensor(keyword='paragraph')
+
 paragraph['paragraph_id'] = ReaderSensor(keyword='paragraph_id')
 paragraph['symmetric'] = ReaderSensor(keyword='symmetric')
 paragraph['transitive'] = ReaderSensor(keyword='transitive')
 
-question['question'] = ReaderSensor(keyword='question')
 question['question_id'] = ReaderSensor(keyword='question_id')
 question['is_more_id'] = ReaderSensor(keyword='is_more_id')
 question['is_less_id'] = ReaderSensor(keyword='is_less_id')
 question['no_effect_id'] = ReaderSensor(keyword='no_effect_id')
 
-question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph'], question['question'],keyword='para_quest_contains', relation=para_quest_contains)
-symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question'], question['question'],keyword='symmetric')
-transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question'], question['question'],question['question'],keyword='transitive')
+question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph_id'], question['question_id'],keyword='para_quest_contains', relation=para_quest_contains)
+symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],keyword='symmetric')
+transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],question['question_id'],keyword='transitive')
 
 question[is_more] = LabelReaderSensor(keyword='is_more')
 question[is_less] = LabelReaderSensor(keyword='is_less')
@@ -893,9 +889,8 @@ Here, we have a paragraph that describes logical reasoning rules in natural lang
     i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)
 
     ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))","
-
 def random_ruletaker_bank_instance():
-    context = [1]
+    context_id = [0]
     num_questions = 6
     question_ids = list(range(num_questions))
     qlabel = [random.randint(0, 1) for _ in question_ids]
@@ -907,7 +902,7 @@ def random_ruletaker_bank_instance():
     implication_pairs = all_pairs[:max(5, len(all_pairs)//2)]
 
     data = {
-        ""context_id"": [i for i in range(len(context))],
+        ""context_id"": context_id,
         ""question_id"": question_ids,
         ""qlabel"": qlabel,
         ""context_question_contains"": [contains_pairs],
@@ -929,7 +924,9 @@ question[qlabel] = DummyLearner('question_id', output_size=2)
 program = SolverPOIProgram(graph, poi=[context, question, qlabel, implication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
 for datanode in program.populate(dataset=dataset):
     datanode.inferILPResults()
+
     for idx, qnode in enumerate(datanode.getChildDataNodes()):
+        print(""relations"", qnode.impactLinks)
         print(f""question {idx} qlabel :"", qnode.getResult(qlabel, ""local"", ""argmax""))
         print(f""question {idx} qlabel ILP:"", qnode.getResult(qlabel, ""ILP""))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
 
