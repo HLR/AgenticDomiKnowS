@@ -42,7 +42,7 @@ child = parent(name='child')  # child is_a parent
 
 ```python
 label = parent(name='label', ConceptClass=EnumConcept, values=['false', 'true'])
-# Access via: label.false, label.true or label.getattr('false'), label.getattr('true')
+# Access via: label.false, label.true or getattr(label, 'false'), getattr(label, 'true')
 ```
 
 - Binary as boolean concept (true vs `notL(concept)`):
@@ -56,7 +56,7 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 
     ```python
     cls = parent(name='class', ConceptClass=EnumConcept, values=['label1', 'label2', 'label3'])
-    # Use: cls.label1, cls.label2, ... or cls.getattr('label1')
+    # Use: cls.label1, cls.label2, ... or getattr(cls, 'label1')
     ```
 
   - Multiple binary concepts (needs an exclusivity constraint to avoid multi-hot):
@@ -72,6 +72,20 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 Notes:
 - All concepts are categorical. For numeric targets, bucketize into categories and, if needed, add ordering constraints.
 - Do not leave dangling concepts (unused by constraints or structure).
+- Do not include properties in the concepts. Properties are the features related to the concept that will be defined later. For example:
+  - Here token is a property of a sentence concept and should be removed.
+  ```python
+    sentence = Concept(name='sentence')
+    token = Concept(name='token') 
+    (sentence_contains_token,) = sentence.contains(token)
+    ```
+  - Usually when there is a one to one relationship between concepts one of them is the property concept. for example
+  ```python
+    sentence = Concept(name='sentence')
+    subject = Concept(name='sentence')
+    (sentence_contains_subject,) = sentence.contains(subject)
+  ```
+  Here subject is the property concept of the sentence concept and should be removed as there is only one subject for each sentence. Defining a contain relationship for a one to one relationship is wrong.
 
 ---
 
@@ -116,6 +130,8 @@ Notes:
 Some constraints are inherent to the graph structure and there is no need to express them:
     1. The labels in the EnumConcepts are mutually exclusive and only one can be true.
     2. The binary label concepts can be either true or false and not both at the same time. 
+    
+Other constraints are expressed using logical predicates.
 
 Logical predicates:
 - `notL(X)`, `andL(X, Y)`, `orL(X, Y)`, `nandL(X, Y)`, `norL(X, Y)`, `xorL(X, Y)`, `ifL(X, Y)`
@@ -263,6 +279,7 @@ with Graph('Conll') as graph:
         people(path=('x', pair_arg1)), people(path=('x', pair_arg2))
     ))
 ```
+
     """
 
     graph_examples= []
@@ -301,7 +318,7 @@ Review the provided graph and deliver feedback on its design and quality based o
 	    Are there any concepts that function only as properties rather than core entities and should therefore be removed?
 
 If the graph meets all quality criteria with no issues, simply respond with “approve”
-        
+
 # Graph Declaration Guide
 
 DomiKnowS lets you declare knowledge about a domain and use it during training and inference with deep learning models. Every graph must define:
@@ -338,7 +355,7 @@ child = parent(name='child')  # child is_a parent
 
 ```python
 label = parent(name='label', ConceptClass=EnumConcept, values=['false', 'true'])
-# Access via: label.false, label.true or label.getattr('false'), label.getattr('true')
+# Access via: label.false, label.true or getattr(label, 'false'), getattr(label, 'true')
 ```
 
 - Binary as boolean concept (true vs `notL(concept)`):
@@ -352,7 +369,7 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 
     ```python
     cls = parent(name='class', ConceptClass=EnumConcept, values=['label1', 'label2', 'label3'])
-    # Use: cls.label1, cls.label2, ... or cls.getattr('label1')
+    # Use: cls.label1, cls.label2, ... or getattr(cls, 'label1')
     ```
 
   - Multiple binary concepts (needs an exclusivity constraint to avoid multi-hot):
@@ -368,6 +385,20 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 Notes:
 - All concepts are categorical. For numeric targets, bucketize into categories and, if needed, add ordering constraints.
 - Do not leave dangling concepts (unused by constraints or structure).
+- Do not include properties in the concepts. Properties are the features related to the concept that will be defined later. For example:
+  - Here token is a property of a sentence concept and should be removed.
+  ```python
+    sentence = Concept(name='sentence')
+    token = Concept(name='token') 
+    (sentence_contains_token,) = sentence.contains(token)
+    ```
+  - Usually when there is a one to one relationship between concepts one of them is the property concept. for example
+  ```python
+    sentence = Concept(name='sentence')
+    subject = Concept(name='sentence')
+    (sentence_contains_subject,) = sentence.contains(subject)
+  ```
+  Here subject is the property concept of the sentence concept and should be removed as there is only one subject for each sentence. Defining a contain relationship for a one to one relationship is wrong.
 
 ---
 
@@ -412,6 +443,8 @@ Notes:
 Some constraints are inherent to the graph structure and there is no need to express them:
     1. The labels in the EnumConcepts are mutually exclusive and only one can be true.
     2. The binary label concepts can be either true or false and not both at the same time. 
+    
+Other constraints are expressed using logical predicates.
 
 Logical predicates:
 - `notL(X)`, `andL(X, Y)`, `orL(X, Y)`, `nandL(X, Y)`, `norL(X, Y)`, `xorL(X, Y)`, `ifL(X, Y)`
@@ -559,6 +592,7 @@ with Graph('Conll') as graph:
         people(path=('x', pair_arg1)), people(path=('x', pair_arg2))
     ))
 ```
+
 
         """
     graph_examples = ["""Problem definition: We have a collections of images with given pixels and dimentions each with some regions. Each region has a bounding box, some textual clues and some textual inferences. we want to find the correct inference for each region. If there are at least 3 useful clues related to an inference, that inference must be correct.
@@ -651,6 +685,21 @@ with Graph('X_graph') as graph:
     ifL(x1, notL(andL(x2, x3)))
     ifL(x2, notL(andL(x1, x3)))
     ifL(x3, notL(andL(x2, x1)))
-   ""","""Instead of the 3 constraints one simple constraint notL(andL(x1,x2,x3)) would suffice and is better for explainability."""
+   ""","""Instead of the 3 constraints one simple constraint notL(andL(x1,x2,x3)) would suffice and is better for explainability.""",
+""" Problem Definition: In this graph, we can 3 types of questions each can be true or false. Each questions has an object and a subject and based on these we can deside which question is true. Also questions type 1 and 2 can not false at the same time.
+with Graph('question_graph') as graph:
+    question = Concept(name='question')
+    question1 = question(name='question_type1')
+    question2 = question(name='question_type2')
+    question3 = question(name='question_type3')
+    
+    object_ = Concept(name='object')
+    subject_ = Concept(name='subject')
+
+    (rel_question_contains_object_,) = question.contains(object_)
+    (rel_question_contains_object_,) = question.contains(subject_)
+ """,
+"""You forgot to add the constraint that the question type 1 and 2 can not false at the same time. Also onject and subject must be removed as they are properties of the question.
+you should not add a contain relation between question and object and subject when the problem definition says that question has only one object and subject."""
         ]
     return graph_reviwer_instructions, graph_examples
