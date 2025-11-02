@@ -3,11 +3,11 @@ ID,name,domain,dataset,description,description_constraint,graph,constraints,whol
 
 The categories are hierarchical and have three levels of hierarchy. Not every news article belongs to a level. Not every news at lower levels has a parent, and not every news at a higher level has children. 
 
-The relationship between levels is as such: At Level One, news can be one of the following classes: comp, rec, sci, misc, talk, alt, and soc. 
+The relationship between levels is as such: At Level One, news can be one of the following classes: comp, rec, sci, misc, talk, alt,  soc and None.
 
-At Level Two, news can be one of the following classes: os, sys, windows, graphics, motorcycles, sport, autos, religion, electronics, med, space, forsale, politics, crypt. 
+At Level Two, news can be one of the following classes: os, sys, windows, graphics, motorcycles, sport, autos, religion, electronics, med, space, forsale, politics, crypt and None.
 
-And finally, at Level Three, news has the following classes: misc, guns, IBM, mac, baseball, hockey, and Mideast.
+And finally, at Level Three, news has the following classes: guns, IBM, mac, baseball, hockey,  Mideast and None.
    	  
  ","There are hierarchical constraints between the three levels of classes as such:
  
@@ -106,68 +106,7 @@ Categorization has to respect this hierarchy, and if a child is chosen, so must 
         if hierarchy_2[parent]:
             ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
         else:
-            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('20news') as graph:
-    news_group = Concept(name=""news_group"")
-
-    news = Concept(name='news')
-    news_group_contains, = news_group.contains(news)
-
-    level1_list = [""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""]
-    level2_list = [""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""]
-    level3_list = [""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""]
-
-    level1 = news(name=""level1"", ConceptClass=EnumConcept, values=level1_list)
-    level2 = news(name=""level2"", ConceptClass=EnumConcept, values=level2_list)
-    level3 = news(name=""level3"", ConceptClass=EnumConcept, values=level3_list)
-
-    hierarchy_1 = {
-        ""comp"": {""graphics"", ""os"", ""sys"", ""windows""},
-        ""rec"": {""autos"", ""motorcycles"", ""sport""},
-        ""sci"": {""crypt"", ""electronics"", ""med"", ""space""},
-        ""misc"": {""forsale""},
-        ""talk"": {""politics"", ""religion""},
-        ""alt"": {},
-        ""soc"": {},
-        ""None"": {},
-    }
-    hierarchy_2 = {
-        ""windows"": {},
-        ""os"": {},
-        ""religion"": {},
-        ""politics"": {""guns"", ""mideast""},
-        ""sys"": {""ibm"", ""mac""},
-        ""sport"": {""hockey"", ""baseball""}
-    }
-
-    for parent in hierarchy_1.keys():
-        if hierarchy_1[parent]:
-            ifL(existsL(*[level2.__getattr__(child) for child in hierarchy_1[parent]]), level1.__getattr__(parent))
-        else:
-            ifL(level1.__getattr__(parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
-
-    for parent in hierarchy_2.keys():
-        if hierarchy_2[parent]:
-            ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
-        else:
-            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))
-
-def random_20news_instance():
+            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","def random_20news_instance():
     news_group = [1]
     num_news = 6
     news_items = list(range(num_news))
@@ -278,47 +217,7 @@ Every image must belong to a primary and a specific category, and the parent-chi
     ifL(animal, orL(cat, dog, monkey, squirrel))
 
     ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
-    ifL(image, xorL(animal, flower, 1))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('AnimalAndFlower') as graph:
-    image_group = Concept(name='image_group')
-    image = Concept(name='image')
-    image_group_contains, = image_group.contains(image)
-
-    animal = image(name='animal')
-    cat = animal(name='cat')
-    dog = animal(name='dog')
-    monkey = animal(name='monkey')
-    squirrel = animal(name='squirrel')
-
-    flower = image(name='flower')
-    daisy = flower(name='daisy')
-    dandelion = flower(name='dandelion')
-    rose = flower(name='rose')
-    sunflower = flower(name='sunflower')
-    tulip = flower(name='tulip')
-
-    ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
-    ifL(animal, orL(cat, dog, monkey, squirrel))
-
-    ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
-    ifL(image, xorL(animal, flower, 1))
-
-def random_animalandflower_instance():
+    ifL(image, xorL(animal, flower, 1))","def random_animalandflower_instance():
     n_images = 6
     image_group_ids = [0]
     image_ids = list(range(n_images))
@@ -436,33 +335,7 @@ The parent-child relationship must be respected. For example, an image can not b
     fine = image(name='fine', ConceptClass=EnumConcept, values=animals + vehicles)
 
     ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
-    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('CIFAR10_hier') as graph:
-    image = Concept(name='image')
-
-    animals = ['bird','cat','deer','dog','frog','horse']
-    vehicles = ['airplane','automobile','ship','truck']
-    coarse = image(name='coarse', ConceptClass=EnumConcept, values=['animal', 'vehicle'])
-    fine = image(name='fine', ConceptClass=EnumConcept, values=animals + vehicles)
-
-    ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
-    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))
-
+    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))","
 def random_cifar10_instance():
     image = [1]
     coarse = [random.randint(0,1)]
@@ -514,30 +387,7 @@ Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', '
     m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
     m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
 
-    xorL(m1.spam, m2.not_spam)","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('email_spam_consistency') as graph:
-    email = Concept(name='email')
-
-    m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
-    m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
-
-    xorL(m1.spam, m2.not_spam)
-
+    xorL(m1.spam, m2.not_spam)","
 def random_emailspam_instance():
     email = [1]
     m1 = [random.randint(0,1)]
@@ -587,29 +437,7 @@ Task Concepts: ['Spam', 'Regular']"
     positive = review(name='positive')
     negative = review(name='negative')
 
-    xorL(positive, negative)","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('IMDB') as graph:
-    review = Concept(name='review')
-    positive = review(name='positive')
-    negative = review(name='negative')
-
-    xorL(positive, negative)
-
+    xorL(positive, negative)","
 def random_IMDB_instance():
     reviews = [1]
     positive = [random.randint(0,1) for _ in reviews]
@@ -643,7 +471,7 @@ Task Concepts: ['positive', 'negative']"
 
 Given a procedural paragraph, the model must show the state of procedures in consequent steps. In this manner, each procedure contains steps, each of which is identified by its location, which can be non-existence, known, or unknown.
 
-For a transition between two states of a step, an action is required, which can be create, destroy, or other.","Steps should have a fixed order. Also, if an order is to create, then the location of a step should change from known or unknown to non-existence. Similarly, if an order is to destroy, then the location of a step should change from non-existence to known or unknown.","with Graph('propara') as graph:
+For a transition between two states of a step, an action is required, which can be create, destroy, or other.","If an order is to create, then the location of a step should change from known or unknown to non-existence. Similarly, if an order is to destroy, then the location of a step should change from non-existence to known or unknown.","with Graph('propara') as graph:
 
     procedure = Concept(name=""procedure"")
     step = Concept(name=""step"")
@@ -717,62 +545,7 @@ For a transition between two states of a step, an action is required, which can 
                 ),
                 non_existence(path=(""x"", action_arg2))
         )
-    )","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('propara') as graph:
-
-    procedure = Concept(name=""procedure"")
-    step = Concept(name=""step"")
-    (procedure_contain_step, ) = procedure.contains(step)
-
-    non_existence = step(name=""non_existence"")
-    unknown_loc = step(name=""unknown_location"")
-    known_loc = step(name=""known_location"")
-
-    action = Concept(name=""action"")
-    action_arg1, action_arg2 = action.has_a(arg1=step, arg2=step)
-
-    create = action(name=""create"")
-    destroy = action(name=""destroy"")
-    other = action(name=""other"")
-
-    ifL(step(""x""), exactL(known_loc(path=(""x"")), unknown_loc(path=(""x"")), non_existence(path=(""x"")), 1))
-    ifL(action(""x""), exactL(create(path=(""x"")), destroy(path=(""x"")), other(path=(""x"")), 1))
-
-    ifL(create(""x""),
-      andL(
-          non_existence(""y1"",path=(""x"", action_arg1)),
-          orL(
-              unknown_loc(path=(""x"", action_arg2)),
-              known_loc(path=(""x"", action_arg2))
-          )
-      )
-    )
-
-    ifL(destroy(""x""),
-        andL(
-            orL(
-                    known_loc(path=(""x"", action_arg1)),
-                    unknown_loc(path=(""x"", action_arg1))
-                ),
-                non_existence(path=(""x"", action_arg2))
-        )
-    )
-
+    )","
 def random_propara_instance():
     procedure_ids = [0]
     num_steps = 6
@@ -924,50 +697,7 @@ if q1 is more and q2 is less then q3 is less","with Graph('WIQA_graph') as graph
     ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
 
     ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
-    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-print(""Graph Declaration:"")
-Graph.clear()
-Concept.clear()
-Relation.clear()
-
-with Graph('WIQA_graph') as graph:
-    paragraph = Concept(name='paragraph')
-    question = Concept(name='question')
-    para_quest_contains, = paragraph.contains(question)
-
-    is_more = question(name='is_more')
-    is_less = question(name='is_less')
-    no_effect = question(name='no_effect')
-
-    symmetric = Concept(name='symmetric')
-    s_arg1, s_arg2 = symmetric.has_a(s_arg1=question, s_arg2=question)
-
-    transitive = Concept(name='transitive')
-    t_arg1, t_arg2, t_arg3 = transitive.has_a(t_arg1=question, t_arg2=question, t_arg3=question)
-
-    ifL(question(""x""),exactL(is_more(path=(""x"")), is_less(path=(""x"")), no_effect(path=(""x"")), 1))
-
-    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
-    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
-
-    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
-    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))
-
+    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))","
 def random_wiqa_instance():
     paragraph = [1]
     questions = [random.randint(0,1) for _ in range(5)]
@@ -1061,7 +791,7 @@ for datanode in program.populate(dataset=dataset):
 Task Concepts: ['is_more','is_less','no_effect']"
 8,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
 
-Here, we have a collection of entities and a list of sentences that describe an attribute of those entities. Some of these attributes are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two attributes that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between attributes that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an attribute applies to an entity. In that case, all attributes with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
+Here, we have a collection of entities and a list of sentences that describe those entities. Some of these sentences are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two sentence that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between sentences that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an sentence applies to an entity. In that case, all sentences with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
 
 ","with Graph('belief_bank') as graph:
 
@@ -1090,39 +820,7 @@ Here, we have a collection of entities and a list of sentences that describe an 
     ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)
 
     ifL(andL(fact_check('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), fact_check(path=('s', i_arg2)))
-    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('belief_bank') as graph:
-
-    subject = Concept(name='subject')
-    facts = Concept(name='facts')
-    subject_facts_contains, = subject.contains(facts)
-
-    fact_check = facts(name='fact_check')
-    implication = Concept(name='implication')
-    i_arg1, i_arg2 = implication.has_a(iarg1=facts, iarg2=facts)
-
-    nimplication = Concept(name='nimplication')
-    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)
-
-    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), fact_check(path=('s', i_arg2)))
-    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))
-
-def random_belief_bank_instance():
+    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))","def random_belief_bank_instance():
     subject_ids = [0]
     facts_ids = list(range(6))
     fact_check_labels = [random.randint(0, 1) for _ in facts_ids]
@@ -1194,34 +892,7 @@ Here, we have a paragraph that describes logical reasoning rules in natural lang
     implication = Concept(name='implication')
     i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)
 
-    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('ruletaker_bank') as graph:
-
-    context = Concept(name='context')
-    question = Concept(name='question')
-    context_question_contains, = context.contains(question)
-
-    qlabel = question(name='qlabel')
-    implication = Concept(name='implication')
-    i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)
-
-    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))
-
+    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))","
 
 def random_ruletaker_bank_instance():
     context = [1]
@@ -1310,46 +981,7 @@ In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 
         if len(sum_combinations) == 1:
             ifL(getattr(s, ""s""+str(sum_val))('x'),sum_combinations[0])
         else:
-            ifL(getattr(s, ""s""+str(sum_val))('x'),orL(*sum_combinations))","import sys
-sys.path.append('../../../../')
-sys.path.append('../../../')
-sys.path.append('../')
-sys.path.append('../../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph(name='MNIST_sum') as graph:
-    image_batch = Concept(name='image_batch')
-    image = Concept(name='image')
-    digit = image(name='digits', ConceptClass=EnumConcept, values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
-    image_contains, = image_batch.contains(image)
-
-    image_pair = Concept(name='pair')
-    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])
-    pair_d0, pair_d1 = image_pair.has_a(digit0=image, digit1=image)
-
-    for sum_val in range(19):
-        sum_combinations = []
-
-        for d0_val in range(sum_val + 1):
-            d1_val = sum_val - d0_val
-            if d0_val >= 10 or d1_val >= 10:
-                continue
-            sum_combinations.append(andL(getattr(digit, ""n""+str(d0_val))(path=('x', pair_d0)),getattr(digit, ""n""+str(d1_val))(path=('x', pair_d1))))
-
-        if len(sum_combinations) == 1:
-            ifL(getattr(s, ""s""+str(sum_val))('x'),sum_combinations[0])
-        else:
-            ifL(getattr(s, ""s""+str(sum_val))('x'),orL(*sum_combinations))
-
+            ifL(getattr(s, ""s""+str(sum_val))('x'),orL(*sum_combinations))","
 def random_mnist_sum_instance():
     n_images = 6
     image_batch_id = [0]
@@ -1438,45 +1070,7 @@ The input is a partially filled Sudoku puzzle that must be filled. The model sho
     for val in [f'{i}' for i in range(9)]:
         ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
         ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
-        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('sudoko') as graph:
-
-    sudoku = Concept('sodoku')
-
-    empty_entry = Concept(name='empty_entry')
-    (empty_rel,) = sudoku.contains(empty_entry)
-
-    same_row = Concept(name='same_row')
-    (same_row_arg1, same_row_arg2) = same_row.has_a(row1=empty_entry, row2=empty_entry)
-
-    same_col = Concept(name='same_col')
-    (same_col_arg1, same_col_arg2) = same_col.has_a(col1=empty_entry, col2=empty_entry)
-
-    same_table = Concept(name='same_table')
-    (same_table_arg1, same_table_arg2) = same_table.has_a(entry1=empty_entry, entry2=empty_entry)
-
-    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=[f'n{i}' for i in range(9)])
-
-    for val in [f'{i}' for i in range(9)]:
-        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
-        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
-        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))
-
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))","
 
 def random_sudoku_instance():
     sudoku_id = [0]
@@ -1628,44 +1222,7 @@ Here, the input would be a chess board with some queens already placed on it. Th
     ifL(same_col('c'), notL(existsL(andL(cell_state.Q(path=('c', sc_arg1)), cell_state.Q(path=('c', sc_arg2))))))
     ifL(same_diag('d'), notL(existsL(andL(cell_state.Q(path=('d', sd_arg1)), cell_state.Q(path=('d', sd_arg2))))))
 
-    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))","import sys
-sys.path.append('../../../')
-sys.path.append('../../')
-sys.path.append('./')
-sys.path.append('../')
-import torch, random
-from domiknows.program.loss import *
-from domiknows.program.metric import *
-from domiknows.sensor.pytorch.learners import *
-from domiknows.sensor.pytorch.sensors import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.graph.logicalConstrain import *
-from domiknows.graph import *
-from domiknows.sensor.pytorch.relation_sensors import *
-from domiknows.program import *
-
-with Graph('eight_queens') as graph:
-    board = Concept(name='board')
-    cell = Concept(name='cell')
-    (board_contains_cell,) = board.contains(cell)
-
-    cell_state = cell(name='cell_state', ConceptClass=EnumConcept, values=['Q', 'E'])
-
-    same_row = Concept(name='same_row')
-    (sr_arg1, sr_arg2) = same_row.has_a(rarg1=cell, rarg2=cell)
-
-    same_col = Concept(name='same_col')
-    (sc_arg1, sc_arg2) = same_col.has_a(carg1=cell, carg2=cell)
-
-    same_diag = Concept(name='same_diag')
-    (sd_arg1, sd_arg2) = same_diag.has_a(darg1=cell, darg2=cell)
-
-    ifL(same_row('r'), notL(existsL(andL(cell_state.Q(path=('r', sr_arg1)), cell_state.Q(path=('r', sr_arg2))))))
-    ifL(same_col('c'), notL(existsL(andL(cell_state.Q(path=('c', sc_arg1)), cell_state.Q(path=('c', sc_arg2))))))
-    ifL(same_diag('d'), notL(existsL(andL(cell_state.Q(path=('d', sd_arg1)), cell_state.Q(path=('d', sd_arg2))))))
-
-    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))
-
+    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))","
 def random_chess_graph_instance():
     size = 8
     board_ids = [0]
