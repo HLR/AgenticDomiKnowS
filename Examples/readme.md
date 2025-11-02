@@ -36,7 +36,7 @@ child = parent(name='child')  # child is_a parent
 
 ```python
 label = parent(name='label', ConceptClass=EnumConcept, values=['false', 'true'])
-# Access via: label.false, label.true or label.getattr('false'), label.getattr('true')
+# Access via: label.false, label.true or getattr(label, 'false'), getattr(label, 'true')
 ```
 
 - Binary as boolean concept (true vs `notL(concept)`):
@@ -50,7 +50,7 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 
     ```python
     cls = parent(name='class', ConceptClass=EnumConcept, values=['label1', 'label2', 'label3'])
-    # Use: cls.label1, cls.label2, ... or cls.getattr('label1')
+    # Use: cls.label1, cls.label2, ... or getattr(cls, 'label1')
     ```
 
   - Multiple binary concepts (needs an exclusivity constraint to avoid multi-hot):
@@ -66,6 +66,20 @@ is_target = parent(name='is_target')  # true when is_target holds, false via not
 Notes:
 - All concepts are categorical. For numeric targets, bucketize into categories and, if needed, add ordering constraints.
 - Do not leave dangling concepts (unused by constraints or structure).
+- Do not include properties in the concepts. Properties are the features related to the concept that will be defined later. For example:
+  - Here token is a property of a sentence concept and should be removed.
+  ```python
+    sentence = Concept(name='sentence')
+    token = Concept(name='token') 
+    (sentence_contains_token,) = sentence.contains(token)
+    ```
+  - Usually when there is a one to one relationship between concepts one of them is the property concept. for example
+  ```python
+    sentence = Concept(name='sentence')
+    subject = Concept(name='sentence')
+    (sentence_contains_subject,) = sentence.contains(subject)
+  ```
+  Here subject is the property concept of the sentence concept and should be removed as there is only one subject for each sentence. Defining a contain relationship for a one to one relationship is wrong.
 
 ---
 
