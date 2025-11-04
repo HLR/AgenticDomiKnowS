@@ -94,8 +94,10 @@ if __name__ == "__main__":
         "graph_reviewer_agent_approved": False,
         "graph_exe_notes": [""],
         "graph_exe_agent_approved": True,
-        "human_approved": False,
-        "human_notes": "N/A",
+        "graph_human_approved": False,
+        "graph_human_notes": "N/A",
+        "sensor_code": "",
+        "sensor_rag_examples": [],
     }
     example_dict =dict()
     

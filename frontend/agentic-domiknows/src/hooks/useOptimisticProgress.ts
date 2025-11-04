@@ -10,7 +10,7 @@ interface ProcessStep {
 }
 
 interface BuildState {
-  Task_ID?: string;
+  Task_ID: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
@@ -21,8 +21,10 @@ interface BuildState {
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
   graph_exe_agent_approved: boolean;
-  human_approved: boolean;
-  human_notes: string;
+  graph_human_approved: boolean;
+  graph_human_notes: string;
+  sensor_code: string;
+  sensor_rag_examples: string[];
 }
 
 /**
@@ -120,7 +122,7 @@ export function useOptimisticProgress(
     const needsHumanReview = (state.graph_reviewer_agent_approved && state.graph_exe_agent_approved) ||
                             state.graph_attempt >= state.graph_max_attempts;
     
-    if (needsHumanReview && !state.human_approved) {
+    if (needsHumanReview && !state.graph_human_approved) {
       steps.push({
         step: 'human_review',
         message: 'Awaiting human review and approval...',
@@ -129,18 +131,18 @@ export function useOptimisticProgress(
       });
     }
 
-    // Step 5: Completion - ONLY when ALL THREE conditions are met
-    // Must have: human_approved: true AND graph_reviewer_agent_approved: true AND graph_exe_agent_approved: true
-    const isFullyCompleted = state.human_approved === true && 
-                             state.graph_reviewer_agent_approved === true && 
-                             state.graph_exe_agent_approved === true;
+  // Step 5: Completion - ONLY when ALL THREE conditions are met
+  // Must have: graph_human_approved: true AND graph_reviewer_agent_approved: true AND graph_exe_agent_approved: true
+  const isFullyCompleted = state.graph_human_approved === true && 
+               state.graph_reviewer_agent_approved === true && 
+               state.graph_exe_agent_approved === true;
     
-    // Debug logging for completion logic
-    console.log('🏁 === COMPLETION CHECK ===');
-    console.log('🏁 human_approved:', state.human_approved);
+  // Debug logging for completion logic
+  console.log('🏁 === COMPLETION CHECK ===');
+  console.log('🏁 graph_human_approved:', state.graph_human_approved);
     console.log('🏁 graph_reviewer_agent_approved:', state.graph_reviewer_agent_approved);
     console.log('🏁 graph_exe_agent_approved:', state.graph_exe_agent_approved);
-    console.log('🏁 isFullyCompleted (all three must be true):', isFullyCompleted);
+  console.log('🏁 isFullyCompleted (all three must be true):', isFullyCompleted);
     
     if (isFullyCompleted) {
       console.log('✅ All three approvals confirmed - showing completion step');

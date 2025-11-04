@@ -11,7 +11,7 @@ interface ProcessUpdate {
 }
 
 interface BuildState {
-  Task_ID?: string;
+  Task_ID: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
@@ -22,8 +22,10 @@ interface BuildState {
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
   graph_exe_agent_approved: boolean;
-  human_approved: boolean;
-  human_notes: string;
+  graph_human_approved: boolean;
+  graph_human_notes: string;
+  sensor_code: string;
+  sensor_rag_examples: string[];
 }
 
 interface SensorsWorkflowProps {
@@ -35,6 +37,47 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
   const [sensorCode, setSensorCode] = useState<string[]>([
     `# Sensor code for: ${buildState.Task_definition}\nfrom domiknows.sensor import Sensor\n\n# Define your sensors here\nsensor = Sensor('demo_sensor')\n`
   ]);
+  // Keep sensorCode in sync with server-provided buildState.sensor_code
+  useEffect(() => {
+    if (!buildState) return;
+    const incoming = buildState.sensor_code || '';
+    if (incoming && incoming.trim().length > 0) {
+      const last = sensorCode[sensorCode.length - 1] || '';
+      if (incoming !== last) {
+        setSensorCode(prev => [...prev, incoming]);
+        setProgressUpdates(prev => [...prev, {
+          step: 'sensor_code_update',
+          message: '🔁 Sensor code updated from build state',
+          timestamp: new Date().toISOString(),
+          status: 'active'
+        }]);
+      }
+    }
+
+    // Show reviewer note if present
+    const latestReview = buildState.graph_review_notes && buildState.graph_review_notes.length > 0
+      ? buildState.graph_review_notes[buildState.graph_review_notes.length - 1]
+      : null;
+    if (latestReview) {
+      setProgressUpdates(prev => [...prev, {
+        step: 'review_note',
+        message: `📝 Reviewer: ${latestReview}`,
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      }]);
+    }
+
+    // If there are sensor RAG examples, add an informational update
+    if (buildState.sensor_rag_examples && buildState.sensor_rag_examples.length > 0) {
+      setProgressUpdates(prev => [...prev, {
+        step: 'sensor_rag',
+        message: `📚 Sensor RAG examples available (${buildState.sensor_rag_examples.length})`,
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildState?.sensor_code, buildState?.graph_review_notes, buildState?.sensor_rag_examples]);
   const [currentIteration, setCurrentIteration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -144,6 +187,59 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
       timestamp: new Date().toISOString(),
       status: 'completed'
     }]);
+
+    // Persist the edited sensor code to the backend via /continue-graph
+    (async () => {
+      try {
+        const payload = {
+          ...buildState,
+          sensor_code: editedCode
+        };
+
+        const resp = await fetch('http://localhost:8000/continue-graph', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          setProgressUpdates(prev => [...prev, {
+            step: 'save_failed',
+            message: `❌ Failed to save sensor code: ${text}`,
+            timestamp: new Date().toISOString(),
+            status: 'pending'
+          }]);
+          return;
+        }
+
+        const newState = await resp.json();
+
+        // Notify other parts of the app (MainApp may listen) that buildState changed
+        try {
+          window.dispatchEvent(new CustomEvent('buildstate-updated', { detail: newState }));
+        } catch (e) {
+          // ignore if CustomEvent isn't supported in some env
+        }
+
+        setProgressUpdates(prev => [...prev, {
+          step: 'save_ok',
+          message: '💾 Sensor code saved to server',
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        }]);
+      } catch (err: any) {
+        setProgressUpdates(prev => [...prev, {
+          step: 'save_error',
+          message: `❌ Error saving sensor code: ${err?.message || String(err)}`,
+          timestamp: new Date().toISOString(),
+          status: 'pending'
+        }]);
+      }
+    })();
   };
 
   const handleCancelEdit = () => {
@@ -169,6 +265,32 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
                 Iteration: <span className="font-mono font-medium">{currentIteration}/{maxIterations}</span>
               </div>
             </div>
+          </div>
+        </div>
+        {/* Top meta: reviewer note + sensor rag examples */}
+        <div className="container mx-auto px-4">
+          <div className="bg-white/90 rounded-xl p-4 border border-gray-200 mb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="text-sm text-gray-600 mb-1">Latest Reviewer Note</div>
+                <div className="text-sm text-amber-800 italic">{(buildState.graph_review_notes && buildState.graph_review_notes.length > 0) ? buildState.graph_review_notes[buildState.graph_review_notes.length - 1] : 'No reviewer notes yet'}</div>
+              </div>
+              <div className="text-sm text-gray-600 text-right">
+                <div className="font-medium">Sensor RAG</div>
+                <div className="text-xs text-gray-500">{buildState.sensor_rag_examples.length} example(s)</div>
+              </div>
+            </div>
+
+            {buildState.sensor_rag_examples && buildState.sensor_rag_examples.length > 0 && (
+              <details className="mt-3">
+                <summary className="text-sm text-purple-600 cursor-pointer">View sensor RAG examples</summary>
+                <div className="mt-2 space-y-2 max-h-44 overflow-y-auto">
+                  {buildState.sensor_rag_examples.map((ex: string, i: number) => (
+                    <pre key={i} className="text-xs bg-gray-50 p-2 rounded text-gray-700 font-mono whitespace-pre-wrap">{ex}</pre>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>

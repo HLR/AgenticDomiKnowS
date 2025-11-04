@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 interface BuildState {
-  Task_ID?: string;
+  Task_ID: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
@@ -12,8 +12,10 @@ interface BuildState {
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
   graph_exe_agent_approved: boolean;
-  human_approved: boolean;
-  human_notes: string;
+  graph_human_approved: boolean;
+  graph_human_notes: string;
+  sensor_code: string;
+  sensor_rag_examples: string[];
 }
 
 interface PollingConfig {
