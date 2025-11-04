@@ -1,6 +1,5 @@
 from .graph_prompt import get_graph_prompt, get_graph_reviewer_prompt
 from Agent.utils import extract_python_code, exec_code
-from .rag import select_graph_examples
 
 def graph_swe_agent(llm, Task_definition, rag_selected, graph_code_draft, graph_review_notes, graph_exe_notes, human_note):
     instructions, all_examples = get_graph_prompt()

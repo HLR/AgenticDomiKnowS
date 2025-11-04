@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from Agent.main import pre_process_graph
+from Agent.utils import load_all_examples_info
 
 def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: bool) -> List[Dict[str, Any]]:
     """
@@ -165,7 +166,7 @@ def main(argv: List[str] | None = None) -> int:
                 task_id,
                 task_name,
                 task_text,
-                [x for j in tasks if j[3] != gold_graph for x in (j[2], j[3])],
+                load_all_examples_info("", gold_graph),
                 args.reasoning_effort,
             ): i
             for i, (task_id, task_name, task_text, gold_graph) in enumerate(tasks)

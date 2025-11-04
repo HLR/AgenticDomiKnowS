@@ -1,5 +1,5 @@
 from __future__ import annotations
-from fastapi import FastAPI, Request, Response, Depends, HTTPException
+from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys; sys.path.append("../")
@@ -7,7 +7,7 @@ import os
 from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, model_to_typed_dict, BuildStateModel, typed_dict_changes
 from server.session import *
-from Agent.graph_prompt import load_all_graphs
+from Agent.Graph.graph_prompt import load_all_graphs
 
 app = FastAPI()
 origins = [
@@ -22,11 +22,11 @@ app.add_middleware(
 )
 
 initial_state, graph = pre_process_graph(
-        test_run=False,
+        reasoning_effort="medium",
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_graphs("static/"),
-        rag_k=3,
+        graph_rag_k=3,
         max_graphs_check=3
     )
 @app.get("/whoami")

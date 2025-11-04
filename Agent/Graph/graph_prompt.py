@@ -285,21 +285,6 @@ with Graph('Conll') as graph:
     graph_examples= []
     return graph_instructions, graph_examples
 
-def load_all_graphs(address=""):
-    if address:
-        data = pd.read_csv(address+'lang_to_code_test.csv')
-    else:
-        data = pd.read_csv(os.path.dirname(os.path.abspath(__file__))+'/../datasets/lang_to_code_test.csv')
-    example_graphs = []
-    for i in data.index:
-        row = data.loc[i]
-        desc = (row.get("description") or "").strip()
-        constr = (row.get("description_constraint") or "").strip()
-        gold_graph = (row.get("graph") or "") + "\n" + (row.get("constraints") or "").strip()
-        task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
-        example_graphs.extend([task_text, gold_graph])
-    return example_graphs
-
 def get_graph_reviewer_prompt():
     graph_reviwer_instructions = f"""
 You are an expert DomiKnowS knowledge-graph reviewer.

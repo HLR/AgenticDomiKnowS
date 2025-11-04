@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, TypedDict
 from langgraph.graph import StateGraph, END, START
 from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples
 from langgraph.checkpoint.memory import InMemorySaver
+from Agent.Sensor.sensor_agent import sensor_agent
 
 class BuildState(TypedDict):
     Task_ID: str
@@ -67,7 +68,12 @@ def build_graph(
     def graph_rag_selector(state: BuildState) -> BuildState:
         graph_out, sensor_out = select_graph_examples(graph_DB, state.get("Task_definition", "") or "", graph_rag_k)
         return {"graph_rag_examples": graph_out or [], "sensor_rag_examples": sensor_out or []}
-    
+
+    def sensor_agent_node(state: BuildState) -> BuildState:
+        print("Sensor agent node")
+        code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"))
+        return {"sensor_code": sensor_code}
+
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
     builder.add_node("graph_reviewer_agent_node", graph_reviewer_agent_node)
@@ -76,6 +82,8 @@ def build_graph(
     builder.add_node("graph_human_agent", graph_human_agent)
     builder.add_node("graph_rag_selector", graph_rag_selector)
 
+    builder.add_node("sensor_agent_node", sensor_agent_node)
+
     builder.add_edge(START, "graph_rag_selector")
     builder.add_edge("graph_rag_selector", "graph_swe_agent_node")
     builder.add_edge("graph_swe_agent_node", "graph_reviewer_agent_node")
@@ -83,9 +91,12 @@ def build_graph(
     builder.add_edge(["graph_reviewer_agent_node", "graph_exe_agent_node"], "join_review_exe")
 
     builder.add_conditional_edges("join_review_exe", route_after_review, {"to_human": "graph_human_agent", "revise": "graph_swe_agent_node",},)
-    builder.add_conditional_edges("graph_human_agent", route_after_human, {"approved": END, "reform": "graph_swe_agent_node",},)
+    builder.add_conditional_edges("graph_human_agent", route_after_human, {"approved": "sensor_agent_node", "reform": "graph_swe_agent_node",},)
+
+    builder.add_edge("sensor_agent_node", END)
+
     checkpointer = InMemorySaver()
-    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent"])
+    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent","sensor_agent_node"])
     return graph
 
 def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="", graph_examples=load_all_examples_info(), graph_rag_k=3, max_graphs_check=3):
@@ -115,7 +126,7 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
 def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="Coding LangGraph pipeline")
     parser.add_argument("--task-id", type=int, default=0, help="Task ID")
-    parser.add_argument("--task-description",type=str,default="Create an email spam graph",help="Description of the graph to build",)
+    parser.add_argument("--task-description",type=str,default="Create an movie sentiment graph very simple no constraints",help="Description of the graph to build",)
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
