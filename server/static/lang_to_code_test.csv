@@ -1,13 +1,13 @@
-ID,name,domain,dataset,description,description_constraint,graph,constraints,class type,difficulty,predefined dataset,classes
+ID,name,domain,dataset,description,description_constraint,graph,constraints,wholegraph,dummysensor,class type,difficulty,predefined dataset,classes
 1,Hierarchical News Classification,NLP,20 News Dataset,"Objective: The objective of the task is to perform hierarchical news topic classification in the domain of NLP using the 20 News Dataset. 
 
 The categories are hierarchical and have three levels of hierarchy. Not every news article belongs to a level. Not every news at lower levels has a parent, and not every news at a higher level has children. 
 
-The relationship between levels is as such: At Level One, news can be one of the following classes: comp, rec, sci, misc, talk, alt, and soc. 
+The relationship between levels is as such: At Level One, news can be one of the following classes: comp, rec, sci, misc, talk, alt,  soc and None.
 
-At Level Two, news can be one of the following classes: os, sys, windows, graphics, motorcycles, sport, autos, religion, electronics, med, space, forsale, politics, crypt. 
+At Level Two, news can be one of the following classes: os, sys, windows, graphics, motorcycles, sport, autos, religion, electronics, med, space, forsale, politics, crypt and None.
 
-And finally, at Level Three, news has the following classes: misc, guns, IBM, mac, baseball, hockey, and Mideast.
+And finally, at Level Three, news has the following classes: guns, IBM, mac, baseball, hockey,  Mideast and None.
    	  
  ","There are hierarchical constraints between the three levels of classes as such:
  
@@ -16,60 +16,151 @@ rec comprises autos, motorcycles, and sport.
 sci comprises crypt, electronics, med, and space.
 misc comprises forsale
 Talk comprises politics, and religion,
-Politics comprises misc, guns, and Mideast.
+Politics comprises  guns, and Mideast.
 sys comprises ibm and mac.
 sport comprises hockey and baseball.
    
 Categorization has to respect this hierarchy, and if a child is chosen, so must its father.	  
   ","with Graph('20news') as graph:
- 
-  news_group = Concept(name=""news_group"")
-  
-  news = Concept(name = 'news')
-  news_group_contains, = news_group.contains(news)
-  
-  level1_list = [ 
-  ""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""
-  ]
-  level2_list = [
-  ""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"",
-  ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""religion"", ""crypt"", ""None""
-  ]
-  level3_list = [
-  ""misc"", ""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""
-  ]
-  
-  level1 = news(name=""level1"", ConceptClass=EnumConcept, values=[""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""])
-  
-  level2 = news(name=""level2"", ConceptClass=EnumConcept, values=[""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""])
-  
-  level3 = news(name=""level3"", ConceptClass=EnumConcept, values=[""misc"", ""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""])
-  
-  hierarchy_1 = {""comp"": {""graphics"", ""os"", ""sys"", ""windows""}, ""rec"": {""autos"", ""motorcycles"", ""sport""},
-  ""sci"": {""crypt"", ""electronics"", ""med"", ""space""}, ""misc"": {""forsale""}, 
-  ""talk"": {""politics"", ""religion""}, ""alt"": {}, ""soc"": {}, ""None"": {},
-  }
-  hierarchy_2 = {
-  ""windows"": {}, ""os"": {}, ""religion"": {}, ""politics"": {""misc"", ""guns"", ""mideast""},
-  ""sys"": {""ibm"", ""mac""}, ""sport"": {""hockey"", ""baseball""}
-  }","for _parent in level1_list:
-  if _parent in hierarchy_1.keys():
-  if len(hierarchy_1[_parent]):
-  ifL(level1.__getattr__(_parent), exactL(*[level2.__getattr__(key1) for key1 in hierarchy_1[_parent]]))
-  else:
-  ifL(level1.__getattr__(_parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
-  else:
-  ifL(level1.__getattr__(_parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
-  
-  
-  for _parent in level2_list:
-  if _parent in hierarchy_2.keys():
-  if len(hierarchy_2[_parent]):
-  ifL(level2.__getattr__(_parent), exactL(*[level3.__getattr__(key1) for key1 in hierarchy_2[_parent]]))
-  else:
-  ifL(level2.__getattr__(_parent), level3.__getattr__(""None""))
-  else:
-  ifL(level2.__getattr__(_parent), level3.__getattr__(""None""))",multi,3,yes,"
+    news_group = Concept(name=""news_group"")
+
+    news = Concept(name='news')
+    news_group_contains, = news_group.contains(news)
+
+    level1_list = [""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""]
+    level2_list = [""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""]
+    level3_list = [""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""]
+
+    level1 = news(name=""level1"", ConceptClass=EnumConcept, values=level1_list)
+    level2 = news(name=""level2"", ConceptClass=EnumConcept, values=level2_list)
+    level3 = news(name=""level3"", ConceptClass=EnumConcept, values=level3_list)","
+    hierarchy_1 = {
+        ""comp"": {""graphics"", ""os"", ""sys"", ""windows""},
+        ""rec"": {""autos"", ""motorcycles"", ""sport""},
+        ""sci"": {""crypt"", ""electronics"", ""med"", ""space""},
+        ""misc"": {""forsale""},
+        ""talk"": {""politics"", ""religion""},
+        ""alt"": {},
+        ""soc"": {},
+        ""None"": {},
+    }
+    hierarchy_2 = {
+        ""windows"": {},
+        ""os"": {},
+        ""religion"": {},
+        ""politics"": {""guns"", ""mideast""},
+        ""sys"": {""ibm"", ""mac""},
+        ""sport"": {""hockey"", ""baseball""}
+    }
+
+    for parent in hierarchy_1.keys():
+        if hierarchy_1[parent]:
+            ifL(existsL(*[level2.__getattr__(child) for child in hierarchy_1[parent]]), level1.__getattr__(parent))
+        else:
+            ifL(level1.__getattr__(parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
+
+    for parent in hierarchy_2.keys():
+        if hierarchy_2[parent]:
+            ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
+        else:
+            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","with Graph('20news') as graph:
+    news_group = Concept(name=""news_group"")
+
+    news = Concept(name='news')
+    news_group_contains, = news_group.contains(news)
+
+    level1_list = [""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""]
+    level2_list = [""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""]
+    level3_list = [""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""]
+
+    level1 = news(name=""level1"", ConceptClass=EnumConcept, values=level1_list)
+    level2 = news(name=""level2"", ConceptClass=EnumConcept, values=level2_list)
+    level3 = news(name=""level3"", ConceptClass=EnumConcept, values=level3_list)
+
+    hierarchy_1 = {
+        ""comp"": {""graphics"", ""os"", ""sys"", ""windows""},
+        ""rec"": {""autos"", ""motorcycles"", ""sport""},
+        ""sci"": {""crypt"", ""electronics"", ""med"", ""space""},
+        ""misc"": {""forsale""},
+        ""talk"": {""politics"", ""religion""},
+        ""alt"": {},
+        ""soc"": {},
+        ""None"": {},
+    }
+    hierarchy_2 = {
+        ""windows"": {},
+        ""os"": {},
+        ""religion"": {},
+        ""politics"": {""guns"", ""mideast""},
+        ""sys"": {""ibm"", ""mac""},
+        ""sport"": {""hockey"", ""baseball""}
+    }
+
+    for parent in hierarchy_1.keys():
+        if hierarchy_1[parent]:
+            ifL(existsL(*[level2.__getattr__(child) for child in hierarchy_1[parent]]), level1.__getattr__(parent))
+        else:
+            ifL(level1.__getattr__(parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
+
+    for parent in hierarchy_2.keys():
+        if hierarchy_2[parent]:
+            ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
+        else:
+            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))","
+def random_20news_instance():
+    news_group = [0]
+    num_news = 6
+    news_items = list(range(num_news))
+    level1_vals = [random.randint(0, 7) for _ in news_items]
+    level2_vals = [random.randint(0, 14) for _ in news_items]
+    level3_vals = [random.randint(0, 6) for _ in news_items]
+
+    data = {
+        ""news_group_id"": news_group,
+        ""news_id"": [i for i in range(len(news_items))],
+        ""level1_id"": [i for i in range(len(news_items))],
+        ""level2_id"": [i for i in range(len(news_items))],
+        ""level3_id"": [i for i in range(len(news_items))],
+        ""level1"": level1_vals,
+        ""level2"": level2_vals,
+        ""level3"": level3_vals,
+    }
+
+    ng_news_contains = []
+    for ng in data[""news_group_id""]:
+        for n in data[""news_id""]:
+            ng_news_contains.append((ng, n))
+    data[""news_group_news_contains""] = [ng_news_contains]
+    return data
+
+dataset = [random_20news_instance() for _ in range(1)]
+
+news_group['news_group_id'] = ReaderSensor(keyword='news_group_id')
+news['news_id'] = ReaderSensor(keyword='news_id')
+news[news_group_contains] = EdgeReaderSensor(news_group['news_group_id'], news['news_id'], keyword='news_group_news_contains', relation=news_group_contains)
+
+level1['level1_id'] = ReaderSensor(keyword='level1_id')
+level2['level2_id'] = ReaderSensor(keyword='level2_id')
+level3['level3_id'] = ReaderSensor(keyword='level3_id')
+
+level1[level1] = LabelReaderSensor(keyword='level1')
+level2[level2] = LabelReaderSensor(keyword='level2')
+level3[level3] = LabelReaderSensor(keyword='level3')
+
+news[level1] = DummyLearner('news_id', output_size=8)
+news[level2] = DummyLearner('news_id', output_size=15)
+news[level3] = DummyLearner('news_id', output_size=7)
+
+program = SolverPOIProgram(graph, poi=[news_group, news, level1, level2, level3], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for i, child in enumerate(datanode.getChildDataNodes()):
+        print(""news"", i, ""level1 :"", child.getResult(level1, ""local"", ""argmax""))
+        print(""news"", i, ""level1 ILP:"", child.getResult(level1, ""ILP""))
+        print(""news"", i, ""level2 :"", child.getResult(level2, ""local"", ""argmax""))
+        print(""news"", i, ""level2 ILP:"", child.getResult(level2, ""ILP""))
+        print(""news"", i, ""level3 :"", child.getResult(level3, ""local"", ""argmax""))
+        print(""news"", i, ""level3 ILP:"", child.getResult(level3, ""ILP""))",multi,3,yes,"
 Basic Concepts: ['news_group','news','level1_list','level2_list','level3_list'] 
 
 Task Concepts: ['comp', 'rec', 'sci', 'misc', 'talk', 'alt', 'soc', 'os', 'sys', 'windows', 'graphics', 'motorcycles', 'sport', 'autos', 'religion', 'electronics', 'med', 'space', 'forsale', 'politics', 'crypt', 'None' ,'misc', 'guns', 'ibm', 'mac', 'baseball', 'hockey', 'mideast']
@@ -85,41 +176,143 @@ After that, we can assign more specific classes to each image: cat, dog, monkey,
   
 Every image must belong to a primary and a specific category, and the parent-child relationship must be respected. For example, an image can not be both an Animal and a daisy at the same time.
  ","with Graph('AnimalAndFlower') as graph:
-  image_group = Concept(name='image_group')
-  image = Concept(name='image')
-  image_group_contains, = image_group.contains(image)
- 
-  animal = image(name='animal')
-  cat = animal(name='cat')
-  dog = animal(name='dog')
-  monkey = animal(name='monkey')
-  squirrel = animal(name='squirrel')
- 
-  flower = image(name='flower')
-  daisy = flower(name='daisy')
-  dandelion = flower(name='dandelion')
-  rose = flower(name='rose')
-  sunflower = flower(name='sunflower')
-  tulip = flower(name='tulip')","ifL(cat('x'), animal('x'))
-  ifL(dog('x'), animal('x'))
-  ifL(monkey('x'), animal('x'))
-  ifL(squirrel('x'), animal('x'))
- 
-  ifL(daisy('x'), flower('x'))
-  ifL(dandelion('x'), flower('x'))
-  ifL(rose('x'), flower('x'))
-  ifL(sunflower('x'), flower('x'))
-  ifL(tulip('x'), flower('x'))
-  ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
-  ifL(animal, orL(cat, dog, monkey, squirrel))
-  disjoint(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip)
- 
-  for l1, l2 in combinations([daisy, dandelion, rose, sunflower, tulip, cat, dog, monkey, squirrel], 2):
-  # TODO isn't this the same as disjoint?
-  nandL(l1, l2)
- 
-  for l1, l2 in combinations([animal, flower], 2):
-  nandL(l1, l2)",binary,2,no,"Basic Concepts: ['image'] 
+    image_group = Concept(name='image_group')
+    image = Concept(name='image')
+    image_group_contains, = image_group.contains(image)
+
+    animal = image(name='animal')
+    cat = animal(name='cat')
+    dog = animal(name='dog')
+    monkey = animal(name='monkey')
+    squirrel = animal(name='squirrel')
+
+    flower = image(name='flower')
+    daisy = flower(name='daisy')
+    dandelion = flower(name='dandelion')
+    rose = flower(name='rose')
+    sunflower = flower(name='sunflower')
+    tulip = flower(name='tulip')","
+    ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
+    ifL(animal, orL(cat, dog, monkey, squirrel))
+
+    ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
+    ifL(image, xorL(animal, flower, 1))","with Graph('AnimalAndFlower') as graph:
+    image_group = Concept(name='image_group')
+    image = Concept(name='image')
+    image_group_contains, = image_group.contains(image)
+
+    animal = image(name='animal')
+    cat = animal(name='cat')
+    dog = animal(name='dog')
+    monkey = animal(name='monkey')
+    squirrel = animal(name='squirrel')
+
+    flower = image(name='flower')
+    daisy = flower(name='daisy')
+    dandelion = flower(name='dandelion')
+    rose = flower(name='rose')
+    sunflower = flower(name='sunflower')
+    tulip = flower(name='tulip')
+
+    ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
+    ifL(animal, orL(cat, dog, monkey, squirrel))
+
+    ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
+    ifL(image, xorL(animal, flower, 1))","
+def random_animalandflower_instance():
+    n_images = 6
+    image_group_ids = [0]
+    image_ids = list(range(n_images))
+
+    animals = ['cat','dog','monkey','squirrel']
+    flowers = ['daisy','dandelion','rose','sunflower','tulip']
+    leaves = animals + flowers
+
+    labels = {name: [0]*n_images for name in ['animal','flower'] + leaves}
+    for i in range(n_images):
+        k = random.randint(0, len(leaves)-1)
+        for name in leaves:
+            labels[name][i] = 0
+        labels[leaves[k]][i] = 1
+        labels['animal'][i] = 1 if k < len(animals) else 0
+        labels['flower'][i] = 1 if k >= len(animals) else 0
+
+    contains_pairs = [(image_group_ids[0], img_id) for img_id in image_ids]
+
+    data = {
+        ""image_group_id"": image_group_ids,
+        ""image_id"": image_ids,
+        ""image_group_image_contains"": [contains_pairs],
+    }
+    data.update(labels)
+    return data
+
+dataset = [random_animalandflower_instance() for _ in range(1)]
+
+image_group['image_group_id'] = ReaderSensor(keyword='image_group_id')
+image['image_id'] = ReaderSensor(keyword='image_id')
+
+image[image_group_contains] = EdgeReaderSensor(image_group['image_group_id'], image['image_id'], keyword='image_group_image_contains', relation=image_group_contains)
+
+image[animal] = LabelReaderSensor(keyword='animal')
+image[flower] = LabelReaderSensor(keyword='flower')
+image[cat] = LabelReaderSensor(keyword='cat')
+image[dog] = LabelReaderSensor(keyword='dog')
+image[monkey] = LabelReaderSensor(keyword='monkey')
+image[squirrel] = LabelReaderSensor(keyword='squirrel')
+image[daisy] = LabelReaderSensor(keyword='daisy')
+image[dandelion] = LabelReaderSensor(keyword='dandelion')
+image[rose] = LabelReaderSensor(keyword='rose')
+image[sunflower] = LabelReaderSensor(keyword='sunflower')
+image[tulip] = LabelReaderSensor(keyword='tulip')
+
+image[animal] = DummyLearner('image_id', output_size=2)
+image[flower] = DummyLearner('image_id', output_size=2)
+image[cat] = DummyLearner('image_id', output_size=2)
+image[dog] = DummyLearner('image_id', output_size=2)
+image[monkey] = DummyLearner('image_id', output_size=2)
+image[squirrel] = DummyLearner('image_id', output_size=2)
+image[daisy] = DummyLearner('image_id', output_size=2)
+image[dandelion] = DummyLearner('image_id', output_size=2)
+image[rose] = DummyLearner('image_id', output_size=2)
+image[sunflower] = DummyLearner('image_id', output_size=2)
+image[tulip] = DummyLearner('image_id', output_size=2)
+
+program = SolverPOIProgram(
+    graph,
+    poi=[image_group, image, animal, flower, cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip],
+    inferTypes=['local/argmax'],
+    loss=MacroAverageTracker(NBCrossEntropyLoss()),
+    metric=PRF1Tracker()
+)
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for child in datanode.getChildDataNodes():
+        print(""animal :"", child.getResult(animal, ""local"", ""argmax""))
+        print(""animal ILP:"", child.getResult(animal, ""ILP""))
+        print(""flower :"", child.getResult(flower, ""local"", ""argmax""))
+        print(""flower ILP:"", child.getResult(flower, ""ILP""))
+
+        print(""cat :"", child.getResult(cat, ""local"", ""argmax""))
+        print(""cat ILP:"", child.getResult(cat, ""ILP""))
+        print(""dog :"", child.getResult(dog, ""local"", ""argmax""))
+        print(""dog ILP:"", child.getResult(dog, ""ILP""))
+        print(""monkey :"", child.getResult(monkey, ""local"", ""argmax""))
+        print(""monkey ILP:"", child.getResult(monkey, ""ILP""))
+        print(""squirrel :"", child.getResult(squirrel, ""local"", ""argmax""))
+        print(""squirrel ILP:"", child.getResult(squirrel, ""ILP""))
+
+        print(""daisy :"", child.getResult(daisy, ""local"", ""argmax""))
+        print(""daisy ILP:"", child.getResult(daisy, ""ILP""))
+        print(""dandelion :"", child.getResult(dandelion, ""local"", ""argmax""))
+        print(""dandelion ILP:"", child.getResult(dandelion, ""ILP""))
+        print(""rose :"", child.getResult(rose, ""local"", ""argmax""))
+        print(""rose ILP:"", child.getResult(rose, ""ILP""))
+        print(""sunflower :"", child.getResult(sunflower, ""local"", ""argmax""))
+        print(""sunflower ILP:"", child.getResult(sunflower, ""ILP""))
+        print(""tulip :"", child.getResult(tulip, ""local"", ""argmax""))
+        print(""tulip ILP:"", child.getResult(tulip, ""ILP""))",binary,2,no,"Basic Concepts: ['image'] 
 
 Task Concepts: ['animal', 'cat', 'dog', 'monkey', 'squirrel', 'flower', 'daisy', 'dandelion', 'rose', 'sunflower', 'tulip']"
 3,Hierarchica Image Classification,Vision,CIFAR10,"Objective: The objective of the Hierarchical Image Classification task is to accurately classify images from the CIFAR10 dataset based on their visual content, using AI and machine learning techniques.
@@ -127,194 +320,325 @@ Task Concepts: ['animal', 'cat', 'dog', 'monkey', 'squirrel', 'flower', 'daisy',
 This dataset has ten image classes: airplane, dog, truck, automobile, bird, cat, deer, frog, horse, and ship. Additionally, we group these images into two primary groups: vehicle and animal.","
   
 The parent-child relationship must be respected. For example, an image can not be both a bird and a vehicle.
- ","with Graph('CIFAR10') as graph:
-  Image = Concept(name='image')
-  Category = Image(name=""category"", ConceptClass=EnumConcept, values=[""animal"", ""vehicle""])
-  Label = Image(name=""tag"", ConceptClass=EnumConcept, values=[""airplane"", ""dog"", ""truck"", ""automobile"", ""bird"", ""cat"", ""deer"", ""frog"", ""horse"", ""ship""])","nandL(Category.animal('x'), Label.airplane)
-  nandL(Category.animal, Label.truck)
-  nandL(Category.animal, Label.automobile)
-  nandL(Category.animal, Label.ship)
- 
-  nandL(Category.vehicle, Label.dog)
-  nandL(Category.vehicle, Label.bird)
-  nandL(Category.vehicle, Label.cat)
-  nandL(Category.vehicle, Label.deer)
-  nandL(Category.vehicle, Label.frog)
-  nandL(Category.vehicle, Label.horse)
- 
-  for l1, l2 in combinations(Category.attributes, 2):
-  nandL(l1, l2)
- 
-  for l1, l2 in combinations(Label.attributes, 2):
-  nandL(l1, l2)",multi,1,yes,"Basic Concepts: ['image'] 
+ ","with Graph('CIFAR10_hier') as graph:
+    image = Concept(name='image')
+
+    animals = ['bird','cat','deer','dog','frog','horse']
+    vehicles = ['airplane','automobile','ship','truck']
+    coarse = image(name='coarse', ConceptClass=EnumConcept, values=['animal', 'vehicle'])
+    fine = image(name='fine', ConceptClass=EnumConcept, values=animals + vehicles)","
+    ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
+    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))","with Graph('CIFAR10_hier') as graph:
+    image = Concept(name='image')
+
+    animals = ['bird','cat','deer','dog','frog','horse']
+    vehicles = ['airplane','automobile','ship','truck']
+    coarse = image(name='coarse', ConceptClass=EnumConcept, values=['animal', 'vehicle'])
+    fine = image(name='fine', ConceptClass=EnumConcept, values=animals + vehicles)
+
+    ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
+    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))","
+def random_cifar10_instance():
+    image_id = [0]
+    coarse = [random.randint(0,1)]
+    fine = [random.randint(0, 9)]
+
+    data = {
+        ""image_id"": image_id,
+        ""coarse_id"":  [i for i in range(len(coarse))],
+        ""fine_id"":  [i for i in range(len(fine))],
+        ""image"": image,
+        ""coarse"": coarse,
+        ""fine"": fine,
+    }
+    return data
+
+dataset = [random_cifar10_instance() for _ in range(1)]
+
+image['image_id'] = ReaderSensor(keyword='image_id')
+coarse['coarse_id'] = ReaderSensor(keyword='coarse_id')
+fine['fine_id'] = ReaderSensor(keyword='fine_id')
+
+image[coarse] = LabelReaderSensor(keyword='coarse')
+image[fine] = LabelReaderSensor(keyword='fine')
+image[coarse] = DummyLearner('image_id', output_size=2)
+image[fine] = DummyLearner('image_id', output_size=10)
+
+program = SolverPOIProgram(graph,poi=[image,coarse,fine],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    print(f""coarse :"",datanode.getResult(coarse,""local"",""argmax""))
+    print(f""coarse ILP:"", datanode.getResult(coarse, ""ILP""))
+
+    print(f""fine :"",datanode.getResult(fine,""local"",""argmax""))
+    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))",multi,1,yes,"Basic Concepts: ['image'] 
 
 Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
-4,Hierarchica Image Classification,Vision,CIFAR100,"Objective: The objective of the task is to perform hierarchical image classification on the CIFAR100 dataset.
+4,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('email_spam_consistency') as graph:
+    email = Concept(name='email')
 
-The label for the parent images comprises aquatic mammals, fish, flowers,  food containers, fruit and vegetables, household electrical devices, household furniture, insects, large carnivores, large man-made outdoor things, large natural outdoor scenes, large omnivores and herbivores, medium mammals, non-insect invertebrates, people, reptiles, small mammals, trees,vehicles1, and vehicles2.
+    m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+    m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])","
+    xorL(m1.spam, m2.not_spam)","with Graph('email_spam_consistency') as graph:
+    email = Concept(name='email')
 
-     
-The label for the children images comprises beaver, dolphin, otter, seal, whale, aquarium fish, flatfish, ray, shark, trout, orchids, poppies, roses, sunflowers, tulips, bottles, bowls, cans, cups, plates, apples, mushrooms, oranges, pears, sweet peppers, clock, computer keyboard, lamp, telephone, television, bed, chair, couch, table, wardrobe, bee, beetle, butterfly, caterpillar, cockroach, bear, leopard, lion, tiger, wolf, bridge, castle, house, road, skyscraper, cloud, forest, mountain, plain, sea, camel, cattle, chimpanzee, elephant, kangaroo, fox, porcupine, possum, raccoon, skunk, crab, lobster, snail, spider, worm, baby, boy, girl, man, woman, crocodile, dinosaur, lizard, snake, turtle, hamster, mouse, rabbit, shrew, squirrel, maple, oak, palm, pine, willow, bicycle, bus, motorcycle, pickup truck, train, lawn-mower, rocket, streetcar, tank, and tractor.","Each child image can be a parent image as such:
-     
-large omnivores and herbivores comprise cattle, kangaroo, chimpanzee, elephant, and camel.
-reptiles comprise dinosaur, lizard, crocodile, turtle, and snake.
-fruit and vegetables comprise pear, orange, apple, mushroom, and sweetpepper.
-people comprise boy, baby, girl, woman, and man.
-fish comprise flatfish, shark, trout, ray, and aquariumfish.
-household electrical devices comprise keyboard, clock, telephone, television, and lamp.
-vehicles1 comprise pickuptruck, bicycle, bus, train, and motorcycle.
-food containers comprise can, bowl, bottle, cup, and plate.
-large natural outdoor scenes comprise mountain, cloud, sea, plain, and forest.
-trees comprise of palmtree, willowtree, mapletree, pinetree, and oaktree.
-flowers comprise tulip, sunflower, orchid, poppy, and rose.
-large man-made outdoor things comprise bridge, skyscraper, road, house, and castle.
-large carnivores comprise wolf, lion, bear, leopard, and tiger.
-small mammals comprise squirrel, shrew, rabbit, hamster, and mouse.
-householdfurniture comprise table, couch, bed, wardrobe, and chair.
-medium mammals comprise skunk, raccoon, fox, porcupine, and possum.
-vehicles2 comprise of lawnmower, tank, streetcar, tractor, and rocket.
-insects comprise bee, beetle, caterpillar, butterfly, and cockroach.
-non-insect invertebrates comprise spider, worm, snail, lobster, and crab.
-aquaticmammals comprise seal, beaver, whale, otter, and dolphin.
+    m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+    m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
 
-This structure ensures a systematic classification of images based on broader categories and their respective specific labels.	  
- 
- 
+    xorL(m1.spam, m2.not_spam)","
+def random_emailspam_instance():
+    email_id = [0]
+    m1 = [random.randint(0,1)]
+    m2 = [random.randint(0, 1)]
 
-","with Graph('CIFAR100') as graph:
-  image_group = Concept(name='image_group')
-  image = Concept(name='image')
-  image_group_contains, = image_group.contains(image)
- 
-  category = image(name=""category"", ConceptClass=EnumConcept,
-  values=['aquaticmammals', 'fish', 'flowers', 'foodcontainers', 'fruitandvegetables',
-  'householdelectricaldevices', 'householdfurniture', 'insects', 'largecarnivores',
-  'largeman-madeoutdoorthings', 'largenaturaloutdoorscenes', 'largeomnivoresandherbivores',
-  'mediummammals', 'non-insectinvertebrates', 'people', 'reptiles', 'smallmammals', 'trees',
-  'vehicles1', 'vehicles2'])
-  Label = image(name=""tag"", ConceptClass=EnumConcept,
-  values=['apple', 'aquariumfish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle',
-  'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle',
-  'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch',
-  'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest', 'fox',
-  'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawnmower', 'leopard', 'lion',
-  'lizard', 'lobster', 'man', 'mapletree', 'motorcycle', 'mountain', 'mouse', 'mushroom',
-  'oaktree', 'orange', 'orchid', 'otter', 'palmtree', 'pear', 'pickuptruck', 'pinetree',
-  'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road',
-  'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake',
-  'spider', 'squirrel', 'streetcar', 'sunflower', 'sweetpepper', 'table', 'tank', 'telephone',
-  'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale',
-  'willowtree', 'wolf', 'woman', 'worm'])
-  parent_names = {j:i for j, i in
-  enumerate(['aquaticmammals', 'fish', 'flowers', 'foodcontainers', 'fruitandvegetables',
-  'householdelectricaldevices', 'householdfurniture', 'insects', 'largecarnivores',
-  'largeman-madeoutdoorthings', 'largenaturaloutdoorscenes', 'largeomnivoresandherbivores',
-  'mediummammals', 'non-insectinvertebrates', 'people', 'reptiles', 'smallmammals',
-  'trees',
-  'vehicles1', 'vehicles2'])}
- 
-  children_names = {j:i for j, i in
-  enumerate(['apple', 'aquariumfish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle',
-  'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle',
-  'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch',
-  'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest',
-  'fox',
-  'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawnmower', 'leopard',
-  'lion',
-  'lizard', 'lobster', 'man', 'mapletree', 'motorcycle', 'mountain', 'mouse', 'mushroom',
-  'oaktree', 'orange', 'orchid', 'otter', 'palmtree', 'pear', 'pickuptruck', 'pinetree',
-  'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road',
-  'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail',
-  'snake',
-  'spider', 'squirrel', 'streetcar', 'sunflower', 'sweetpepper', 'table', 'tank',
-  'telephone',
-  'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe',
-  'whale',
-  'willowtree', 'wolf', 'woman', 'worm'])}
-  structure = {'largeomnivoresandherbivores': {'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'},
-  'reptiles': {'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake'},
-  'fruitandvegetables': {'pear', 'orange', 'apple', 'mushroom', 'sweetpepper'},
-  'people': {'boy', 'baby', 'girl', 'woman', 'man'},
-  'fish': {'flatfish', 'shark', 'trout', 'ray', 'aquariumfish'},
-  'householdelectricaldevices': {'keyboard', 'clock', 'telephone', 'television', 'lamp'},
-  'vehicles1': {'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle'},
-  'foodcontainers': {'can', 'bowl', 'bottle', 'cup', 'plate'},
-  'largenaturaloutdoorscenes': {'mountain', 'cloud', 'sea', 'plain', 'forest'},
-  'trees': {'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree'},
-  'flowers': {'tulip', 'sunflower', 'orchid', 'poppy', 'rose'},
-  'largeman-madeoutdoorthings': {'bridge', 'skyscraper', 'road', 'house', 'castle'},
-  'largecarnivores': {'wolf', 'lion', 'bear', 'leopard', 'tiger'},
-  'smallmammals': {'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse'},
-  'householdfurniture': {'table', 'couch', 'bed', 'wardrobe', 'chair'},
-  'mediummammals': {'skunk', 'raccoon', 'fox', 'porcupine', 'possum'},
-  'vehicles2': {'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket'},
-  'insects': {'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach'},
-  'non-insectinvertebrates': {'spider', 'worm', 'snail', 'lobster', 'crab'},
-  'aquaticmammals': {'seal', 'beaver', 'whale', 'otter', 'dolphin'}}","NEW_LC = True
- 
-  if NEW_LC:
-  counter = 0
-  exactL(*[Label.__getattr__(i[1]) for i in Label.attributes])
-  exactL(*[category.__getattr__(i[1]) for i in category.attributes])
-  for i in category.attributes:
-  lj = [Label.get_concept(l) for l in structure[i[1]]]
-  ifL(category.__getattr__(i[1]), orL(*[Label.__getattr__(ii[1]) for ii in lj]))
-  #ifL(category.__getattr__(i[1])(""x""), orL(*[Label.__getattr__(ii[1])(""x"") for ii in lj]))
-  else:
-  relations = 0
-  for i in category.attributes:
-  for j in Label.attributes:
-  if not j[1] in structure[i[1]]:
-  nandL(i, j)
-  else:
-  relations += 1",multi,5,yes,"Basic Concepts: ['image_group','image'] 
+    data = {
+        ""email_id"": email_id,
+        ""m1_id"":  [i for i in range(len(m1))],
+        ""m2_id"":  [i for i in range(len(m2))],
+        ""email"": email,
+        ""m1"": m1,
+        ""m2"": m2,
+    }
+    return data
 
-Task Concepts: ['largeomnivoresandherbivores' 'cattle', 'kangaroo', 'chimpanzee', 'elephant', 'camel'.
- 'reptiles' 'dinosaur', 'lizard', 'crocodile', 'turtle', 'snake','fruitandvegetables' 'pear', 'orange', 'apple', 'mushroom', 'sweetpepper', 'people' 'boy', 'baby', 'girl', 'woman', 'man','fish' 'flatfish', 'shark', 'trout', 'ray', 'aquariumfish', 'householdelectricaldevices' 'keyboard', 'clock', 'telephone', 'television', 'lamp', 'vehicles1' 'pickuptruck', 'bicycle', 'bus', 'train', 'motorcycle', 'foodcontainers' 'can', 'bowl', 'bottle', 'cup', 'plate', 'largenaturaloutdoorscenes' 'mountain', 'cloud', 'sea', 'plain', 'forest', 'trees' 'palmtree', 'willowtree', 'mapletree', 'pinetree', 'oaktree', 'flowers' 'tulip', 'sunflower', 'orchid', 'poppy', 'rose', 'largeman-madeoutdoorthings' 'bridge', 'skyscraper', 'road', 'house', 'castle', 'largecarnivores' 'wolf', 'lion', 'bear', 'leopard', 'tiger','smallmammals' 'squirrel', 'shrew', 'rabbit', 'hamster', 'mouse',
- 'householdfurniture' 'table', 'couch', 'bed', 'wardrobe', 'chair','mediummammals' 'skunk', 'raccoon', 'fox', 'porcupine', 'possum','vehicles2' 'lawnmower', 'tank', 'streetcar', 'tractor', 'rocket','insects' 'bee', 'beetle', 'caterpillar', 'butterfly', 'cockroach', 'non-insectinvertebrates' 'spider', 'worm', 'snail', 'lobster', 'crab', 'aquaticmammals' 'seal', 'beaver', 'whale', 'otter', 'dolphin']"
-5,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('global') as graph:
-  email = Concept(name='email')
- 
-  spam1 = email(name='spam1')
-  spam2 = email(name='spam2')","# The constraint of
-  xorL(spam1, spam2)",binary,1,no,"
+dataset = [random_emailspam_instance() for _ in range(1)]
+
+email['email_id'] = ReaderSensor(keyword='email_id')
+m1['m1_id'] = ReaderSensor(keyword='m1_id')
+m2['m2_id'] = ReaderSensor(keyword='m2_id')
+
+m1[m1] = LabelReaderSensor(keyword='m1')
+m2[m2] = LabelReaderSensor(keyword='m2')
+
+email[m1] = DummyLearner('email_id', output_size=2)
+email[m2] = DummyLearner('email_id', output_size=2)
+
+program = SolverPOIProgram(graph,poi=[email,m1,m2],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    print(f""m1 :"",datanode.getResult(m1,""local"",""argmax""))
+    print(f""m1 ILP:"", datanode.getResult(m1, ""ILP""))
+
+    print(f""m2 :"",datanode.getResult(m2,""local"",""argmax""))
+    print(f""m2 ILP:"", datanode.getResult(m2, ""ILP""))",binary,1,no,"
 Basic Concepts: ['email'] 
 
 Task Concepts: ['Spam', 'Regular']"
-6,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
- ","with Graph('global') as graph:
-  review = Concept(name='review')
- 
-  positive = review(name='positive')
-  negative = review(name='negative')","disjoint(positive, negative)",binary,1,no,"Basic Concepts: ['review'] 
+5,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
+ ","with Graph('IMDB') as graph:
+    review = Concept(name='review')
+    positive = review(name='positive')
+    negative = review(name='negative')","
+    xorL(positive, negative)","with Graph('IMDB') as graph:
+    review = Concept(name='review')
+    positive = review(name='positive')
+    negative = review(name='negative')
+
+    xorL(positive, negative)","
+def random_IMDB_instance():
+    review_id = [0]
+    positive = [random.randint(0,1)]
+    negative = [random.randint(0,1)]
+    data = {
+        ""review_id"": review_id,
+        ""positive"": positive,
+        ""negative"": negative,
+    }
+    return data
+
+dataset = [random_IMDB_instance() for _ in range(1)]
+
+review['review_id'] = ReaderSensor(keyword='review_id')
+review[positive] = LabelReaderSensor(keyword='positive')
+review[negative] = LabelReaderSensor(keyword='negative')
+
+review[positive] = DummyLearner('review_id', output_size=2)
+review[negative] = DummyLearner('review_id', output_size=2)
+
+program = SolverPOIProgram(graph, poi=[review, positive, negative], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    print(""positive :"", datanode.getResult(positive, ""local"", ""argmax""))
+    print(""positive ILP:"", datanode.getResult(positive, ""ILP""))
+    print(""negative :"", datanode.getResult(negative, ""local"", ""argmax""))
+    print(""negative ILP:"", datanode.getResult(negative, ""ILP""))",binary,1,no,"Basic Concepts: ['review'] 
 
 Task Concepts: ['positive', 'negative']"
-7,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
+6,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
 
 Given a procedural paragraph, the model must show the state of procedures in consequent steps. In this manner, each procedure contains steps, each of which is identified by its location, which can be non-existence, known, or unknown.
 
-For a transition between two states of a step, an action is required, which can be create, destroy, or other.","Steps should have a fixed order. Also, if an order is to create, then the location of a step should change from known or unknown to non-existence. Similarly, if an order is to destroy, then the location of a step should change from non-existence to known or unknown.","with Graph('global') as graph:
-  procedure = Concept(""procedure"")
-  step = Concept(""step"")
-  (procedure_contain_step, ) = procedure.contains(step)
- # entity = Concept(""entity"")
-  non_existence = step(""non_existence"")
-  unknown_loc = step(""unknown_location"")
-  known_loc = step(""known_location"")
-  before = Concept(""before"")
-  (before_arg1, before_arg2) = before.has_a(arg1=step, arg2=step)
-  action = Concept(""action"")
-  (action_arg1, action_arg2) = action.has_a(arg1=step, arg2=step)
-  create = action(name=""create"")
-  destroy = action(name=""destroy"")
-  other = action(name=""other"")","nandL(create, destroy, other)
-  nandL(known_loc, unknown_loc, non_existence)
-  
-  ifL(create(""x""), andL(non_existence(path=(""x"", ""arg1"")), orL(known_loc(path=(""x"", ""arg2"")), unknown_loc(path=(""x"", ""arg2"")))))
-  ifL(destroy(""x"")), andL(orL(known_loc(path=(""x"", ""arg1"")), unknown_loc(path=(""x"", ""arg1""))), non_existence(path=(""x"", ""arg2"")))",binray,4,yes,"Basic Concepts: ['procedure','step','before','action'] 
+For a transition between two states of a step, an action is required, which can be create, destroy, or other.","If an order is to create, then the location of a step should change from known or unknown to non-existence. Similarly, if an order is to destroy, then the location of a step should change from non-existence to known or unknown.","with Graph('propara') as graph:
+
+    procedure = Concept(name=""procedure"")
+    step = Concept(name=""step"")
+    (procedure_contain_step, ) = procedure.contains(step)
+
+    non_existence = step(name=""non_existence"")
+    unknown_loc = step(name=""unknown_location"")
+    known_loc = step(name=""known_location"")
+
+    action = Concept(name=""action"")
+    action_arg1, action_arg2 = action.has_a(arg1=step, arg2=step)
+
+    create = action(name=""create"")
+    destroy = action(name=""destroy"")
+    other = action(name=""other"")","    ifL(step(""x""), exactL(known_loc(path=(""x"")), unknown_loc(path=(""x"")), non_existence(path=(""x"")), 1))
+    ifL(action(""x""), exactL(create(path=(""x"")), destroy(path=(""x"")), other(path=(""x"")), 1))
+
+    ifL(create(""x""),
+      andL(
+          non_existence(""y1"",path=(""x"", action_arg1)),
+          orL(
+              unknown_loc(path=(""x"", action_arg2)),
+              known_loc(path=(""x"", action_arg2))
+          )
+      )
+    )
+
+    ifL(destroy(""x""),
+        andL(
+            orL(
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
+                ),
+                non_existence(path=(""x"", action_arg2))
+        )
+    )","with Graph('propara') as graph:
+
+    procedure = Concept(name=""procedure"")
+    step = Concept(name=""step"")
+    (procedure_contain_step, ) = procedure.contains(step)
+
+    non_existence = step(name=""non_existence"")
+    unknown_loc = step(name=""unknown_location"")
+    known_loc = step(name=""known_location"")
+
+    action = Concept(name=""action"")
+    action_arg1, action_arg2 = action.has_a(arg1=step, arg2=step)
+
+    create = action(name=""create"")
+    destroy = action(name=""destroy"")
+    other = action(name=""other"")
+
+    ifL(step(""x""), exactL(known_loc(path=(""x"")), unknown_loc(path=(""x"")), non_existence(path=(""x"")), 1))
+    ifL(action(""x""), exactL(create(path=(""x"")), destroy(path=(""x"")), other(path=(""x"")), 1))
+
+    ifL(create(""x""),
+      andL(
+          non_existence(""y1"",path=(""x"", action_arg1)),
+          orL(
+              unknown_loc(path=(""x"", action_arg2)),
+              known_loc(path=(""x"", action_arg2))
+          )
+      )
+    )
+
+    ifL(destroy(""x""),
+        andL(
+            orL(
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
+                ),
+                non_existence(path=(""x"", action_arg2))
+        )
+    )","
+def random_propara_instance():
+    procedure_ids = [0]
+    num_steps = 6
+    step_ids = list(range(num_steps))
+
+    non_existence_labels = [random.randint(0, 1) for _ in step_ids]
+    unknown_location_labels = [random.randint(0, 1) for _ in step_ids]
+    known_location_labels = [random.randint(0, 1) for _ in step_ids]
+
+    proc_step_pairs = [(procedure_ids[0], sid) for sid in step_ids]
+
+    action_edges = []
+    for i in range(5):
+        action_edges.append((i, i+1))
+    action_ids = list(range(len(action_edges)))
+
+    create_labels = []
+    destroy_labels = []
+    other_labels = []
+    for _ in action_ids:
+        t = random.choice([0, 1, 2])
+        create_labels.append(1 if t == 0 else 0)
+        destroy_labels.append(1 if t == 1 else 0)
+        other_labels.append(1 if t == 2 else 0)
+
+    data = {
+        ""procedure_id"": procedure_ids,
+        ""step_id"": step_ids,
+
+        ""non_existence"": non_existence_labels,
+        ""unknown_location"": unknown_location_labels,
+        ""known_location"": known_location_labels,
+
+        ""procedure_step_contains"": [proc_step_pairs],
+
+        ""action"": [action_edges],
+        ""action_id"": action_ids,
+        ""create"": create_labels,
+        ""destroy"": destroy_labels,
+        ""other"": other_labels,
+    }
+    return data
+
+dataset = [random_propara_instance() for _ in range(1)]
+
+procedure[""procedure_id""] = ReaderSensor(keyword=""procedure_id"")
+step[""step_id""] = ReaderSensor(keyword=""step_id"")
+
+step[procedure_contain_step] = EdgeReaderSensor(procedure[""procedure_id""], step[""step_id""], keyword=""procedure_step_contains"", relation=procedure_contain_step)
+
+action[action_arg1.reversed, action_arg2.reversed] = ManyToManyReaderSensor(step[""step_id""], step[""step_id""], keyword=""action"")
+
+action[""action_id""] = ReaderSensor(keyword=""action_id"")
+
+step[non_existence] = LabelReaderSensor(keyword=""non_existence"")
+step[unknown_loc] = LabelReaderSensor(keyword=""unknown_location"")
+step[known_loc] = LabelReaderSensor(keyword=""known_location"")
+
+action[create] = LabelReaderSensor(keyword=""create"")
+action[destroy] = LabelReaderSensor(keyword=""destroy"")
+action[other] = LabelReaderSensor(keyword=""other"")
+
+step[non_existence] = DummyLearner(""step_id"", output_size=2)
+step[unknown_loc] = DummyLearner(""step_id"", output_size=2)
+step[known_loc] = DummyLearner(""step_id"", output_size=2)
+
+action[create] = DummyLearner(""action_id"", output_size=2)
+action[destroy] = DummyLearner(""action_id"", output_size=2)
+action[other] = DummyLearner(""action_id"", output_size=2)
+
+program = SolverPOIProgram(graph, poi=[procedure, step, non_existence, unknown_loc, known_loc, action, create, destroy, other], inferTypes=[""local/argmax""], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    for idx, st in enumerate(datanode.getChildDataNodes()):
+        print(""step"", idx, ""non_existence :"", st.getResult(non_existence, ""local"", ""argmax""))
+        print(""step"", idx, ""non_existence ILP:"", st.getResult(non_existence, ""ILP""))
+        print(""step"", idx, ""unknown_location :"", st.getResult(unknown_loc, ""local"", ""argmax""))
+        print(""step"", idx, ""unknown_location ILP:"", st.getResult(unknown_loc, ""ILP""))
+        print(""step"", idx, ""known_location :"", st.getResult(known_loc, ""local"", ""argmax""))
+        print(""step"", idx, ""known_location ILP:"", st.getResult(known_loc, ""ILP""))
+
+        if not idx == len(datanode.getChildDataNodes())-1:
+            current_action = st.impactLinks[""arg1""][0]
+            print(""action"", current_action, ""create :"", current_action.getResult(create, ""local"", ""argmax""))
+            print(""action"", current_action, ""create ILP:"", current_action.getResult(create, ""ILP""))
+            print(""action"", current_action, ""destroy :"", current_action.getResult(destroy, ""local"", ""argmax""))
+            print(""action"", current_action, ""destroy ILP:"", current_action.getResult(destroy, ""ILP""))
+            print(""action"", current_action, ""other :"", current_action.getResult(other, ""local"", ""argmax""))
+            print(""action"", current_action, ""other ILP:"", current_action.getResult(other, ""ILP""))",binray,4,yes,"Basic Concepts: ['procedure','step','before','action'] 
 
 Task Concepts: ['create','destroy','other', 'non_existence','unknown_loc', 'known_loc']"
-8,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
+7,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
 
 Each paragraph in this task is a procedural text that describes the cause-and-effect relations between a series of events. Consequently, each paragraph contains a list of questions about the relations between the events in this paragraph, which would be more (positive effect), less (negative effect), or no effect.
 ","There are two types of constraints between questions related to a paragraph in this task: symmetric and transitivity.
@@ -340,25 +664,130 @@ if q1 is more and q2 is less then q3 is less","with Graph('WIQA_graph') as graph
     is_less = question(name='is_less')
     no_effect = question(name='no_effect')
 
-    
-    exactL(is_more, is_less, no_effect)","    symmetric = Concept(name='symmetric')
-    s_arg1, s_arg2 = symmetric.has_a(arg1=question, arg2=question)
+    symmetric = Concept(name='symmetric')
+    s_arg1, s_arg2 = symmetric.has_a(s_arg1=question, s_arg2=question)
 
-
-    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1.reversed)), is_less(path=('x', s_arg2.reversed))))
-    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1.reversed)), is_less(path=('x', s_arg2.reversed))))
-	
     transitive = Concept(name='transitive')
-    t_arg1, t_arg2, t_arg3 = transitive.has_a(arg11=question, arg22=question, arg33=question)
+    t_arg1, t_arg2, t_arg3 = transitive.has_a(t_arg1=question, t_arg2=question, t_arg3=question)","
+    ifL(question(""x""),exactL(is_more(path=(""x"")), is_less(path=(""x"")), no_effect(path=(""x"")), 1))
 
-    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1.reversed)), is_more(path=('x', t_arg2.reversed))),is_more(path=('x', t_arg3))))
+    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
+    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
 
-    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1.reversed)), is_less(path=('x', t_arg2.reversed))),is_less(path=('x', t_arg3))))",binray,3,yes,"Basic Concepts: ['paragraph','question','symmetric','transitive'] 
+    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
+    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))","with Graph('WIQA_graph') as graph:
+    paragraph = Concept(name='paragraph')
+    question = Concept(name='question')
+    para_quest_contains, = paragraph.contains(question)
+
+    is_more = question(name='is_more')
+    is_less = question(name='is_less')
+    no_effect = question(name='no_effect')
+
+    symmetric = Concept(name='symmetric')
+    s_arg1, s_arg2 = symmetric.has_a(s_arg1=question, s_arg2=question)
+
+    transitive = Concept(name='transitive')
+    t_arg1, t_arg2, t_arg3 = transitive.has_a(t_arg1=question, t_arg2=question, t_arg3=question)
+
+    ifL(question(""x""),exactL(is_more(path=(""x"")), is_less(path=(""x"")), no_effect(path=(""x"")), 1))
+
+    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
+    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
+
+    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
+    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))","
+def random_wiqa_instance():
+    paragraph_id = [0]
+    questions_id = [i for i in range(5)]
+    is_more, is_less, no_effect = [], [], []
+    for _ in range(5):
+        lbl = random.choice([0, 1, 2])
+        is_more.append(1 if lbl == 0 else 0)
+        is_less.append(1 if lbl == 1 else 0)
+        no_effect.append(1 if lbl == 2 else 0)
+
+    data = {
+        ""paragraph_id"": paragraph_id,
+        ""question_id"":  questions_id,
+        ""is_more_id"":  [i for i in range(len(is_more))],
+        ""is_less_id"":  [i for i in range(len(is_less))],
+        ""no_effect_id"":  [i for i in range(len(no_effect))],
+
+        ""is_more"": is_more,
+        ""is_less"": is_less,
+        ""no_effect"": no_effect,
+    }
+
+    para_quest_contains = list()
+    for para in data[""paragraph_id""]:
+        for quest in data[""question_id""]:
+            para_quest_contains.append((para, quest))
+    data[""para_quest_contains""] = [para_quest_contains]
+
+    symmetric = list()
+    for s_arg1 in data[""question_id""]:
+        for s_arg2 in data[""question_id""]:
+            if s_arg1 != s_arg2 and random.random() < 0.2:
+                symmetric.append((s_arg1, s_arg2))
+    data[""symmetric""] = [symmetric]
+
+    transitive = []
+    q_ids = data[""question_id""]
+    n = len(q_ids)
+    for i in q_ids:
+        for j in q_ids:
+            for k in q_ids:
+                if i == j or k == i or k == j:
+                    continue
+                if random.random() < 0.15:
+                    transitive.append((i, j, k))
+
+    data[""transitive""] = [transitive]
+    return data
+
+dataset = [random_wiqa_instance() for _ in range(1)]
+
+
+paragraph['paragraph_id'] = ReaderSensor(keyword='paragraph_id')
+paragraph['symmetric'] = ReaderSensor(keyword='symmetric')
+paragraph['transitive'] = ReaderSensor(keyword='transitive')
+
+question['question_id'] = ReaderSensor(keyword='question_id')
+question['is_more_id'] = ReaderSensor(keyword='is_more_id')
+question['is_less_id'] = ReaderSensor(keyword='is_less_id')
+question['no_effect_id'] = ReaderSensor(keyword='no_effect_id')
+
+question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph_id'], question['question_id'],keyword='para_quest_contains', relation=para_quest_contains)
+symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],keyword='symmetric')
+transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'],question['question_id'],keyword='transitive')
+
+question[is_more] = LabelReaderSensor(keyword='is_more')
+question[is_less] = LabelReaderSensor(keyword='is_less')
+question[no_effect] = LabelReaderSensor(keyword='no_effect')
+question[is_more] = DummyLearner('is_more_id')
+question[is_less] = DummyLearner('is_less_id')
+question[no_effect] = DummyLearner('no_effect_id')
+
+program = SolverPOIProgram(graph,poi=[paragraph,question,is_less, is_more, no_effect, symmetric, transitive],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for num, question in enumerate(datanode.getChildDataNodes()):
+        print(""question relations"", question.impactLinks)
+
+        print(f""question {num} is_more:"",question.getResult(is_more, 'local',""argmax""))
+        print(f""question {num} is_less:"",question.getResult(is_less, 'local',""argmax""))
+        print(f""question {num} no_effect:"",question.getResult(no_effect, 'local', ""argmax""))
+
+        print(f""question {num} is_more ILP:"",question.getResult(is_more,""ILP""))
+        print(f""question {num} is_less ILP:"",question.getResult(is_less,""ILP""))
+        print(f""question {num} no_effect ILP:"",question.getResult(no_effect,""ILP""))
+",binray,3,yes,"Basic Concepts: ['paragraph','question','symmetric','transitive'] 
 
 Task Concepts: ['is_more','is_less','no_effect']"
-9,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
+8,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
 
-Here, we have a collection of entities and a list of sentences that describe an attribute of those entities. Some of these attributes are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two attributes that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between attributes that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an attribute applies to an entity. In that case, all attributes with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
+Here, we have a collection of entities and a list of sentences that describe those entities. Some of these sentences are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two sentence that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between sentences that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an sentence applies to an entity. In that case, all sentences with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
 
 ","with Graph('belief_bank') as graph:
 
@@ -368,14 +797,73 @@ Here, we have a collection of entities and a list of sentences that describe an 
 
     fact_check = facts(name='fact_check')
     implication = Concept(name='implication')
-    i_arg1, i_arg2 = implication.has_a(arg1=facts, arg2=facts)
+    i_arg1, i_arg2 = implication.has_a(iarg1=facts, iarg2=facts)
 
     nimplication = Concept(name='nimplication')
-    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)","    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', implication)))), fact_check(path=('s', i_arg2)))
-    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', nimplication)))), notL(fact_check(path=('s', ni_arg2))))",binray,2,yes,"Basic Concepts: ['subject','implication','nimplication'] 
+    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)","
+    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), fact_check(path=('s', i_arg2)))
+    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))","with Graph('belief_bank') as graph:
+
+    subject = Concept(name='subject')
+    facts = Concept(name='facts')
+    subject_facts_contains, = subject.contains(facts)
+
+    fact_check = facts(name='fact_check')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(iarg1=facts, iarg2=facts)
+
+    nimplication = Concept(name='nimplication')
+    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)
+
+    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), fact_check(path=('s', i_arg2)))
+    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))","def random_belief_bank_instance():
+    subject_ids = [0]
+    facts_ids = list(range(6))
+    fact_check_labels = [random.randint(0, 1) for _ in facts_ids]
+
+    contains_pairs = [(subject_ids[0], f) for f in facts_ids]
+
+    implication_pairs = []
+    for _ in range(5):
+        a, b = random.sample(facts_ids, 2)
+        implication_pairs.append((a, b))
+
+    nimplication_pairs = []
+    for _ in range(5):
+        a, b = random.sample(facts_ids, 2)
+        nimplication_pairs.append((a, b))
+
+    data = {
+        ""subject_id"": subject_ids,
+        ""facts_id"": facts_ids,
+        ""fact_check"": fact_check_labels,
+        ""subject_facts_contains"": [contains_pairs],
+        ""implication"": [implication_pairs],
+        ""nimplication"": [nimplication_pairs],
+    }
+    return data
+
+dataset = [random_belief_bank_instance() for _ in range(1)]
+
+subject['subject_id'] = ReaderSensor(keyword='subject_id')
+facts['facts_id'] = ReaderSensor(keyword='facts_id')
+facts[fact_check] = LabelReaderSensor(keyword='fact_check')
+
+facts[subject_facts_contains] = EdgeReaderSensor(subject['subject_id'], facts['facts_id'], keyword='subject_facts_contains', relation=subject_facts_contains)
+implication[i_arg1.reversed, i_arg2.reversed] = ManyToManyReaderSensor(facts['facts_id'], facts['facts_id'], keyword='implication')
+nimplication[ni_arg1.reversed, ni_arg2.reversed] = ManyToManyReaderSensor(facts['facts_id'], facts['facts_id'], keyword='nimplication')
+
+facts[fact_check] = DummyLearner('facts_id', output_size=2)
+
+program = SolverPOIProgram(graph, poi=[subject, facts, fact_check, implication, nimplication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for idx, fnode in enumerate(datanode.getChildDataNodes()):
+        print(""fact"", idx, ""fact_check :"", fnode.getResult(fact_check, ""local"", ""argmax""))
+        print(""fact"", idx, ""fact_check ILP:"", fnode.getResult(fact_check, ""ILP""))",binray,2,yes,"Basic Concepts: ['subject','implication','nimplication'] 
 
 Task Concepts: ['facts']"
-10,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
+9,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
 
 Here, we have a paragraph that describes logical reasoning rules in natural language. For each paragraph, we have a list of questions that ask for the True or False state of a fact. The model should look at the paragraph to determine whether the fact is stated or inferred based on the implication rules.
 
@@ -383,63 +871,160 @@ Here, we have a paragraph that describes logical reasoning rules in natural lang
 
 ","The constraints here are between the questions of a paragraph. Imagine an implication rule in the paragraph that states if fact1, then fact2. Then, if the model answers True to the question ""Is fact1 correct,"" it must answer True to the question ""Is fact2 correct?"" as well.","with Graph('ruletaker_bank') as graph:
 
-    Context = Concept(name='context')
-    Question = Concept(name='question')
-    context_question_contains, = Context.contains(Question)
+    context = Concept(name='context')
+    question = Concept(name='question')
+    context_question_contains, = context.contains(question)
 
-    qlabel = Question(name='qlabel')
+    qlabel = question(name='qlabel')
     implication = Concept(name='implication')
-    i_arg1, i_arg2 = implication.has_a(arg1=Question, arg2=Question)","    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', implication)))), qlabel(path=('s', i_arg2)))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
+    i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)","
+    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))","with Graph('ruletaker_bank') as graph:
+
+    context = Concept(name='context')
+    question = Concept(name='question')
+    context_question_contains, = context.contains(question)
+
+    qlabel = question(name='qlabel')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)
+
+    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))","
+def random_ruletaker_bank_instance():
+    context_id = [0]
+    num_questions = 6
+    question_ids = list(range(num_questions))
+    qlabel = [random.randint(0, 1) for _ in question_ids]
+
+    contains_pairs = [(0, qid) for qid in question_ids]
+
+    all_pairs = [(i, j) for i in question_ids for j in question_ids if i != j]
+    random.shuffle(all_pairs)
+    implication_pairs = all_pairs[:max(5, len(all_pairs)//2)]
+
+    data = {
+        ""context_id"": context_id,
+        ""question_id"": question_ids,
+        ""qlabel"": qlabel,
+        ""context_question_contains"": [contains_pairs],
+        ""implication"": [implication_pairs],
+    }
+    return data
+
+dataset = [random_ruletaker_bank_instance() for _ in range(1)]
+
+context['context_id'] = ReaderSensor(keyword='context_id')
+question['question_id'] = ReaderSensor(keyword='question_id')
+
+question[context_question_contains] = EdgeReaderSensor(context['context_id'], question['question_id'], keyword='context_question_contains', relation=context_question_contains)
+implication[i_arg1.reversed, i_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'], keyword='implication')
+
+question[qlabel] = LabelReaderSensor(keyword='qlabel')
+question[qlabel] = DummyLearner('question_id', output_size=2)
+
+program = SolverPOIProgram(graph, poi=[context, question, qlabel, implication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    for idx, qnode in enumerate(datanode.getChildDataNodes()):
+        print(""relations"", qnode.impactLinks)
+        print(f""question {idx} qlabel :"", qnode.getResult(qlabel, ""local"", ""argmax""))
+        print(f""question {idx} qlabel ILP:"", qnode.getResult(qlabel, ""ILP""))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
 
 Task Concepts: ['qlabel']"
-11,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
+10,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
 
 In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 9. Here, the sum of the pairs of digits is also provided.
 
 ",The predicted classes of a pair of images must equal their provided sum.,"with Graph(name='MNIST_sum') as graph:
     image_batch = Concept(name='image_batch')
     image = Concept(name='image')
-
+    digit = image(name='digits', ConceptClass=EnumConcept, values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
     image_contains, = image_batch.contains(image)
 
-    digit = image(name='digits',ConceptClass=EnumConcept,values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
+    image_pair = Concept(name='pair')
+    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])
+    pair_d0, pair_d1 = image_pair.has_a(digit0=image, digit1=image)","
+    for sum_val in range(19):
+        sum_combinations = []
+
+        for d0_val in range(sum_val + 1):
+            d1_val = sum_val - d0_val
+            if d0_val >= 10 or d1_val >= 10:
+                continue
+            sum_combinations.append(andL(getattr(digit, ""n""+str(d0_val))(path=('x', pair_d0)),getattr(digit, ""n""+str(d1_val))(path=('x', pair_d1))))
+
+        if len(sum_combinations) == 1:
+            ifL(getattr(s, ""s""+str(sum_val))('x'),sum_combinations[0])
+        else:
+            ifL(getattr(s, ""s""+str(sum_val))('x'),orL(*sum_combinations))","with Graph(name='MNIST_sum') as graph:
+    image_batch = Concept(name='image_batch')
+    image = Concept(name='image')
+    digit = image(name='digits', ConceptClass=EnumConcept, values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
+    image_contains, = image_batch.contains(image)
 
     image_pair = Concept(name='pair')
+    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])
     pair_d0, pair_d1 = image_pair.has_a(digit0=image, digit1=image)
-
-    # sum value classes 0-18
-    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])","
-    exactL(*digit.attributes)
-    exactL(*s.attributes)
-
-    fixedL(s(""x"", eqL(image_pair, ""summationEquality"", {True})))
 
     for sum_val in range(19):
         sum_combinations = []
 
-        sum_nm = ""s""+str(sum_val)
-
         for d0_val in range(sum_val + 1):
             d1_val = sum_val - d0_val
-
             if d0_val >= 10 or d1_val >= 10:
                 continue
-
-            d0_nm = ""n""+str(d0_val)
-            d1_nm = ""n""+str(d1_val)
-
-            # for each combination of digits that sum to sum_val add constraint to list
-            sum_combinations.append(andL(getattr(digit, d0_nm)(path=('x', pair_d0)),getattr(digit, d1_nm)(path=('x', pair_d1))))
-
-        print(sum_val, '-', sum_combinations)
+            sum_combinations.append(andL(getattr(digit, ""n""+str(d0_val))(path=('x', pair_d0)),getattr(digit, ""n""+str(d1_val))(path=('x', pair_d1))))
 
         if len(sum_combinations) == 1:
-            ifL(getattr(s, sum_nm)('x'),sum_combinations[0])
+            ifL(getattr(s, ""s""+str(sum_val))('x'),sum_combinations[0])
         else:
-            ifL(getattr(s, sum_nm)('x'),orL(*sum_combinations))",binary,3,yes,"Basic Concepts: ['image_batch','image','digit','image_pair','summations'] 
+            ifL(getattr(s, ""s""+str(sum_val))('x'),orL(*sum_combinations))","
+def random_mnist_sum_instance():
+    n_images = 6
+    image_batch_id = [0]
+    image_id = list(range(n_images))
+    digits = [random.randint(0, 9) for _ in range(n_images)]
+    image_batch_image_contains = [(0, i) for i in image_id]
+    pair_tuples = [(a,b) for a in image_id for b in image_id if a != b]
+    pair_id = list(range(len(pair_tuples)))
+    summations = [min(digits[a] + digits[b], 18) for a, b in pair_tuples]
+
+    data = {
+        ""image_batch_id"": image_batch_id,
+        ""image_id"": image_id,
+        ""pair_id"": pair_id,
+        ""digits"": digits,
+        ""summations"": summations,
+        ""image_batch_image_contains"": [image_batch_image_contains],
+        ""pair_has_a"": [pair_tuples],
+    }
+    return data
+
+dataset = [random_mnist_sum_instance() for _ in range(1)]
+
+image_batch['image_batch_id'] = ReaderSensor(keyword='image_batch_id')
+image['image_id'] = ReaderSensor(keyword='image_id')
+image_pair['pair_id'] = ReaderSensor(keyword='pair_id')
+
+image[digit] = LabelReaderSensor(keyword='digits')
+image_pair[s] = LabelReaderSensor(keyword='summations')
+
+image[image_contains] = EdgeReaderSensor(image_batch['image_batch_id'], image['image_id'], keyword='image_batch_image_contains', relation=image_contains)
+image_pair[pair_d0.reversed, pair_d1.reversed] = ManyToManyReaderSensor(image['image_id'], image['image_id'], keyword='pair_has_a')
+
+image[digit] = DummyLearner('image_id', output_size=10)
+image_pair[s] = DummyLearner('pair_id', output_size=19)
+
+program = SolverPOIProgram(graph, poi=[image, digit, image_pair, s], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for idx, img_node in enumerate(datanode.getChildDataNodes()):
+        print(""image relations"", img_node.impactLinks)
+        print(""image"", idx, ""digits :"", img_node.getResult(digit, ""local"", ""argmax""))
+        print(""image"", idx, ""digits ILP:"", img_node.getResult(digit, ""ILP""))",binary,3,yes,"Basic Concepts: ['image_batch','image','digit','image_pair','summations'] 
 
 Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9','s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18']"
-12,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
+11,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
 
 The input is a partially filled Sudoku puzzle that must be filled. The model should model the entire Suduko, its rows, columns, and tables.","No number should be repeated more than once inside any row, column, or table.","with Graph('sudoko') as graph:
 
@@ -449,7 +1034,7 @@ The input is a partially filled Sudoku puzzle that must be filled. The model sho
     (empty_rel,) = sudoku.contains(empty_entry)
 
     same_row = Concept(name='same_row')
-    (same_row_arg1, same_row_arg2) = same_row.has_a(arg1=empty_entry, arg2=empty_entry)
+    (same_row_arg1, same_row_arg2) = same_row.has_a(row1=empty_entry, row2=empty_entry)
 
     same_col = Concept(name='same_col')
     (same_col_arg1, same_col_arg2) = same_col.has_a(col1=empty_entry, col2=empty_entry)
@@ -457,29 +1042,278 @@ The input is a partially filled Sudoku puzzle that must be filled. The model sho
     same_table = Concept(name='same_table')
     (same_table_arg1, same_table_arg2) = same_table.has_a(entry1=empty_entry, entry2=empty_entry)
 
-    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=['n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
-","	fixedL(empty_entry_label('x', eqL(empty_entry, 'fixed', {True})))
-    for val in ['1', '2', '3', '4', '5', '6', '7', '8', '9']:
-        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
-        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
-        ifL(getattr(empty_entry_label, f'n{val}')('x'),notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))",multi,2,yes,"Basic Concepts: ['sudoku','empty_entry','same_row','same_col','same_table','empty_entry_label'] 
+    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=[f'n{i}' for i in range(9)])","
+    for val in [f'{i}' for i in range(9)]:
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))","with Graph('sudoko') as graph:
 
-Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9']"
-13,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
+    sudoku = Concept('sodoku')
 
-Here, the input would be a chess board with some queens already placed on it. The chess board with its cells should be modeled, and the remaining queens should be correctly placed.",No two queens should be able to attack each other.,"with Graph('chess_graph') as graph:
-    chess_board = Concept(name='chess_board')
-    queen_placed = chess_board(name='queen_placed')
+    empty_entry = Concept(name='empty_entry')
+    (empty_rel,) = sudoku.contains(empty_entry)
 
     same_row = Concept(name='same_row')
-    (same_row_arg1, same_row_arg2) = same_row.has_a(arg1=queen_placed, arg2=queen_placed)
+    (same_row_arg1, same_row_arg2) = same_row.has_a(row1=empty_entry, row2=empty_entry)
 
-    same_column = Concept(name='same_column')
-    (same_col_arg1, same_col_arg2) = same_column.has_a(arg1=queen_placed, arg2=queen_placed)
+    same_col = Concept(name='same_col')
+    (same_col_arg1, same_col_arg2) = same_col.has_a(col1=empty_entry, col2=empty_entry)
 
-    same_diagonal = Concept(name='same_diagonal')
-    (same_diagonal_arg1, same_diagonal_arg2) = same_diagonal.has_a(arg1=queen_placed, arg2=queen_placed)","    ifL(queen_placed('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), queen_placed('y', path=('z', same_row_arg2))))))
-    ifL(queen_placed('x'), notL(existsL(andL(same_column('z', path=('x', same_col_arg1.reversed)), queen_placed('y', path=('z', same_col_arg2))))))
-    ifL(queen_placed('x'), notL(existsL(andL(same_diagonal('z', path=('x', same_diagonal_arg1.reversed)), queen_placed('y', path=('z', same_diagonal_arg2))))))",binary,2,yes,"Basic Concepts: ['queen_placed','same_row','same_column','same_diagonal'] 
+    same_table = Concept(name='same_table')
+    (same_table_arg1, same_table_arg2) = same_table.has_a(entry1=empty_entry, entry2=empty_entry)
+
+    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=[f'n{i}' for i in range(9)])
+
+    for val in [f'{i}' for i in range(9)]:
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))","
+
+def random_sudoku_instance():
+    sudoku_id = [0]
+    empty_entry_id = [i for i in range(9*9)]
+
+    fixed = [False] * (9*9)
+    labels = [None] * (9*9)
+    k_fixed = 9*2-3
+    fixed_idxs = random.sample(empty_entry_id, k_fixed)
+    for idx in fixed_idxs:
+        fixed[idx] = True
+        labels[idx] = random.randint(0, 8)
+
+    for i in range(9*9):
+        if labels[i] is None:
+            labels[i] = random.randint(0, 8)
+
+    same_row_pairs = []
+    for r in range(9):
+        cells = [r * 9 + c for c in range(9)]
+        for i in cells:
+            for j in cells:
+                if i != j:
+                    same_row_pairs.append((i, j))
+
+    same_col_pairs = []
+    for c in range(9):
+        cells = [r * 9 + c for r in range(9)]
+        for i in cells:
+            for j in cells:
+                if i != j:
+                    same_col_pairs.append((i, j))
+
+    same_table_pairs = []
+    for br in range(0, 9, 3):
+        for bc in range(0, 9, 3):
+            cells = []
+            for dr in range(3):
+                for dc in range(3):
+                    cells.append((br + dr) * 9 + (bc + dc))
+            for i in cells:
+                for j in cells:
+                    if i != j:
+                        same_table_pairs.append((i, j))
+
+    data = {
+        'sudoku_id': sudoku_id,
+        'empty_entry_id': empty_entry_id,
+        'empty_entry_label': labels,
+        'same_row': [same_row_pairs],
+        'same_col': [same_col_pairs],
+        'same_table': [same_table_pairs],
+    }
+
+    empty_rel = list()
+    for table in data[""sudoku_id""]:
+        for cell in data[""empty_entry_id""]:
+            empty_rel.append((table, cell))
+    data[""empty_rel""] = [empty_rel]
+    return data
+
+dataset = [random_sudoku_instance() for _ in range(1)]
+
+sudoku['sudoku_id'] = ReaderSensor(keyword='sudoku_id')
+empty_entry['empty_entry_id'] = ReaderSensor(keyword='empty_entry_id')
+empty_entry[empty_entry_label] = LabelReaderSensor(keyword='empty_entry_label')
+
+empty_entry[empty_rel] = EdgeReaderSensor(sudoku['sudoku_id'], empty_entry['empty_entry_id'],keyword='empty_rel', relation=empty_rel)
+
+same_row[same_row_arg1.reversed, same_row_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_row')
+same_col[same_col_arg1.reversed, same_col_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_col')
+same_table[same_table_arg1.reversed, same_table_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_table')
+
+empty_entry[empty_entry_label] = DummyLearner('empty_entry_id', output_size=9)
+
+program = SolverPOIProgram(
+    graph,
+    poi=[sudoku, empty_entry, empty_entry_label, same_row, same_col, same_table],
+    inferTypes=['local/argmax'],
+    loss=MacroAverageTracker(NBCrossEntropyLoss()),
+    metric=PRF1Tracker()
+)
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    cells = datanode.getChildDataNodes()
+    n = 9
+    def _print_grid(title, grid):
+        print(title)
+        for r in range(n):
+            row = []
+            for c in range(n):
+                val = grid[r][c]
+                row.append('.' if val is None or val == '' else str(val))
+            print(' '.join(f""{x:>2}"" for x in row))
+        print()
+
+    local_grid = [[None for _ in range(n)] for _ in range(n)]
+    ilp_grid = [[None for _ in range(n)] for _ in range(n)]
+
+    for idx, cell in enumerate(cells):
+        r, c = divmod(idx, n)
+        local_grid[r][c] = cell.getResult(empty_entry_label, 'local', 'argmax')
+        ilp_grid[r][c] = cell.getResult(empty_entry_label, 'ILP')
+
+    _print_grid(""Table with dummy predictions:"", local_grid)
+    _print_grid(""Table after ILP:"", ilp_grid)",multi,2,yes,"Basic Concepts: ['sudoku','empty_entry','same_row','same_col','same_table','empty_entry_label'] 
+
+Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9']"
+12,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
+
+Here, the input would be a chess board with some queens already placed on it. The chess board with its cells should be modeled, and the remaining queens should be correctly placed.",No two queens should be able to attack each other.,"with Graph('eight_queens') as graph:
+    board = Concept(name='board')
+    cell = Concept(name='cell')
+    (board_contains_cell,) = board.contains(cell)
+
+    cell_state = cell(name='cell_state', ConceptClass=EnumConcept, values=['Q', 'E'])
+
+    same_row = Concept(name='same_row')
+    (sr_arg1, sr_arg2) = same_row.has_a(rarg1=cell, rarg2=cell)
+
+    same_col = Concept(name='same_col')
+    (sc_arg1, sc_arg2) = same_col.has_a(carg1=cell, carg2=cell)
+
+    same_diag = Concept(name='same_diag')
+    (sd_arg1, sd_arg2) = same_diag.has_a(darg1=cell, darg2=cell)","
+    ifL(same_row('r'), notL(existsL(andL(cell_state.Q(path=('r', sr_arg1)), cell_state.Q(path=('r', sr_arg2))))))
+    ifL(same_col('c'), notL(existsL(andL(cell_state.Q(path=('c', sc_arg1)), cell_state.Q(path=('c', sc_arg2))))))
+    ifL(same_diag('d'), notL(existsL(andL(cell_state.Q(path=('d', sd_arg1)), cell_state.Q(path=('d', sd_arg2))))))
+
+    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))","with Graph('eight_queens') as graph:
+    board = Concept(name='board')
+    cell = Concept(name='cell')
+    (board_contains_cell,) = board.contains(cell)
+
+    cell_state = cell(name='cell_state', ConceptClass=EnumConcept, values=['Q', 'E'])
+
+    same_row = Concept(name='same_row')
+    (sr_arg1, sr_arg2) = same_row.has_a(rarg1=cell, rarg2=cell)
+
+    same_col = Concept(name='same_col')
+    (sc_arg1, sc_arg2) = same_col.has_a(carg1=cell, carg2=cell)
+
+    same_diag = Concept(name='same_diag')
+    (sd_arg1, sd_arg2) = same_diag.has_a(darg1=cell, darg2=cell)
+
+    ifL(same_row('r'), notL(existsL(andL(cell_state.Q(path=('r', sr_arg1)), cell_state.Q(path=('r', sr_arg2))))))
+    ifL(same_col('c'), notL(existsL(andL(cell_state.Q(path=('c', sc_arg1)), cell_state.Q(path=('c', sc_arg2))))))
+    ifL(same_diag('d'), notL(existsL(andL(cell_state.Q(path=('d', sd_arg1)), cell_state.Q(path=('d', sd_arg2))))))
+
+    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))","
+def random_chess_graph_instance():
+    size = 8
+    board_ids = [0]
+    cell_ids = list(range(size * size))
+    queen_labels = [random.randint(0, 1) for _ in cell_ids]
+
+    def rc(cell_id):
+        return divmod(cell_id, size)
+
+    rows = {r: [] for r in range(size)}
+    cols = {c: [] for c in range(size)}
+    diag_main = {}
+    diag_anti = {}
+
+    for cid in cell_ids:
+        r, c = rc(cid)
+        rows[r].append(cid)
+        cols[c].append(cid)
+        diag_main.setdefault(r - c, []).append(cid)
+        diag_anti.setdefault(r + c, []).append(cid)
+
+    def all_pairs(lst):
+        pairs = []
+        n = len(lst)
+        for i in range(n):
+            for j in range(i + 1, n):
+                pairs.append((lst[i], lst[j]))
+        return pairs
+
+    same_row_pairs = []
+    for r in rows:
+        same_row_pairs.extend(all_pairs(rows[r]))
+
+    same_col_pairs = []
+    for c in cols:
+        same_col_pairs.extend(all_pairs(cols[c]))
+
+    same_diag_pairs = []
+    for key in diag_main:
+        same_diag_pairs.extend(all_pairs(diag_main[key]))
+    for key in diag_anti:
+        same_diag_pairs.extend(all_pairs(diag_anti[key]))
+
+    data = {
+        ""chess_board_id"": board_ids,
+        ""queen_placed_id"": cell_ids,
+        ""queen_placed"": queen_labels,
+        ""same_row"": [same_row_pairs],
+        ""same_column"": [same_col_pairs],
+        ""same_diagonal"": [same_diag_pairs],
+    }
+
+    board_contains_cell = []
+    for b in data[""chess_board_id""]:
+        for cell in data[""queen_placed_id""]:
+            board_contains_cell.append((b, cell))
+    data[""board_contains_cell""] = [board_contains_cell]
+
+    return data
+
+dataset = [random_chess_graph_instance() for _ in range(1)]
+
+board['chess_board_id'] = ReaderSensor(keyword='chess_board_id')
+cell['queen_placed_id'] = ReaderSensor(keyword='queen_placed_id')
+cell['queen_placed'] = LabelReaderSensor(keyword='queen_placed')
+cell[board_contains_cell] = EdgeReaderSensor(board['chess_board_id'], cell['queen_placed_id'],keyword='board_contains_cell', relation=board_contains_cell)
+
+same_row[sr_arg1.reversed, sr_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_row')
+same_col[sc_arg1.reversed, sc_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_column')
+same_diag[sd_arg1.reversed, sd_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_diagonal')
+
+cell[cell_state] = DummyLearner('queen_placed_id')
+
+program = SolverPOIProgram(graph, poi=[board, cell,same_row,same_col, same_diag], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    local_labels = []
+    ilp_labels = []
+    for idx, cnode in enumerate(datanode.getChildDataNodes()):
+        local_idx = cnode.getResult(cell_state, ""local"", ""argmax"")
+        ilp_idx = cnode.getResult(cell_state, ""ILP"")
+
+        local_labels.append('Q' if local_idx == 0 else 'E')
+        ilp_labels.append('Q' if ilp_idx == 0 else 'E')
+
+    size = 8
+    print(""Local argmax (Q/E) grid:"")
+    for r in range(size):
+        row = local_labels[r*size:(r+1)*size]
+        print(' '.join(row))
+
+    print(""ILP (Q/E) grid:"")
+    for r in range(size):
+        row = ilp_labels[r*size:(r+1)*size]
+        print(' '.join(row))",binary,2,yes,"Basic Concepts: ['queen_placed','same_row','same_column','same_diagonal'] 
 
 Task Concepts: ['chess_board']"

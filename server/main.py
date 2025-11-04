@@ -7,7 +7,7 @@ import os
 from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, model_to_typed_dict, BuildStateModel, typed_dict_changes
 from server.session import *
-from Agent.Graph.graph_prompt import load_all_graphs
+from Agent.utils import load_all_examples_info
 
 app = FastAPI()
 origins = [
@@ -22,10 +22,10 @@ app.add_middleware(
 )
 
 initial_state, graph = pre_process_graph(
-        reasoning_effort="medium",
+        reasoning_effort="low",
         task_id="Deploy",
         task_description="Create a Graph",
-        graph_examples=load_all_graphs("static/"),
+        graph_examples=load_all_examples_info("static/"),
         graph_rag_k=3,
         max_graphs_check=3
     )
