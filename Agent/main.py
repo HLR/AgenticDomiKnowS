@@ -9,6 +9,7 @@ from langgraph.graph import StateGraph, END, START
 from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples
 from langgraph.checkpoint.memory import InMemorySaver
 from Agent.Sensor.sensor_agent import sensor_agent
+from langgraph.types import interrupt, Command
 
 class BuildState(TypedDict):
     Task_ID: str
@@ -27,6 +28,8 @@ class BuildState(TypedDict):
     graph_human_notes: str
 
     sensor_code: str
+    entire_sensor_code: str
+    sensor_code_error: str
     sensor_rag_examples: List[str]
 
 def build_graph(
@@ -51,10 +54,10 @@ def build_graph(
         return {}
 
     def graph_human_agent(state: BuildState) -> BuildState:
-        graph_human_approved = state.get("graph_human_approved", "")
-        if graph_human_approved:
-            return state
-        return {"graph_review_notes": [], "graph_reviewer_agent_approved": False, "graph_exe_notes": [], "graph_exe_agent_approved": False, "graph_attempt": 0}
+        human_response = interrupt("Did human approve?")
+        graph_human_approved, graph_human_notes = human_response.get("graph_human_approved", ""), human_response.get("graph_human_notes", "")
+        if graph_human_approved: return {"graph_human_approved" : graph_human_approved, "graph_human_notes": graph_human_notes}
+        return {"graph_human_approved" : graph_human_approved, "graph_human_notes": graph_human_notes, "graph_review_notes": [], "graph_reviewer_agent_approved": False, "graph_exe_notes": [], "graph_exe_agent_approved": False, "graph_attempt": 0}
 
     def route_after_review(state: BuildState) -> str:
         both_approved = bool(state.get("graph_reviewer_agent_approved")) and bool(state.get("graph_exe_agent_approved"))
@@ -72,7 +75,7 @@ def build_graph(
     def sensor_agent_node(state: BuildState) -> BuildState:
         print("Sensor agent node")
         code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"))
-        return {"sensor_code": sensor_code}
+        return {"sensor_code": sensor_code, "entire_sensor_code":code , "sensor_code_error": captured_prints+captured_stderr+captured_error}
 
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
@@ -152,8 +155,11 @@ def main(argv: Optional[List[str]] = None):
         print(snap.next)
         if not snap.next:
             break
-        graph.update_state(config,{"graph_human_approved":True},as_node="graph_human_agent")
-        graph.invoke(None, config=config)
+        graph.invoke(
+            Command(resume={"graph_human_approved":True}),
+            config=config
+        )
+        #graph.invoke(None, config=config)
     print("End")
     return 0, snap.values
 

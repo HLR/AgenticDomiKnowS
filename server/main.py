@@ -8,7 +8,7 @@ from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, model_to_typed_dict, BuildStateModel, typed_dict_changes
 from server.session import *
 from Agent.utils import load_all_examples_info
-
+from langgraph.types import Command
 app = FastAPI()
 origins = [
     "http://localhost:3000",
@@ -67,7 +67,7 @@ def step_graph(buildstate: dict, ctx = Depends(current_session)):
     new_changes = typed_dict_changes(prev_state, state)
     if new_changes:
         # Use the node name defined in Agent.main (graph_human_agent)
-        graph.update_state(ctx["session"]["data"]["config"], state, as_node="graph_human_agent")
+        graph.invoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
     graph.invoke(None, config=ctx["session"]["data"]["config"])
     return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
