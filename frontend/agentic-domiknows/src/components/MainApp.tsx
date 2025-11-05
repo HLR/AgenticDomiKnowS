@@ -16,7 +16,7 @@ interface ProcessUpdate {
 }
 
 interface BuildState {
-  Task_ID?: string;
+  Task_ID: string;
   Task_definition: string;
   graph_rag_examples: string[];
   graph_max_attempts: number;
@@ -27,8 +27,10 @@ interface BuildState {
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
   graph_exe_agent_approved: boolean;
-  human_approved: boolean;
-  human_notes: string;
+  graph_human_approved: boolean;
+  graph_human_notes: string;
+  sensor_code: string;
+  sensor_rag_examples: string[];
 }
 
 interface TaskStatus {
@@ -73,6 +75,23 @@ export default function MainApp() {
     getSession();
   }, []);
 
+  // Listen for buildstate updates that may be dispatched by subcomponents (e.g. SensorsWorkflow)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const ev = e as CustomEvent;
+        if (ev?.detail) {
+          console.log('📣 buildstate-updated event received');
+          setBuildState(ev.detail as BuildState);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener('buildstate-updated', handler as EventListener);
+    return () => window.removeEventListener('buildstate-updated', handler as EventListener);
+  }, []);
+
   const handleSubmitPrompt = async (prompt: string) => {
     setIsProcessing(true);
     setBuildState(null);
@@ -90,6 +109,7 @@ export default function MainApp() {
         
         if (initResponse.status === 500) {
           const mockState: BuildState = {
+            Task_ID: 'mock_task',
             Task_definition: prompt,
             graph_rag_examples: [],
             graph_max_attempts: 3,
@@ -100,8 +120,10 @@ export default function MainApp() {
             graph_reviewer_agent_approved: false,
             graph_exe_notes: [],
             graph_exe_agent_approved: false,
-            human_approved: false,
-            human_notes: ""
+            graph_human_approved: false,
+            graph_human_notes: "",
+            sensor_code: '',
+            sensor_rag_examples: []
           };
           setBuildState(mockState);
           setIsProcessing(false);
@@ -169,6 +191,7 @@ export default function MainApp() {
       
       // Create a fallback state for demonstration
       const fallbackState: BuildState = {
+        Task_ID: 'demo_task',
         Task_definition: prompt,
         graph_rag_examples: ["example1.py", "example2.py"],
         graph_max_attempts: 3,
@@ -179,8 +202,10 @@ export default function MainApp() {
         graph_reviewer_agent_approved: true,
         graph_exe_notes: ["Code syntax is valid"],
         graph_exe_agent_approved: true,
-        human_approved: false,
-        human_notes: ""
+        graph_human_approved: false,
+        graph_human_notes: "",
+        sensor_code: '',
+        sensor_rag_examples: []
       };
       
       setBuildState(fallbackState);
@@ -199,8 +224,8 @@ export default function MainApp() {
       const shouldRestart = notes && notes.trim() !== '';
       const updatedState = {
         ...buildState,
-        human_approved: shouldRestart ? false : approved,
-        human_notes: notes
+        graph_human_approved: shouldRestart ? false : approved,
+        graph_human_notes: notes
       };
 
       console.log('� === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
@@ -285,15 +310,15 @@ export default function MainApp() {
       // Fallback: just update the local state
       const updatedState = {
         ...buildState,
-        human_approved: approved,
-        human_notes: notes
+        graph_human_approved: approved,
+        graph_human_notes: notes
       };
       setBuildState(updatedState);
       setIsProcessing(false);
     }
   };
 
-  const showHumanReview = buildState && !buildState.human_approved && !isProcessing &&
+  const showHumanReview = buildState && !buildState.graph_human_approved && !isProcessing &&
                          (buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved ||
                           buildState.graph_attempt >= buildState.graph_max_attempts);
   
@@ -309,23 +334,21 @@ export default function MainApp() {
     }
   }, [showHumanReview]);
 
-  // Auto-switch to sensors tab when human approves
+  // Auto-switch to sensors tab when human approves (don't require agent flags here)
   useEffect(() => {
-    if (buildState && buildState.human_approved && 
-        buildState.graph_reviewer_agent_approved && 
-        buildState.graph_exe_agent_approved) {
+    if (buildState && buildState.graph_human_approved) {
       setActiveTab('sensors');
     }
-  }, [buildState?.human_approved, buildState?.graph_reviewer_agent_approved, buildState?.graph_exe_agent_approved]);
+  }, [buildState?.graph_human_approved]);
   
   // Only show final result when human has approved AND both agents approved
-  const showResult = buildState && buildState.human_approved && 
+  const showResult = buildState && buildState.graph_human_approved && 
                      buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved;
   
   // Show intermediate results when both agents approved but human hasn't reviewed yet
   const showIntermediateResult = buildState && 
                                 buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved &&
-                                !buildState.human_approved;
+                                !buildState.graph_human_approved;
                                 
   const hasActiveTask = buildState !== null;
 
@@ -372,7 +395,7 @@ export default function MainApp() {
               </h1>
               
               {/* Tab Navigation - Show only when human has approved */}
-              {showResult && (
+              {buildState && buildState.graph_human_approved && (
                 <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
                   <button
                     onClick={() => setActiveTab('graph')}
@@ -388,11 +411,11 @@ export default function MainApp() {
                     onClick={() => setActiveTab('sensors')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                       activeTab === 'sensors'
-                        ? 'bg-white text-green-600 shadow-sm'
+                        ? 'bg-white text-indigo-600 shadow-sm'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    🔧 Sensors
+                    ⚙️ Sensors
                   </button>
                 </div>
               )}
@@ -532,7 +555,7 @@ export default function MainApp() {
         </div>
         ) : (
           /* Sensors Tab Content */
-          buildState && showResult && (
+          activeTab === 'sensors' && buildState && (
             <SensorsWorkflow 
               buildState={buildState}
               sessionId={sessionId || 'unknown'}
@@ -644,17 +667,17 @@ export default function MainApp() {
               )}
 
               {/* Human Feedback Section */}
-              {buildState.human_notes && buildState.human_notes.trim() !== '' && (
+              {buildState.graph_human_notes && buildState.graph_human_notes.trim() !== '' && (
                 <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
                   <div className="text-sm font-medium text-pink-800 mb-2 flex items-center">
                     <span className="mr-2">👤</span>
                     Human Feedback
                   </div>
                   <div className="text-sm text-pink-700 italic">
-                    "{buildState.human_notes}"
+                    "{buildState.graph_human_notes}"
                   </div>
                   <div className="text-sm text-pink-600 mt-2">
-                    Status: {buildState.human_approved ? '✅ Approved' : '🔄 Needs Revision'}
+                    Status: {buildState.graph_human_approved ? '✅ Approved' : '🔄 Needs Revision'}
                   </div>
                 </div>
               )}

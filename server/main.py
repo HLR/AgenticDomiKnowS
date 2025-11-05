@@ -57,14 +57,17 @@ def init_graph(task_description: str, ctx = Depends(current_session)):
     return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
 @app.post("/continue-graph")
-def step_graph(buildstate: BuildStateModel, ctx = Depends(current_session)):
+def step_graph(buildstate: dict, ctx = Depends(current_session)):
     config = ctx["session"]["data"]["config"]
 
-    state = model_to_typed_dict(buildstate)
+    # buildstate will be received as a plain dict from the request body.
+    # Convert or use directly as a mapping for update operations.
+    state = buildstate
     prev_state = graph.get_state(config=config).values
     new_changes = typed_dict_changes(prev_state, state)
     if new_changes:
-        graph.update_state(ctx["session"]["data"]["config"], state, as_node="graph_human")
+        # Use the node name defined in Agent.main (graph_human_agent)
+        graph.update_state(ctx["session"]["data"]["config"], state, as_node="graph_human_agent")
     graph.invoke(None, config=ctx["session"]["data"]["config"])
     return typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
 
@@ -75,7 +78,7 @@ def get_graph_image(task_id: str, attempt: int):
     Images are stored in graph_images/{task_id}_{attempt}.png
     """
     # Construct the file path
-    image_filename = f"{task_id}_{attempt}.png.png"
+    image_filename = f"{task_id}_{attempt}.png"
     image_path = os.path.join("graph_images", image_filename)
     
     # Check if file exists

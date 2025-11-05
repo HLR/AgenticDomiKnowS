@@ -112,7 +112,9 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
         "graph_exe_notes": [],
         "graph_exe_agent_approved": False,
         "graph_human_approved": False,
-        "human_notes": "",
+        "graph_human_notes": "",
+        "sensor_code": '',
+        "sensor_rag_examples": [],
     }
     
     print("=== INITIAL STATE CREATED ===")

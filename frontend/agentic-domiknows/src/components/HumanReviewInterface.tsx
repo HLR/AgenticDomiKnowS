@@ -14,8 +14,8 @@ interface BuildState {
   graph_reviewer_agent_approved: boolean;
   graph_exe_notes: string[];
   graph_exe_agent_approved: boolean;
-  human_approved: boolean;
-  human_notes: string;
+  graph_human_approved: boolean;
+  graph_human_notes: string;
 }
 
 interface HumanReviewInterfaceProps {
@@ -25,16 +25,16 @@ interface HumanReviewInterfaceProps {
 }
 
 export default function HumanReviewInterface({ taskId, buildState, onApproval }: HumanReviewInterfaceProps) {
-  // Initialize feedback with existing human_notes if any
-  const [feedback, setFeedback] = useState(buildState.human_notes || '');
+  // Initialize feedback with existing graph_human_notes if any
+  const [feedback, setFeedback] = useState(buildState.graph_human_notes || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleApproval = async (approved: boolean) => {
     setIsSubmitting(true);
     try {
-      // Pass the feedback as human_notes to the backend
-      onApproval(approved, feedback);
-      // Don't clear feedback - it will be preserved in buildState.human_notes
+  // Pass the feedback as graph_human_notes to the backend
+  onApproval(approved, feedback);
+  // Don't clear feedback - it will be preserved in buildState.graph_human_notes
     } catch (error) {
       console.error('Error submitting approval:', error);
     } finally {
