@@ -10,19 +10,16 @@ from server.session import *
 from Agent.utils import load_all_examples_info
 from langgraph.types import Command
 app = FastAPI()
-origins = [
-    "http://localhost:3000",
-    "http://localhost:49790",
-    "https://hlr-demo.egr.msu.edu",
-]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 initial_state, graph = pre_process_graph(
-        reasoning_effort="medium",
+        reasoning_effort="minimal",
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_examples_info("static/"),
