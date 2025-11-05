@@ -11,3 +11,4 @@ graphviz
 dnspython
 scikit-learn
 spacy
+colorama
