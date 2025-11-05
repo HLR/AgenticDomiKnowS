@@ -155,11 +155,7 @@ def main(argv: Optional[List[str]] = None):
         print(snap.next)
         if not snap.next:
             break
-        graph.invoke(
-            Command(resume={"graph_human_approved":True}),
-            config=config
-        )
-        #graph.invoke(None, config=config)
+        graph.invoke(Command(resume={"graph_human_approved":True}), config=config)
     print("End")
     return 0, snap.values
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from Agent.main import pre_process_graph
 from Agent.utils import load_all_examples_info
+from langgraph.types import Command
 
 def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: bool) -> List[Dict[str, Any]]:
     """
@@ -51,11 +52,9 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
                     snapshot_copy = dict(snap.values or {})
                 iteration_snapshots.append(snapshot_copy)
 
-                if not snap.next:
+                if not snap.next or snap.next[0]=='sensor_agent_node':
                     break
-                # Auto-approve to continue to next iteration until termination condition
-                graph.update_state(config, {"graph_human_approved": True}, as_node="graph_human_agent")
-                graph.invoke(None, config=config)
+                graph.invoke(Command(resume={"graph_human_approved": True}), config=config)
 
             state: Dict[str, Any] = dict(snap.values or {})
 
