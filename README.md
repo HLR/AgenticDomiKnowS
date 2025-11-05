@@ -6,12 +6,17 @@ AI-powered knowledge graph generation system with human-in-the-loop validation. 
 
 - Python 3.9 or above
 - Node.js 16+ and npm
-
+- OpenAI API KEY
+  
 ## Setup & Run
 
 ### Backend Setup
+0. Add your OpenAI key by creating a file named `.env` in the folder `Agent/LLM/` and set your key by writing the following:
+```
+OPENAI_API_KEY=<openai key>
+```
 
-1. Create and activate a virtual environment:
+2. Create and activate a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
