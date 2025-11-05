@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 initial_state, graph = pre_process_graph(
-        reasoning_effort="minimal",
+        reasoning_effort="medium",
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_examples_info("static/"),
