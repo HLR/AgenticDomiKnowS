@@ -26,6 +26,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```bash
 pip install -r backend-requirements.txt
 pip install -r domiknows-requirements.txt
+pip install -r agent-requirements.com
 ```
 
 3. Run the backend server:
@@ -66,9 +67,7 @@ The frontend will be available at `http://localhost:49790`
 - `Agent/` - LLM agents for graph generation, review, and sensors
 - `server/` - FastAPI backend server
 - `frontend/agentic-domiknows/` - Next.js frontend application
-- `Datasets/` - Example datasets (beliefbank, WIQA)
-- `Doc/` - Documentation and tutorials
-- `Examples/` - Sample DomiKnows implementations
+- `Examples/` - Sample DomiKnows implementations created for the agents
 
 ## Usage
 
