@@ -15,8 +15,11 @@ def _build_base_messages(rag_selected) -> List[Dict[str, str]]:
         msgs.append({"role": "assistant", "content": rag_selected[num+1]})
     return msgs
 
-def sensor_agent(llm: LLM, test_description: str, input_graph: str, rag_selected):
+def sensor_agent(llm: LLM, test_description: str, input_graph: str, rag_selected, prev_code, outputs):
     msgs = list(_build_base_messages(rag_selected)) + [{"role": "user", "content": test_description+"\n"+input_graph}]
+    if prev_code and outputs:
+        msgs.append({"role": "assistant", "content": prev_code})
+        msgs.append({"role": "user", "content": "This is the error that I received after executing the code with its graph. Fix it and only return the fixed code as instructed before: \n\n"+outputs})
     sensor_code = extract_python_code(llm(msgs))
     code = code_prefix + "\n" + input_graph + "\n" + sensor_code
     captured_prints, captured_stderr, captured_error = exec_code(code)

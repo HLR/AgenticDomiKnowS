@@ -27,9 +27,10 @@ class BuildState(TypedDict):
     graph_human_approved: bool
     graph_human_notes: str
 
-    sensor_code: str
-    entire_sensor_code: str
-    sensor_code_error: str
+    sensor_attempt: int
+    sensor_codes: List[str]
+    entire_sensor_codes: List[str]
+    sensor_code_outputs: List[str]
     sensor_rag_examples: List[str]
 
 def build_graph(
@@ -47,7 +48,6 @@ def build_graph(
 
     def graph_reviewer_agent_node(state: BuildState) -> BuildState:
         review_text, approved = graph_reviewer_agent(llm, state.get("Task_definition", ""), list(state.get("graph_code_draft", []))[-1], list(state.get("graph_rag_examples", [])))
-        graph_review_notes = list(state.get("graph_review_notes", []))
         return {"graph_review_notes": list(state.get("graph_review_notes", [])) + [review_text], "graph_reviewer_agent_approved": approved,}
 
     def join_review_exe(state: BuildState) -> BuildState:
@@ -74,8 +74,20 @@ def build_graph(
 
     def sensor_agent_node(state: BuildState) -> BuildState:
         print("Sensor agent node")
-        code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"))
-        return {"sensor_code": sensor_code, "entire_sensor_code":code , "sensor_code_error": captured_prints+captured_stderr+captured_error}
+        prev_code, outputs = "", ""
+        sensor_codes_list, entire_sensor_codes_list, sensor_code_outputs = [], [], []
+        attempts = int(state.get("sensor_attempt", 0))
+        while attempts:
+            code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"), prev_code, outputs)
+            attempts -= 1
+            outputs = captured_prints+captured_stderr+captured_error
+            prev_code = sensor_code
+            sensor_codes_list.append(sensor_code)
+            entire_sensor_codes_list.append(code)
+            sensor_code_outputs.append(outputs)
+            if not "Traceback" in outputs: break
+
+        return {"sensor_codes": sensor_codes_list, "entire_sensor_codes":entire_sensor_codes_list , "sensor_code_outputs": sensor_code_outputs}
 
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
@@ -116,9 +128,13 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
         "graph_exe_agent_approved": False,
         "graph_human_approved": False,
         "graph_human_notes": "",
-        "sensor_code": '',
+        "sensor_attempt": 3,
+        "sensor_codes": [],
+        "entire_sensor_codes": [],
+        "sensor_code_outputs": [],
         "sensor_rag_examples": [],
     }
+
     
     print("=== INITIAL STATE CREATED ===")
     llm = LLM(reasoning_effort=reasoning_effort)
@@ -131,11 +147,11 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
 def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="Coding LangGraph pipeline")
     parser.add_argument("--task-id", type=int, default=0, help="Task ID")
-    parser.add_argument("--task-description",type=str,default="Create an movie sentiment graph very simple no constraints",help="Description of the graph to build",)
+    parser.add_argument("--task-description",type=str,default="Create a graph related to agriculture and its intricacies",help="Description of the graph to build",)
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
-    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
+    parser.add_argument("--reasoning-effort", default="medium", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
     args = parser.parse_args(argv)
 
     initial_state, graph = pre_process_graph(
