@@ -29,6 +29,8 @@ pip install -r domiknows-requirements.txt
 pip install -r agent-requirements.com
 ```
 
+4. Install Graphviz on your system by following the instructions in [here](https://graphviz.org/).
+
 3. Run the backend server:
 ```bash
 cd server
