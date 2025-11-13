@@ -35,7 +35,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(MongoLoggingMiddleware)
+#app.add_middleware(MongoLoggingMiddleware)
 
 initial_state, graph = pre_process_graph(
         reasoning_effort="minimal",

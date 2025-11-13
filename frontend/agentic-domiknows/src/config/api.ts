@@ -4,7 +4,7 @@
  * Change the API_BASE_URL here to update it across the entire application
  */
 
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = '/api';
 
 /**
  * API endpoints
@@ -17,4 +17,5 @@ export const API_ENDPOINTS = {
   graphImage: (taskId: string, attempt: number) => 
     `${API_BASE_URL}/graph-image/${taskId}/${attempt}`,
   logout: `${API_BASE_URL}/logout`,
+  resetSession: `${API_BASE_URL}/reset-session`,
 } as const;
