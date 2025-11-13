@@ -78,3 +78,17 @@ The frontend will be available at `http://localhost:49790`
 3. Enter a task description to generate a knowledge graph
 4. Review AI-generated code and provide feedback
 5. Approve to proceed to sensor workflow configuration
+
+## Running the MongoDB in docker
+1) Pull the image from dockerhub
+```bash
+docker pull mongodb/mongodb-community-server:latest
+```
+2) Run the Image as a Container
+
+```bash
+docker run --name mongodb -p 27017:27017 -d mongodb/mongodb-community-server:latest
+```
+
+## TODO: Add mongod authentication later
+
