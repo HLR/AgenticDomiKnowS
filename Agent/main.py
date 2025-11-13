@@ -29,9 +29,13 @@ class BuildState(TypedDict):
 
     sensor_attempt: int
     sensor_codes: List[str]
+    sensor_human_changed: bool
     entire_sensor_codes: List[str]
     sensor_code_outputs: List[str]
     sensor_rag_examples: List[str]
+
+    property_human_text: str
+    final_code_text: str
 
 def build_graph(
     llm: Optional[Callable[[Any], str]] = None,
