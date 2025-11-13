@@ -221,16 +221,16 @@ export default function MainApp() {
     
     try {
       // Update the build state with human decision
-      // If human provided suggestions, reset human_approved to false to restart cycle
-      const shouldRestart = notes && notes.trim() !== '';
+      // If user clicks reject with suggestions, we restart the cycle
+      // If user clicks approve (even with notes), we mark as approved
       const updatedState = {
         ...buildState,
-        graph_human_approved: shouldRestart ? false : approved,
+        graph_human_approved: approved,
         graph_human_notes: notes
       };
 
-      console.log('� === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
-      console.log('� BuildState being sent:', updatedState);
+      console.log('📝 === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
+      console.log('📝 BuildState being sent:', updatedState);
 
       const response = await fetch(API_ENDPOINTS.continueGraph, {
         method: 'POST',
@@ -254,8 +254,8 @@ export default function MainApp() {
       const newState = await response.json();
       setBuildState(newState);
       
-      // If human provided suggestions (regardless of approval), restart the AI review cycle
-      if (notes && notes.trim() !== '') {
+      // If human rejected with suggestions, restart the AI review cycle
+      if (!approved && notes && notes.trim() !== '') {
         let currentState = newState;
         let maxIterations = 20;
         let iterations = 0;
@@ -274,7 +274,7 @@ export default function MainApp() {
           await new Promise(resolve => setTimeout(resolve, 1500));
 
           try {
-            console.log('� === SENDING BUILDSTATE TO BACKEND (Post-suggestion iteration) ===');
+            console.log('🔄 === SENDING BUILDSTATE TO BACKEND (Post-rejection iteration) ===');
             console.log('📤 BuildState being sent:', currentState);
             
             const stepResponse = await fetch(API_ENDPOINTS.continueGraph, {
@@ -427,10 +427,36 @@ export default function MainApp() {
                 <span className="text-sm text-gray-500">Session: {sessionId.slice(0, 8)}...</span>
               )}
               <button 
-                onClick={() => window.location.reload()} 
+                onClick={async () => {
+                  try {
+                    // Call backend to reset session data but keep user authenticated
+                    await fetch(API_ENDPOINTS.resetSession, {
+                      method: 'POST',
+                      credentials: 'include',
+                    });
+                    
+                    // Reset local state
+                    setBuildState(null);
+                    setIsProcessing(false);
+                    setActiveTab('graph');
+                    
+                    // Fetch new session ID
+                    const response = await fetch(API_ENDPOINTS.whoami, {
+                      credentials: 'include'
+                    });
+                    const data = await response.json();
+                    setSessionId(data.session_id);
+                  } catch (error) {
+                    console.error('Error resetting session:', error);
+                    // Fallback: just reset local state
+                    setBuildState(null);
+                    setIsProcessing(false);
+                    setActiveTab('graph');
+                  }
+                }} 
                 className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
               >
-                ← Back to Landing
+                ← New Task
               </button>
             </div>
           </div>
