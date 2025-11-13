@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 
 interface GraphResult {
   nodes: Array<{
@@ -44,7 +45,7 @@ export default function GraphVisualization({ result, taskId, graphAttempt, codeH
       setImageError(null);
 
       try {
-        const imageUrl = `http://localhost:8000/graph-image/${taskId}/${graphAttempt}`;
+        const imageUrl = API_ENDPOINTS.graphImage(taskId, graphAttempt);
         const response = await fetch(imageUrl, {
           credentials: 'include',
         });

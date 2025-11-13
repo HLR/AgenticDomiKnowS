@@ -8,6 +8,7 @@ import HumanReviewInterface from '@/components/HumanReviewInterface';
 import SensorsWorkflow from '@/components/SensorsWorkflow';
 import { useOptimisticProgress } from '@/hooks/useOptimisticProgress';
 import { parseDomiKnowsCode, createFallbackGraph, type GraphResult } from '@/utils/graphParser';
+import { API_ENDPOINTS } from '@/config/api';
 
 interface ProcessUpdate {
   step: string;
@@ -63,7 +64,7 @@ export default function MainApp() {
   useEffect(() => {
     const getSession = async () => {
       try {
-        const response = await fetch('http://localhost:8000/whoami', {
+        const response = await fetch(API_ENDPOINTS.whoami, {
           credentials: 'include'
         });
         const data = await response.json();
@@ -98,7 +99,7 @@ export default function MainApp() {
 
     try {
       // Step 1: Initialize the graph with task description
-      const initResponse = await fetch(`http://localhost:8000/initialize-graph?task_description=${encodeURIComponent(prompt)}`, {
+      const initResponse = await fetch(API_ENDPOINTS.initializeGraph(prompt), {
         method: 'GET',
         credentials: 'include'
       });
@@ -157,7 +158,7 @@ export default function MainApp() {
           console.log('� === SENDING BUILDSTATE TO BACKEND ===');
           console.log('📤 BuildState being sent:', currentState);
           
-          const stepResponse = await fetch('http://localhost:8000/continue-graph', {
+          const stepResponse = await fetch(API_ENDPOINTS.continueGraph, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -231,7 +232,7 @@ export default function MainApp() {
       console.log('� === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
       console.log('� BuildState being sent:', updatedState);
 
-      const response = await fetch('http://localhost:8000/continue-graph', {
+      const response = await fetch(API_ENDPOINTS.continueGraph, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,7 +277,7 @@ export default function MainApp() {
             console.log('� === SENDING BUILDSTATE TO BACKEND (Post-suggestion iteration) ===');
             console.log('📤 BuildState being sent:', currentState);
             
-            const stepResponse = await fetch('http://localhost:8000/continue-graph', {
+            const stepResponse = await fetch(API_ENDPOINTS.continueGraph, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

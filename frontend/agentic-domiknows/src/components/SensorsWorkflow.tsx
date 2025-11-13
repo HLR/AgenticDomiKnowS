@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ProcessMonitor from './ProcessMonitor';
+import { API_ENDPOINTS } from '@/config/api';
 
 interface ProcessUpdate {
   step: string;
@@ -196,7 +197,7 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
           sensor_code: editedCode
         };
 
-        const resp = await fetch('http://localhost:8000/continue-graph', {
+        const resp = await fetch(API_ENDPOINTS.continueGraph, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
