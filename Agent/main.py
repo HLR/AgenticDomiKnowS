@@ -90,8 +90,13 @@ def build_graph(
             entire_sensor_codes_list.append(code)
             sensor_code_outputs.append(outputs)
             if not "Traceback" in outputs: break
-
         return {"sensor_codes": sensor_codes_list, "entire_sensor_codes":entire_sensor_codes_list , "sensor_code_outputs": sensor_code_outputs}
+
+    def property_agent_node(state: BuildState) -> BuildState:
+        human_response = interrupt("Did human set up the properties")
+        property_human_text = human_response.get("property_human_text", "")
+        # TODO
+        return {"final_code_text" : "Please refer to this link TODO"}
 
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
@@ -103,6 +108,8 @@ def build_graph(
 
     builder.add_node("sensor_agent_node", sensor_agent_node)
 
+    builder.add_node("property_agent_node", property_agent_node)
+
     builder.add_edge(START, "graph_rag_selector")
     builder.add_edge("graph_rag_selector", "graph_swe_agent_node")
     builder.add_edge("graph_swe_agent_node", "graph_reviewer_agent_node")
@@ -112,10 +119,11 @@ def build_graph(
     builder.add_conditional_edges("join_review_exe", route_after_review, {"to_human": "graph_human_agent", "revise": "graph_swe_agent_node",},)
     builder.add_conditional_edges("graph_human_agent", route_after_human, {"approved": "sensor_agent_node", "reform": "graph_swe_agent_node",},)
 
-    builder.add_edge("sensor_agent_node", END)
+    builder.add_edge("sensor_agent_node", "property_agent_node")
+    builder.add_edge("property_agent_node", END)
 
     checkpointer = InMemorySaver()
-    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent","sensor_agent_node"])
+    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent","sensor_agent_node","property_agent_node"])
     return graph
 
 def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="", graph_examples=load_all_examples_info(), graph_rag_k=3, max_graphs_check=3):
@@ -155,7 +163,7 @@ def main(argv: Optional[List[str]] = None):
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
-    parser.add_argument("--reasoning-effort", default="medium", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
+    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
     args = parser.parse_args(argv)
 
     initial_state, graph = pre_process_graph(
