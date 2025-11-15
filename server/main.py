@@ -174,9 +174,25 @@ async def step_graph(
     state = buildstate
     prev_state = graph.get_state(config=config).values
     new_changes = typed_dict_changes(prev_state, state)
+    
+    print("=" * 80)
+    print("📥 CONTINUE-GRAPH ENDPOINT CALLED")
+    print(f"📊 Changes detected: {new_changes}")
+    print(f"📊 graph_human_approved in incoming state: {state.get('graph_human_approved')}")
+    print(f"📊 graph_human_approved in prev_state: {prev_state.get('graph_human_approved')}")
+    print("=" * 80)
+    
     if new_changes:
         graph.invoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
     graph.invoke(None, config=ctx["session"]["data"]["config"])
+    
+    final_state = graph.get_state(config=config).values
+    print("=" * 80)
+    print("📤 RETURNING STATE TO FRONTEND")
+    print(f"📊 graph_human_approved in final state: {final_state.get('graph_human_approved')}")
+    print(f"📊 sensor_codes in final state: {len(final_state.get('sensor_codes', []))} items")
+    print("=" * 80)
+    
     build_state = typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
     await log_graph_state(
         event="step",

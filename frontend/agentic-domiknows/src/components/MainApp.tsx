@@ -6,6 +6,7 @@ import ProcessMonitor from '@/components/ProcessMonitor';
 import GraphVisualization from '@/components/GraphVisualization';
 import HumanReviewInterface from '@/components/HumanReviewInterface';
 import SensorsWorkflow from '@/components/SensorsWorkflow';
+import FinalFeedbackPage from '@/components/FinalFeedbackPage';
 import { useOptimisticProgress } from '@/hooks/useOptimisticProgress';
 import { parseDomiKnowsCode, createFallbackGraph, type GraphResult } from '@/utils/graphParser';
 import { API_ENDPOINTS } from '@/config/api';
@@ -30,8 +31,14 @@ interface BuildState {
   graph_exe_agent_approved: boolean;
   graph_human_approved: boolean;
   graph_human_notes: string;
-  sensor_code: string;
+  sensor_attempt: number;
+  sensor_codes: string[];
+  sensor_human_changed: boolean;
+  entire_sensor_codes: string[];
+  sensor_code_outputs: string[];
   sensor_rag_examples: string[];
+  property_human_text: string;
+  final_code_text: string;
 }
 
 interface TaskStatus {
@@ -45,8 +52,9 @@ interface TaskStatus {
 export default function MainApp() {
   const [buildState, setBuildState] = useState<BuildState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isWaitingForApprovalUpdate, setIsWaitingForApprovalUpdate] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'graph' | 'sensors'>('graph');
+  const [activeTab, setActiveTab] = useState<'graph' | 'sensors' | 'final'>('graph');
   const humanReviewRef = useRef<HTMLDivElement>(null);
 
   // Debug buildState changes - only log when received
@@ -123,8 +131,14 @@ export default function MainApp() {
             graph_exe_agent_approved: false,
             graph_human_approved: false,
             graph_human_notes: "",
-            sensor_code: '',
-            sensor_rag_examples: []
+            sensor_attempt: 0,
+            sensor_codes: [],
+            sensor_human_changed: false,
+            entire_sensor_codes: [],
+            sensor_code_outputs: [],
+            sensor_rag_examples: [],
+            property_human_text: '',
+            final_code_text: ''
           };
           setBuildState(mockState);
           setIsProcessing(false);
@@ -205,8 +219,14 @@ export default function MainApp() {
         graph_exe_agent_approved: true,
         graph_human_approved: false,
         graph_human_notes: "",
-        sensor_code: '',
-        sensor_rag_examples: []
+        sensor_attempt: 0,
+        sensor_codes: [],
+        sensor_human_changed: false,
+        entire_sensor_codes: [],
+        sensor_code_outputs: [],
+        sensor_rag_examples: [],
+        property_human_text: '',
+        final_code_text: ''
       };
       
       setBuildState(fallbackState);
@@ -231,6 +251,16 @@ export default function MainApp() {
 
       console.log('📝 === SENDING BUILDSTATE TO BACKEND (Human Approval) ===');
       console.log('📝 BuildState being sent:', updatedState);
+      console.log('📝 graph_human_approved:', updatedState.graph_human_approved);
+
+      // Set waiting state if approved - useEffect will auto-switch tabs when backend responds
+      if (approved) {
+        console.log('⏳ Setting isWaitingForApprovalUpdate = true, will auto-switch tabs when state updates');
+        setIsWaitingForApprovalUpdate(true);
+        // Immediately update local state and switch tabs to show loading state
+        setBuildState(updatedState);
+        setActiveTab('sensors');
+      }
 
       const response = await fetch(API_ENDPOINTS.continueGraph, {
         method: 'POST',
@@ -248,11 +278,120 @@ export default function MainApp() {
         // If there's an error, just update the local state
         setBuildState(updatedState);
         setIsProcessing(false);
+        setIsWaitingForApprovalUpdate(false);
         return;
       }
 
-      const newState = await response.json();
-      setBuildState(newState);
+      let newState = await response.json();
+      console.log('📥 ========================================');
+      console.log('📥 RECEIVED STATE FROM BACKEND:');
+      console.log('📥 graph_human_approved:', newState.graph_human_approved);
+      console.log('📥 graph_reviewer_agent_approved:', newState.graph_reviewer_agent_approved);
+      console.log('📥 graph_exe_agent_approved:', newState.graph_exe_agent_approved);
+      console.log('📥 sensor_codes length:', newState.sensor_codes?.length || 0);
+      console.log('📥 graph_attempt:', newState.graph_attempt);
+      console.log('📥 ========================================');
+      
+      // CRITICAL: If backend didn't preserve graph_human_approved, force it
+      if (approved && !newState.graph_human_approved) {
+        console.error('❌ BACKEND BUG: Backend did not preserve graph_human_approved!');
+        console.error('❌ Forcing graph_human_approved = true in local state');
+        newState = {
+          ...newState,
+          graph_human_approved: true,
+          graph_human_notes: notes
+        };
+      }
+      
+      setBuildState(newState);  // This triggers useEffect which will switch tabs if approved
+      
+      // If human approved (regardless of backend state), continue the workflow
+      if (approved) {
+        console.log('✅ User approved - checking backend state...');
+        console.log('📊 Backend graph_human_approved:', newState.graph_human_approved);
+        
+        if (!newState.graph_human_approved) {
+          console.warn('⚠️ WARNING: Backend did not set graph_human_approved to true!');
+          console.warn('⚠️ This might cause issues. Current backend state:', newState);
+        }
+        
+        // First, trigger one more continue to move past the sensor_agent_node interrupt
+        try {
+          console.log('🚀 Triggering sensor generation...');
+          const sensorTriggerResponse = await fetch(API_ENDPOINTS.continueGraph, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(newState),
+          });
+
+          if (sensorTriggerResponse.ok) {
+            const sensorState = await sensorTriggerResponse.json();
+            console.log('📥 After sensor trigger - sensor_codes:', sensorState.sensor_codes?.length || 0);
+            newState = sensorState;
+            setBuildState(sensorState);
+          }
+        } catch (err) {
+          console.error('❌ Error triggering sensor generation:', err);
+        }
+        
+        // Now poll for sensor code completion
+        console.log('✅ Starting sensor code polling...');
+        console.log('📊 Initial state sensor_codes:', newState.sensor_codes);
+        let pollAttempts = 0;
+        const maxPollAttempts = 30; // Poll for up to 30 attempts (45 seconds with 1.5s delay)
+        
+        while (pollAttempts < maxPollAttempts) {
+          // Check if sensor codes have been generated
+          if (newState.sensor_codes && newState.sensor_codes.length > 0) {
+            console.log('✅ Sensor codes received!', newState.sensor_codes);
+            break;
+          }
+          
+          console.log(`🔄 Polling attempt ${pollAttempts + 1}/${maxPollAttempts} - sensor_codes: ${newState.sensor_codes?.length || 0} items`);
+          
+          // Wait before next poll
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          try {
+            console.log(`📤 Sending poll request...`);
+            
+            const pollResponse = await fetch(API_ENDPOINTS.continueGraph, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(newState),
+            });
+
+            if (pollResponse.ok) {
+              const updatedState = await pollResponse.json();
+              console.log('📥 Received updated state. sensor_codes:', updatedState.sensor_codes?.length || 0, 'items');
+              console.log('📥 Full sensor_codes:', updatedState.sensor_codes);
+              newState = updatedState;
+              setBuildState(updatedState);
+            } else {
+              console.error('❌ Poll response not OK:', pollResponse.status);
+            }
+          } catch (pollError) {
+            console.error('❌ Error polling for sensor codes:', pollError);
+          }
+          
+          pollAttempts++;
+        }
+        
+        if (pollAttempts >= maxPollAttempts && (!newState.sensor_codes || newState.sensor_codes.length === 0)) {
+          console.warn('⚠️ Sensor code generation timed out after polling');
+          console.warn('⚠️ Final state:', newState);
+        } else if (newState.sensor_codes && newState.sensor_codes.length > 0) {
+          console.log('🎉 SUCCESS! Sensor codes loaded:', newState.sensor_codes.length, 'versions');
+        }
+      }
+      
+      setIsProcessing(false);
       
       // If human rejected with suggestions, restart the AI review cycle
       if (!approved && notes && notes.trim() !== '') {
@@ -316,12 +455,28 @@ export default function MainApp() {
       };
       setBuildState(updatedState);
       setIsProcessing(false);
+      setIsWaitingForApprovalUpdate(false);
     }
   };
 
-  const showHumanReview = buildState && !buildState.graph_human_approved && !isProcessing &&
+  const handleSensorApproval = () => {
+    console.log('🎉 Sensor approved! Switching to final tab...');
+    setActiveTab('final');
+  };
+
+  const showHumanReview = buildState && !buildState.graph_human_approved && !isProcessing && !isWaitingForApprovalUpdate &&
                          (buildState.graph_reviewer_agent_approved && buildState.graph_exe_agent_approved ||
                           buildState.graph_attempt >= buildState.graph_max_attempts);
+  
+  console.log('🔍 showHumanReview decision:', {
+    hasState: !!buildState,
+    graph_human_approved: buildState?.graph_human_approved,
+    isProcessing,
+    isWaitingForApprovalUpdate,
+    graph_reviewer_agent_approved: buildState?.graph_reviewer_agent_approved,
+    graph_exe_agent_approved: buildState?.graph_exe_agent_approved,
+    showHumanReview
+  });
   
   // Auto-scroll to human review interface when it becomes visible
   useEffect(() => {
@@ -335,12 +490,14 @@ export default function MainApp() {
     }
   }, [showHumanReview]);
 
-  // Auto-switch to sensors tab when human approves (don't require agent flags here)
+  // Auto-switch to sensors tab when graph_human_approved becomes true
   useEffect(() => {
-    if (buildState && buildState.graph_human_approved) {
+    if (isWaitingForApprovalUpdate && buildState && buildState.graph_human_approved) {
+      console.log('✅ State updated with graph_human_approved: true - switching to sensors tab');
+      setIsWaitingForApprovalUpdate(false);
       setActiveTab('sensors');
     }
-  }, [buildState?.graph_human_approved]);
+  }, [buildState, isWaitingForApprovalUpdate]);
   
   // Only show final result when human has approved AND both agents approved
   const showResult = buildState && buildState.graph_human_approved && 
@@ -417,6 +574,17 @@ export default function MainApp() {
                     }`}
                   >
                     ⚙️ Sensors
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('final')}
+                    disabled={activeTab !== 'final'}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                      activeTab === 'final'
+                        ? 'bg-white text-purple-600 shadow-sm'
+                        : 'text-gray-400 cursor-not-allowed opacity-50'
+                    }`}
+                  >
+                    🎉 Final Code
                   </button>
                 </div>
               )}
@@ -580,15 +748,20 @@ export default function MainApp() {
             />
           </div>
         </div>
-        ) : (
+        ) : activeTab === 'sensors' && buildState ? (
           /* Sensors Tab Content */
-          activeTab === 'sensors' && buildState && (
-            <SensorsWorkflow 
-              buildState={buildState}
-              sessionId={sessionId || 'unknown'}
-            />
-          )
-        )}
+          <SensorsWorkflow 
+            buildState={buildState}
+            sessionId={sessionId || 'unknown'}
+            onSensorApproved={handleSensorApproval}
+          />
+        ) : activeTab === 'final' && buildState ? (
+          /* Final Feedback Tab Content */
+          <FinalFeedbackPage 
+            buildState={buildState}
+            sessionId={sessionId || 'unknown'}
+          />
+        ) : null}
 
         {/* Build Status Section - Full width underneath everything - Only show in Graph tab */}
         {activeTab === 'graph' && buildState && (

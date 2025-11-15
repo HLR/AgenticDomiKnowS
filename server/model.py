@@ -96,8 +96,14 @@ if __name__ == "__main__":
         "graph_exe_agent_approved": True,
         "graph_human_approved": False,
         "graph_human_notes": "N/A",
-        "sensor_code": "",
+        "sensor_attempt": 0,
+        "sensor_codes": [],
+        "sensor_human_changed": False,
+        "entire_sensor_codes": [],
+        "sensor_code_outputs": [],
         "sensor_rag_examples": [],
+        "property_human_text": "",
+        "final_code_text": ""
     }
     example_dict =dict()
     

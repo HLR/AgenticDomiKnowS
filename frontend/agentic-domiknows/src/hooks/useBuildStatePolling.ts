@@ -14,8 +14,14 @@ interface BuildState {
   graph_exe_agent_approved: boolean;
   graph_human_approved: boolean;
   graph_human_notes: string;
-  sensor_code: string;
+  sensor_attempt: number;
+  sensor_codes: string[];
+  sensor_human_changed: boolean;
+  entire_sensor_codes: string[];
+  sensor_code_outputs: string[];
   sensor_rag_examples: string[];
+  property_human_text: string;
+  final_code_text: string;
 }
 
 interface PollingConfig {

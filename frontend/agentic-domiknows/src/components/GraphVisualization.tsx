@@ -107,7 +107,7 @@ export default function GraphVisualization({ result, taskId, graphAttempt, codeH
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
-              🖼️ Visual Graph
+            Visual Graph
             </button>
             <button
               onClick={() => setActiveView('code')}

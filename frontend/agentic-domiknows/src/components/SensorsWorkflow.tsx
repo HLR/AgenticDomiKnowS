@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import ProcessMonitor from './ProcessMonitor';
+import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '@/config/api';
 
 interface ProcessUpdate {
@@ -25,227 +24,147 @@ interface BuildState {
   graph_exe_agent_approved: boolean;
   graph_human_approved: boolean;
   graph_human_notes: string;
-  sensor_code: string;
+  sensor_attempt: number;
+  sensor_codes: string[];
+  sensor_human_changed: boolean;
+  entire_sensor_codes: string[];
+  sensor_code_outputs: string[];
   sensor_rag_examples: string[];
+  property_human_text: string;
+  final_code_text: string;
 }
 
 interface SensorsWorkflowProps {
   buildState: BuildState;
   sessionId: string;
+  onSensorApproved: () => void;
 }
 
-export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkflowProps) {
-  const [sensorCode, setSensorCode] = useState<string[]>([
-    `# Sensor code for: ${buildState.Task_definition}\nfrom domiknows.sensor import Sensor\n\n# Define your sensors here\nsensor = Sensor('demo_sensor')\n`
-  ]);
-  // Keep sensorCode in sync with server-provided buildState.sensor_code
-  useEffect(() => {
-    if (!buildState) return;
-    const incoming = buildState.sensor_code || '';
-    if (incoming && incoming.trim().length > 0) {
-      const last = sensorCode[sensorCode.length - 1] || '';
-      if (incoming !== last) {
-        setSensorCode(prev => [...prev, incoming]);
-        setProgressUpdates(prev => [...prev, {
-          step: 'sensor_code_update',
-          message: '🔁 Sensor code updated from build state',
-          timestamp: new Date().toISOString(),
-          status: 'active'
-        }]);
-      }
-    }
-
-    // Show reviewer note if present
-    const latestReview = buildState.graph_review_notes && buildState.graph_review_notes.length > 0
-      ? buildState.graph_review_notes[buildState.graph_review_notes.length - 1]
-      : null;
-    if (latestReview) {
-      setProgressUpdates(prev => [...prev, {
-        step: 'review_note',
-        message: `📝 Reviewer: ${latestReview}`,
-        timestamp: new Date().toISOString(),
-        status: 'completed'
-      }]);
-    }
-
-    // If there are sensor RAG examples, add an informational update
-    if (buildState.sensor_rag_examples && buildState.sensor_rag_examples.length > 0) {
-      setProgressUpdates(prev => [...prev, {
-        step: 'sensor_rag',
-        message: `📚 Sensor RAG examples available (${buildState.sensor_rag_examples.length})`,
-        timestamp: new Date().toISOString(),
-        status: 'completed'
-      }]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildState?.sensor_code, buildState?.graph_review_notes, buildState?.sensor_rag_examples]);
-  const [currentIteration, setCurrentIteration] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+export default function SensorsWorkflow({ buildState, sessionId, onSensorApproved }: SensorsWorkflowProps) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedCode, setEditedCode] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressUpdates, setProgressUpdates] = useState<ProcessUpdate[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const maxIterations = 5; // Dummy max iterations
+  // Get the latest sensor code from buildState.sensor_codes array
+  const latestSensorCode = buildState.sensor_codes && buildState.sensor_codes.length > 0
+    ? buildState.sensor_codes[buildState.sensor_codes.length - 1]
+    : '';
+
+  const latestOutput = buildState.sensor_code_outputs && buildState.sensor_code_outputs.length > 0
+    ? buildState.sensor_code_outputs[buildState.sensor_code_outputs.length - 1]
+    : '';
+
+  // Check if we're still waiting for sensor codes to be generated
+  const isWaitingForSensorCode = !latestSensorCode && buildState.graph_human_approved;
+
+  // Debug logging
+  console.log('🔧 SensorsWorkflow render:');
+  console.log('  - sensor_codes array:', buildState.sensor_codes);
+  console.log('  - sensor_codes length:', buildState.sensor_codes?.length || 0);
+  console.log('  - latestSensorCode:', latestSensorCode ? `EXISTS (${latestSensorCode.length} chars)` : 'EMPTY');
+  console.log('  - isWaitingForSensorCode:', isWaitingForSensorCode);
+  console.log('  - graph_human_approved:', buildState.graph_human_approved);
 
   // Add initial progress update
   useEffect(() => {
     setProgressUpdates([
       {
         step: 'initialization',
-        message: `🚀 Starting sensor workflow for: ${buildState.Task_definition}`,
+        message: `🚀 Sensor workflow initialized for: ${buildState.Task_definition}`,
         timestamp: new Date().toISOString(),
         status: 'completed'
       }
     ]);
   }, [buildState.Task_definition]);
 
-  // Dummy sensor workflow loop
+  // Monitor sensor_codes changes and update progress
   useEffect(() => {
-    if (isRunning && !isPaused && currentIteration < maxIterations) {
-      intervalRef.current = setTimeout(() => {
-        const newIteration = currentIteration + 1;
-        setCurrentIteration(newIteration);
-        
-        // Add progress update
-        const newUpdate: ProcessUpdate = {
-          step: `sensor_iteration_${newIteration}`,
-          message: `🔄 Sensor Iteration ${newIteration}/${maxIterations}: Processing sensor code and generating models...`,
-          timestamp: new Date().toISOString(),
-          status: 'completed'
-        };
-        
-        setProgressUpdates(prev => [...prev, newUpdate]);
-
-        // Simulate code generation
-        const newCode = `# Sensor iteration ${newIteration}\n${sensorCode[sensorCode.length - 1]}\n\n# Updated sensor logic\nsensor_v${newIteration} = Sensor('sensor_iteration_${newIteration}')\n`;
-        setSensorCode(prev => [...prev, newCode]);
-
-        // Pause for user to edit after each iteration
-        if (newIteration < maxIterations) {
-          setIsPaused(true);
-          setProgressUpdates(prev => [...prev, {
-            step: 'waiting_edit',
-            message: `⏸️ Paused at iteration ${newIteration}. Click on the code to edit, or click Resume to continue.`,
-            timestamp: new Date().toISOString(),
-            status: 'active'
-          }]);
-        } else {
-          setIsRunning(false);
-          setProgressUpdates(prev => [...prev, {
-            step: 'completion',
-            message: `✅ Sensor workflow completed after ${newIteration} iterations!`,
-            timestamp: new Date().toISOString(),
-            status: 'completed'
-          }]);
-        }
-      }, 2000); // 2 second delay between iterations
+    if (buildState.sensor_codes && buildState.sensor_codes.length > 0) {
+      setProgressUpdates(prev => [...prev, {
+        step: 'sensor_code_update',
+        message: `🔁 Sensor code generated (version ${buildState.sensor_codes.length})`,
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      }]);
     }
+  }, [buildState.sensor_codes?.length]);
 
-    return () => {
-      if (intervalRef.current) {
-        clearTimeout(intervalRef.current);
-      }
-    };
-  }, [isRunning, isPaused, currentIteration, sensorCode, maxIterations]);
-
-  const handleStartWorkflow = () => {
-    setIsRunning(true);
-    setIsPaused(false);
-    setProgressUpdates(prev => [...prev, {
-      step: 'start',
-      message: '▶️ Starting sensor workflow...',
-      timestamp: new Date().toISOString(),
-      status: 'active'
-    }]);
-  };
-
-  const handleResumeWorkflow = () => {
-    setIsPaused(false);
-    setProgressUpdates(prev => prev.filter(u => u.step !== 'waiting_edit'));
-    setProgressUpdates(prev => [...prev, {
-      step: 'resume',
-      message: `▶️ Resuming workflow from iteration ${currentIteration}...`,
-      timestamp: new Date().toISOString(),
-      status: 'active'
-    }]);
-  };
-
-  const handleEditCode = () => {
+  const handleEdit = () => {
     setIsEditMode(true);
-    setEditedCode(sensorCode[sensorCode.length - 1]);
-  };
-
-  const handleSaveEdit = () => {
-    const updatedCode = [...sensorCode];
-    updatedCode[updatedCode.length - 1] = editedCode;
-    setSensorCode(updatedCode);
-    setIsEditMode(false);
-    setProgressUpdates(prev => [...prev, {
-      step: 'code_edited',
-      message: `✏️ Code edited at iteration ${currentIteration}`,
-      timestamp: new Date().toISOString(),
-      status: 'completed'
-    }]);
-
-    // Persist the edited sensor code to the backend via /continue-graph
-    (async () => {
-      try {
-        const payload = {
-          ...buildState,
-          sensor_code: editedCode
-        };
-
-        const resp = await fetch(API_ENDPOINTS.continueGraph, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(payload)
-        });
-
-        if (!resp.ok) {
-          const text = await resp.text();
-          setProgressUpdates(prev => [...prev, {
-            step: 'save_failed',
-            message: `❌ Failed to save sensor code: ${text}`,
-            timestamp: new Date().toISOString(),
-            status: 'pending'
-          }]);
-          return;
-        }
-
-        const newState = await resp.json();
-
-        // Notify other parts of the app (MainApp may listen) that buildState changed
-        try {
-          window.dispatchEvent(new CustomEvent('buildstate-updated', { detail: newState }));
-        } catch (e) {
-          // ignore if CustomEvent isn't supported in some env
-        }
-
-        setProgressUpdates(prev => [...prev, {
-          step: 'save_ok',
-          message: '💾 Sensor code saved to server',
-          timestamp: new Date().toISOString(),
-          status: 'completed'
-        }]);
-      } catch (err: any) {
-        setProgressUpdates(prev => [...prev, {
-          step: 'save_error',
-          message: `❌ Error saving sensor code: ${err?.message || String(err)}`,
-          timestamp: new Date().toISOString(),
-          status: 'pending'
-        }]);
-      }
-    })();
+    setEditedCode(latestSensorCode);
   };
 
   const handleCancelEdit = () => {
     setIsEditMode(false);
     setEditedCode('');
+  };
+
+  const handleSaveEdit = async () => {
+    setIsSubmitting(true);
+    setProgressUpdates(prev => [...prev, {
+      step: 'saving_edit',
+      message: '💾 Saving edited sensor code...',
+      timestamp: new Date().toISOString(),
+      status: 'active'
+    }]);
+
+    try {
+      // Append edited code to sensor_codes array and set sensor_human_changed to true
+      const updatedState = {
+        ...buildState,
+        sensor_codes: [...buildState.sensor_codes, editedCode],
+        sensor_human_changed: true
+      };
+
+      const response = await fetch(API_ENDPOINTS.continueGraph, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updatedState),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save edited sensor code');
+      }
+
+      const newState = await response.json();
+      
+      // Dispatch event to notify MainApp of state update
+      window.dispatchEvent(new CustomEvent('buildstate-updated', { detail: newState }));
+
+      setProgressUpdates(prev => [...prev, {
+        step: 'saved_edit',
+        message: '✅ Sensor code saved successfully. Waiting for backend processing...',
+        timestamp: new Date().toISOString(),
+        status: 'completed'
+      }]);
+
+      setIsEditMode(false);
+      setEditedCode('');
+    } catch (error) {
+      console.error('Error saving edited sensor code:', error);
+      setProgressUpdates(prev => [...prev, {
+        step: 'save_error',
+        message: `❌ Error saving sensor code: ${error instanceof Error ? error.message : String(error)}`,
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      }]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleApprove = () => {
+    setProgressUpdates(prev => [...prev, {
+      step: 'approved',
+      message: '✅ Sensor code approved! Proceeding to final feedback...',
+      timestamp: new Date().toISOString(),
+      status: 'completed'
+    }]);
+    onSensorApproved();
   };
 
   return (
@@ -255,43 +174,15 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Sensors Workflow</h1>
-              <p className="text-sm text-gray-600">Define and configure sensors for your knowledge graph</p>
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center">
+                <span className="mr-3">🔧</span>
+                Sensor Workflow
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">Review and refine your sensor code</p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Session: <span className="font-mono font-medium">{sessionId}</span>
-              </div>
-              <div className="text-sm text-gray-600">
-                Iteration: <span className="font-mono font-medium">{currentIteration}/{maxIterations}</span>
-              </div>
+              <span className="text-sm text-gray-500">Session: {sessionId?.slice(0, 8)}...</span>
             </div>
-          </div>
-        </div>
-        {/* Top meta: reviewer note + sensor rag examples */}
-        <div className="container mx-auto px-4">
-          <div className="bg-white/90 rounded-xl p-4 border border-gray-200 mb-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-sm text-gray-600 mb-1">Latest Reviewer Note</div>
-                <div className="text-sm text-amber-800 italic">{(buildState.graph_review_notes && buildState.graph_review_notes.length > 0) ? buildState.graph_review_notes[buildState.graph_review_notes.length - 1] : 'No reviewer notes yet'}</div>
-              </div>
-              <div className="text-sm text-gray-600 text-right">
-                <div className="font-medium">Sensor RAG</div>
-                <div className="text-xs text-gray-500">{buildState.sensor_rag_examples.length} example(s)</div>
-              </div>
-            </div>
-
-            {buildState.sensor_rag_examples && buildState.sensor_rag_examples.length > 0 && (
-              <details className="mt-3">
-                <summary className="text-sm text-purple-600 cursor-pointer">View sensor RAG examples</summary>
-                <div className="mt-2 space-y-2 max-h-44 overflow-y-auto">
-                  {buildState.sensor_rag_examples.map((ex: string, i: number) => (
-                    <pre key={i} className="text-xs bg-gray-50 p-2 rounded text-gray-700 font-mono whitespace-pre-wrap">{ex}</pre>
-                  ))}
-                </div>
-              </details>
-            )}
           </div>
         </div>
       </div>
@@ -300,180 +191,235 @@ export default function SensorsWorkflow({ buildState, sessionId }: SensorsWorkfl
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Main Content Area */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Workflow Controls */}
+            {/* Task Info */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                <span className="mr-3">🎮</span>
-                Workflow Controls
+              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <span className="mr-2">📋</span>
+                Task Definition
               </h3>
-              <div className="flex space-x-4">
-                {!isRunning && currentIteration === 0 && (
-                  <button
-                    onClick={handleStartWorkflow}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
-                  >
-                    <div className="flex items-center justify-center">
-                      <span className="mr-2">▶️</span>
-                      Start Sensor Workflow
-                    </div>
-                  </button>
-                )}
-                
-                {isPaused && currentIteration < maxIterations && (
-                  <button
-                    onClick={handleResumeWorkflow}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
-                  >
-                    <div className="flex items-center justify-center">
-                      <span className="mr-2">▶️</span>
-                      Resume Workflow
-                    </div>
-                  </button>
-                )}
+              <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+                {buildState.Task_definition}
+              </p>
+            </div>
 
-                {isRunning && !isPaused && (
-                  <div className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 text-white font-medium py-3 px-6 rounded-xl flex items-center justify-center">
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
-                      <span>Running...</span>
+            {/* Sensor Code Display */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
+              {isWaitingForSensorCode && (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mb-6"></div>
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Generating Sensor Code...</h3>
+                  <p className="text-gray-600 text-center max-w-md">
+                    The AI is now creating sensor code based on your approved graph structure. This may take a moment.
+                  </p>
+                  <div className="mt-6 w-full max-w-md">
+                    <div className="bg-blue-100 rounded-full h-2 overflow-hidden">
+                      <div className="bg-blue-500 h-full rounded-full animate-pulse" style={{ width: '70%' }}></div>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+              <div className={`${isWaitingForSensorCode ? 'hidden' : ''}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <span className="mr-2">💻</span>
+                  Sensor Code
+                  {buildState.sensor_codes && buildState.sensor_codes.length > 0 && (
+                    <span className="ml-3 text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full">
+                      Version {buildState.sensor_codes.length}
+                    </span>
+                  )}
+                </h3>
+              </div>
+
+              {latestSensorCode ? (
+                <div className="space-y-4">
+                  {isEditMode ? (
+                    /* Edit Mode */
+                    <div>
+                      <textarea
+                        value={editedCode}
+                        onChange={(e) => setEditedCode(e.target.value)}
+                        className="w-full h-96 p-4 bg-gray-900 text-green-400 font-mono text-sm rounded-lg border-2 border-blue-500 focus:outline-none focus:border-blue-600"
+                        disabled={isSubmitting}
+                      />
+                      <div className="flex justify-end space-x-3 mt-4">
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={isSubmitting}
+                          className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={isSubmitting}
+                          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <span className="mr-2">💾</span>
+                              Save Changes
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* View Mode */
+                    <div>
+                      <div className="bg-gray-900 rounded-xl p-4 max-h-96 overflow-y-auto">
+                        <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap">
+                          <code>{latestSensorCode}</code>
+                        </pre>
+                      </div>
+
+                      {/* Output Display */}
+                      {latestOutput && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                            <span className="mr-2">📤</span>
+                            Code Output
+                          </h4>
+                          <div className="bg-gray-900 rounded-xl p-4 max-h-48 overflow-y-auto">
+                            <pre className="text-yellow-400 text-sm font-mono whitespace-pre-wrap">
+                              <code>{latestOutput}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Approve/Edit Buttons */}
+                      <div className="flex justify-end space-x-3 mt-6">
+                        <button
+                          onClick={handleEdit}
+                          disabled={isSubmitting}
+                          className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
+                        >
+                          <span className="mr-2">✏️</span>
+                          Edit Code
+                        </button>
+                        <button
+                          onClick={handleApprove}
+                          disabled={isSubmitting}
+                          className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
+                        >
+                          <span className="mr-2">✅</span>
+                          Approve & Continue
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">⏳</div>
+                    <p className="text-gray-600 font-medium mb-2">
+                      Waiting for sensor code generation...
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      The backend is processing your graph. Sensor code will appear here.
+                    </p>
+                  </div>
+                </div>
+              )}
               </div>
             </div>
 
-            {/* Code Display/Editor */}
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-                <div className="flex items-center justify-between p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <span className="mr-3">💻</span>
-                    Sensor Code {isEditMode ? '(Editing)' : ''}
-                  </h3>
-                  <div className="flex items-center space-x-3">
-                    <div className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-                      Draft #{sensorCode.length}
-                    </div>
-                    {!isEditMode && isPaused && (
-                      <button
-                        onClick={handleEditCode}
-                        className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-                      >
-                        ✏️ Edit Code
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-6">
-                {isEditMode ? (
-                  <div className="space-y-4">
-                    <textarea
-                      value={editedCode}
-                      onChange={(e) => setEditedCode(e.target.value)}
-                      className="w-full h-96 p-4 bg-gray-900 text-green-400 font-mono text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      spellCheck={false}
-                    />
-                    <div className="flex space-x-3">
-                      <button
-                        onClick={handleSaveEdit}
-                        className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-lg"
-                      >
-                        💾 Save Changes
-                      </button>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="flex-1 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-medium py-2 px-4 rounded-lg"
-                      >
-                        ❌ Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    className={`bg-gray-900 rounded-xl p-4 max-h-96 overflow-y-auto ${isPaused ? 'cursor-pointer hover:ring-2 hover:ring-blue-500' : ''}`}
-                    onClick={isPaused ? handleEditCode : undefined}
-                    title={isPaused ? 'Click to edit code' : ''}
-                  >
-                    <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap">
-                      <code>{sensorCode[sensorCode.length - 1]}</code>
-                    </pre>
-                  </div>
-                )}
-
-                {/* Code History */}
-                {sensorCode.length > 1 && !isEditMode && (
-                  <details className="mt-4 bg-gray-50 rounded-lg p-3">
-                    <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800 font-medium">
-                      📜 View previous versions ({sensorCode.length - 1} older)
-                    </summary>
-                    <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
-                      {sensorCode.slice(0, -1).reverse().map((code, idx) => (
+            {/* Code History */}
+            {buildState.sensor_codes && buildState.sensor_codes.length > 1 && (
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
+                <details className="cursor-pointer">
+                  <summary className="text-lg font-semibold text-gray-800 mb-3 flex items-center hover:text-blue-600">
+                    <span className="mr-2">📜</span>
+                    Code History ({buildState.sensor_codes.length - 1} previous versions)
+                  </summary>
+                  <div className="mt-4 space-y-3 max-h-96 overflow-y-auto">
+                    {buildState.sensor_codes.slice(0, -1).reverse().map((code, idx) => {
+                      const version = buildState.sensor_codes.length - idx - 1;
+                      const output = buildState.sensor_code_outputs?.[version - 1];
+                      
+                      return (
                         <div key={idx} className="border border-gray-300 rounded-lg overflow-hidden">
-                          <div className="bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700">
-                            Draft #{sensorCode.length - idx - 1}
+                          <div className="bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 flex items-center justify-between">
+                            <span>Version {version}</span>
+                            {buildState.sensor_human_changed && idx === 0 && (
+                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                                Human Edited
+                              </span>
+                            )}
                           </div>
-                          <div className="bg-gray-900 p-3 max-h-40 overflow-y-auto">
+                          <div className="bg-gray-900 p-3 max-h-48 overflow-y-auto">
                             <pre className="text-green-400 text-xs font-mono whitespace-pre-wrap">
                               <code>{code}</code>
                             </pre>
                           </div>
+                          {output && (
+                            <div className="bg-gray-800 p-3 max-h-32 overflow-y-auto border-t border-gray-700">
+                              <p className="text-xs text-gray-400 mb-1">Output:</p>
+                              <pre className="text-yellow-400 text-xs font-mono whitespace-pre-wrap">
+                                <code>{output}</code>
+                              </pre>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Live Progress Monitor */}
+          {/* Progress Monitor Sidebar */}
           <div className="xl:col-span-1">
-            <ProcessMonitor 
-              updates={progressUpdates}
-              isProcessing={isRunning && !isPaused}
-              buildState={buildState}
-            />
-          </div>
-        </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 sticky top-6">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+                  <span className="text-white text-lg font-bold">📊</span>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Progress
+                </h3>
+              </div>
 
-        {/* Build Status Section */}
-        <div className="w-full mt-6">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="mr-3">📊</span>
-              Workflow Status
-            </h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="font-medium text-blue-600 mb-1">Task ID</div>
-                <div className="text-blue-800 font-mono text-xs truncate">
-                  {buildState.Task_ID || 'N/A'}
-                </div>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {progressUpdates.map((update, index) => {
+                  const isActive = update.status === 'active';
+                  const isCompleted = update.status === 'completed';
+
+                  return (
+                    <div
+                      key={index}
+                      className={`border rounded-xl p-4 transition-all ${
+                        isActive ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 animate-pulse' :
+                        isCompleted ? 'bg-green-50 border-green-200' :
+                        'bg-gray-50 border-gray-200 opacity-60'
+                      }`}
+                    >
+                      <div className="text-sm font-medium text-gray-800">
+                        {update.message}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-2">
+                        {new Date(update.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              
-              <div className="bg-purple-50 rounded-lg p-3">
-                <div className="font-medium text-purple-600 mb-1">Current Iteration</div>
-                <div className="text-purple-800 font-semibold">
-                  {currentIteration}/{maxIterations}
+
+              {progressUpdates.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                  <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {progressUpdates.length} step{progressUpdates.length !== 1 ? 's' : ''} completed
+                  </span>
                 </div>
-              </div>
-              
-              <div className={`rounded-lg p-3 ${isRunning && !isPaused ? 'bg-green-50' : isPaused ? 'bg-orange-50' : 'bg-gray-50'}`}>
-                <div className="font-medium text-gray-600 mb-1">Status</div>
-                <div className={`font-semibold ${isRunning && !isPaused ? 'text-green-800' : isPaused ? 'text-orange-800' : 'text-gray-800'}`}>
-                  {isRunning && !isPaused ? '🔄 Running' : isPaused ? '⏸️ Paused' : currentIteration >= maxIterations ? '✅ Complete' : '⏳ Ready'}
-                </div>
-              </div>
-              
-              <div className="bg-indigo-50 rounded-lg p-3">
-                <div className="font-medium text-indigo-600 mb-1">Code Drafts</div>
-                <div className="text-indigo-800 font-semibold">
-                  {sensorCode.length}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

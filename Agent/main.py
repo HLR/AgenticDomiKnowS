@@ -142,9 +142,12 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
         "graph_human_notes": "",
         "sensor_attempt": 3,
         "sensor_codes": [],
+        "sensor_human_changed": False,
         "entire_sensor_codes": [],
         "sensor_code_outputs": [],
         "sensor_rag_examples": [],
+        "property_human_text": "",
+        "final_code_text": ""
     }
 
     

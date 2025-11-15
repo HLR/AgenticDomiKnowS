@@ -16,6 +16,14 @@ interface BuildState {
   graph_exe_agent_approved: boolean;
   graph_human_approved: boolean;
   graph_human_notes: string;
+  sensor_attempt: number;
+  sensor_codes: string[];
+  sensor_human_changed: boolean;
+  entire_sensor_codes: string[];
+  sensor_code_outputs: string[];
+  sensor_rag_examples: string[];
+  property_human_text: string;
+  final_code_text: string;
 }
 
 interface HumanReviewInterfaceProps {
@@ -27,19 +35,11 @@ interface HumanReviewInterfaceProps {
 export default function HumanReviewInterface({ taskId, buildState, onApproval }: HumanReviewInterfaceProps) {
   // Initialize feedback with existing graph_human_notes if any
   const [feedback, setFeedback] = useState(buildState.graph_human_notes || '');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleApproval = async (approved: boolean) => {
-    setIsSubmitting(true);
-    try {
-  // Pass the feedback as graph_human_notes to the backend
-  onApproval(approved, feedback);
-  // Don't clear feedback - it will be preserved in buildState.graph_human_notes
-    } catch (error) {
-      console.error('Error submitting approval:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleApproval = (approved: boolean) => {
+    // Pass the feedback as graph_human_notes to the backend
+    onApproval(approved, feedback);
+    // Don't clear feedback - it will be preserved in buildState.graph_human_notes
   };
 
   const latestCode = buildState.graph_code_draft[buildState.graph_code_draft.length - 1] || '';
@@ -179,7 +179,6 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           placeholder="Provide specific feedback on what needs to be improved or changed."
           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500"
           rows={3}
-          disabled={isSubmitting}
         />
         <div className="text-xs text-gray-500 flex items-center justify-between">
           <span>💡 This feedback helps the AI understand what to improve</span>
@@ -191,26 +190,17 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
       <div className="flex space-x-4">
         <button
           onClick={() => handleApproval(true)}
-          disabled={isSubmitting}
-          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
         >
-          {isSubmitting ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-              Processing...
-            </div>
-          ) : (
-            <div className="flex items-center justify-center">
-              <span className="mr-2">✅</span>
-              Approve & Complete
-            </div>
-          )}
+          <div className="flex items-center justify-center">
+            <span className="mr-2">✅</span>
+            Approve & Complete
+          </div>
         </button>
 
         <button
           onClick={() => handleApproval(false)}
-          disabled={isSubmitting}
-          className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100"
+          className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
         >
           <div className="flex items-center justify-center">
             <span className="mr-2">🔄</span>
