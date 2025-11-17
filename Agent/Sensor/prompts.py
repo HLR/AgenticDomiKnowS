@@ -44,7 +44,7 @@ For **each** input graph block, output a **single, self-contained** Python snipp
    - Attach `DummyLearner('<feature_id_key>', output_size=<K>)` on edges from the **upstream** concept to each **EnumConcept** prediction target.
 
 5. **Program & ILP run**
-   - Create `program = SolverPOIProgram(graph, poi=[...all nodes...], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())`
+   - Create `program = SolverPOIProgram(graph, poi=[...all nodes except concept that have a is_a relation directly with the root concept...], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())`
    - Iterate `for datanode in program.populate(dataset=dataset):`
      - Call `datanode.inferILPResults()`
      - Print **both** local predictions and ILP outputs for each EnumConcept variable:
@@ -172,6 +172,26 @@ Notes and tips:
 
 - Role argument order and `.reversed`:
   - For many‑to‑many readers, attach on `[arg1.reversed, arg2.reversed, ...]` in the same order you intend to read tuples.
+
+- In `program = SolverPOIProgram(graph, poi=[...all nodes except concept that have a is_a relation directly with the root concept...], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())`:
+  - Make sure the `poi` list includes all concepts
+  - Do not include concepts that have a `is_a` relation directly with the root concept.
+     - e.g. in the following graph only A should be inluded in the `poi` list:
+    ```python
+    with Graph("test"):
+       A = Concept("A")
+       B = A("B")
+       C = A("C")
+    ```
+
+     - however, in the following graph A, B and C should all be included in the `poi` list:
+    ```python
+    with Graph("test"):
+       A = Concept("A")
+       B = Concept("B")
+       A_contains_B, = A.contains(B)
+       C = B("C")
+    ```
 
 ---
 
