@@ -12,3 +12,6 @@ dnspython
 scikit-learn
 spacy
 colorama
+timm
+einops
+nbformat

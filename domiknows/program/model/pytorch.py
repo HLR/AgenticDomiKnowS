@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 from domiknows.graph import Property, Concept, DataNodeBuilder
 from domiknows.sensor.pytorch.sensors import TorchSensor, ReaderSensor, CacheSensor
-from domiknows.sensor.pytorch.learners import TorchLearner
+from domiknows.sensor.pytorch.learners import TorchLearner, LLMLearner
 
 from .base import Mode
 from ..tracker import MacroAverageTracker
@@ -154,6 +154,8 @@ class TorchModel(torch.nn.Module):
             sensor.fill_hash(data_hash)
         for sensor in self.graph.get_sensors(ReaderSensor):
             sensor.fill_data(data_item)
+        for sensor in self.graph.get_sensors(LLMLearner):
+            sensor.fill_data_(data_item)
             
         if build:
             data_item.update({"graph": self.graph, 'READER': 0})

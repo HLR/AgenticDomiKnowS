@@ -23,23 +23,26 @@ with Graph('IMDB') as graph:
 
 def random_IMDB_instance():
     review_id = [0]
-    positive = [random.randint(0,1)]
-    negative = [random.randint(0,1)]
+    positive_labels = [random.randint(0,1)]
+    negative_labels = [1 - positive_labels[0]]
     data = {
         "review_id": review_id,
-        "positive": positive,
-        "negative": negative,
+        "review_text": ["This is a sample review text."],
+        "positive": positive_labels,
+        "negative": negative_labels,
     }
     return data
 
 dataset = [random_IMDB_instance() for _ in range(1)]
 
 review['review_id'] = ReaderSensor(keyword='review_id')
+review['review_text'] = ReaderSensor(keyword='review_text')
+
 review[positive] = LabelReaderSensor(keyword='positive')
 review[negative] = LabelReaderSensor(keyword='negative')
 
-review[positive] = DummyLearner('review_id', output_size=2)
-review[negative] = DummyLearner('review_id', output_size=2)
+review[positive] = LLMLearner(review["review_text"], prompt="Determine if the  movie review is positive.", classes=["false", "true"])
+review[negative] = LLMLearner(review["review_text"], prompt="Determine if the  movie review is negative.", classes=["false", "true"])
 
 program = SolverPOIProgram(graph, poi=[review], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
 for datanode in program.populate(dataset=dataset):

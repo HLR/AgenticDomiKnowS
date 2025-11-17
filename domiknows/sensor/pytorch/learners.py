@@ -6,16 +6,16 @@ import warnings
 import torch
 
 from .. import Learner
-from .sensors import TorchSensor, FunctionalSensor, ModuleSensor
+from .sensors import TorchSensor, FunctionalSensor, ModuleSensor, ReaderSensor
 from .learnerModels import PyTorchFC, LSTMModel, PyTorchFCRelu
 
 
 class TorchLearner(Learner, FunctionalSensor):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, *pre, edges=None, loss=None, metric=None, label=False, device='auto'):
+    def __init__(self, *pre, edges=None, loss=None, metric=None, label=False, device='auto',**kwargs):
         self.updated = False
-        super(TorchLearner, self).__init__(*pre, edges=edges, label=label, device=device)
+        super(TorchLearner, self).__init__(*pre, edges=edges, label=label, device=device,**kwargs)
         self._loss = loss
         self._metric = metric
 
@@ -158,3 +158,80 @@ class DummyLearner(TorchLearner):
         random_indices = torch.randint(0, self.output_size, (len(x),))
         result[torch.arange(len(x)), random_indices] = 1
         return result
+
+class LLMLearner(ModuleSensor, TorchLearner):
+
+    def __init__(self, *pres, prompt, classes,rel=None, **kwargs):
+        from transformers import AutoTokenizer, AutoModelForCausalLM
+        model_name = "distilgpt2"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        if tokenizer.pad_token is None: tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+        self.prompt = prompt
+        self.classes = [str(c) for c in classes]
+        self.tokenizer = tokenizer
+        self.rel = rel
+        super().__init__(*pres, module=model, edges=None, label=False, **kwargs)
+        self.updated = True
+
+    def fill_data_(self, data_item):
+        if self.rel:
+            self.rel_data = data_item[self.rel]
+
+    def _build_prompt(self, inputs) -> str:
+        options = ", ".join(self.classes)
+        features = ", ".join(inputs)
+        return (f"{self.prompt}\n\nfeatures: {features}\n\nAnswer with exactly one label from: {options} and do not say anything else.")
+
+    def _logprob_continuation(self, prompt: str, continuation: str) -> float:
+        prompt_ids = self.tokenizer(prompt, add_special_tokens=False, return_tensors=None)["input_ids"]
+        cont_ids = self.tokenizer(continuation, add_special_tokens=False, return_tensors=None)["input_ids"]
+        input_ids = torch.tensor([prompt_ids + cont_ids], dtype=torch.long)
+
+        outputs = self.module(input_ids=input_ids)
+        logits = outputs.logits
+
+        seq_len = input_ids.size(1)
+        prompt_len = len(prompt_ids)
+        cont_len = len(cont_ids)
+        logits_ctx = logits[0, prompt_len - 1: prompt_len + cont_len - 1, :]
+        logprobs = torch.log_softmax(logits_ctx, dim=-1)
+        target_ids = torch.tensor(cont_ids, dtype=torch.long, device=logprobs.device)
+        token_logps = logprobs.gather(dim=-1, index=target_ids.unsqueeze(-1)).squeeze(-1)
+        return token_logps.sum()
+
+    def forward(self, *inputs):
+        max_size = max([len(i) for i in inputs])
+
+        if not self.rel:
+            batch = [[] for i in range(max_size)]
+            for i in inputs:
+                if len(i) == 1:
+                    for j in batch:
+                        j.append(str(i[0]))
+                else:
+                    for j, k in zip(batch, i):
+                        j.append(str(k))
+        else:
+            relations = self.rel_data[0]
+            batch = []
+            if len(relations[0]) == 2:
+                for i, j in relations:
+                    batch.append([str(inputs[0][i]), str(inputs[1][j])])
+            elif len(relations[0]) == 3:
+                for i, j, k in relations:
+                    batch.append([str(inputs[0][i]), str(inputs[1][j]), str(inputs[2][k])])
+
+        outputs = []
+        for instance in batch:
+            prompt = self._build_prompt(instance)
+            scores = []
+            for c in self.classes:
+                continuation = " " + str(c)
+                logp = self._logprob_continuation(prompt, continuation)
+                scores.append(logp)
+            probs = torch.tensor(scores, dtype=torch.float32)
+            probs = torch.softmax(probs, dim=0)
+            outputs.append(probs)
+
+        return outputs

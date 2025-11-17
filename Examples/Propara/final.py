@@ -63,10 +63,12 @@ def random_propara_instance():
     unknown_location_labels = [random.randint(0, 1) for _ in step_ids]
     known_location_labels = [random.randint(0, 1) for _ in step_ids]
 
+    step_text = [f"Step {sid}: description of process event {sid}." for sid in step_ids]
+
     proc_step_pairs = [(procedure_ids[0], sid) for sid in step_ids]
 
     action_edges = []
-    for i in range(5):
+    for i in range(num_steps - 1):
         action_edges.append((i, i+1))
     action_ids = list(range(len(action_edges)))
 
@@ -82,6 +84,7 @@ def random_propara_instance():
     data = {
         "procedure_id": procedure_ids,
         "step_id": step_ids,
+        "step_text": step_text,
 
         "non_existence": non_existence_labels,
         "unknown_location": unknown_location_labels,
@@ -91,6 +94,7 @@ def random_propara_instance():
 
         "action_edges": [action_edges],
         "action_id": action_ids,
+
         "create": create_labels,
         "destroy": destroy_labels,
         "other": other_labels,
@@ -101,6 +105,7 @@ dataset = [random_propara_instance() for _ in range(1)]
 
 procedure["procedure_id"] = ReaderSensor(keyword="procedure_id")
 step["step_id"] = ReaderSensor(keyword="step_id")
+step["step_text"] = ReaderSensor(keyword="step_text")
 
 step[procedure_contain_step] = EdgeReaderSensor(procedure["procedure_id"], step["step_id"], keyword="procedure_step_contains", relation=procedure_contain_step)
 
@@ -116,13 +121,13 @@ action[create] = LabelReaderSensor(keyword="create")
 action[destroy] = LabelReaderSensor(keyword="destroy")
 action[other] = LabelReaderSensor(keyword="other")
 
-step[non_existence] = DummyLearner("step_id", output_size=2)
-step[unknown_loc] = DummyLearner("step_id", output_size=2)
-step[known_loc] = DummyLearner("step_id", output_size=2)
+step[non_existence] = LLMLearner(step["step_text"], prompt="Given a process step description, classify whether the participant is in a non-existence state after this step.", classes=["false","true"])
+step[unknown_loc] = LLMLearner(step["step_text"], prompt="Given a process step description, classify whether the participant exists but its location is unknown after this step.", classes=["false","true"])
+step[known_loc] = LLMLearner(step["step_text"], prompt="Given a process step description, classify whether the participant exists with a known location after this step.", classes=["false","true"])
 
-action[create] = DummyLearner("action_id", output_size=2)
-action[destroy] = DummyLearner("action_id", output_size=2)
-action[other] = DummyLearner("action_id", output_size=2)
+action[create] = LLMLearner(step["step_text"], step["step_text"], prompt="Given two consecutive process step descriptions (before and after), classify whether something is created between them.", classes=["false","true"], rel="action_edges")
+action[destroy] = LLMLearner(step["step_text"], step["step_text"], prompt="Given two consecutive process step descriptions (before and after), classify whether something is destroyed between them.", classes=["false","true"], rel="action_edges")
+action[other] = LLMLearner(step["step_text"], step["step_text"], prompt="Given two consecutive process step descriptions (before and after), classify whether the transition is other (neither creation nor destruction).", classes=["false","true"], rel="action_edges")
 
 program = SolverPOIProgram(graph, poi=[procedure, step, non_existence, unknown_loc, known_loc, action, create, destroy, other], inferTypes=["local/argmax"], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
 
