@@ -79,7 +79,10 @@ def load_all_examples_info(address="",exclude_graph=None):
         if gold_graph == exclude_graph: continue
         task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
         sensor_code = (row.get("dummysensor") or "")
-        example_graphs.append({"task_text":task_text, "gold_graph":gold_graph,"sensor_code":sensor_code})
+        sensor_code_entire = (row.get("entiresensorcode") or "")
+        property_desc = (row.get("property") or "").strip()
+        finalcode = (row.get("finalcode") or "").strip()
+        example_graphs.append({"task_text":task_text, "gold_graph":gold_graph,"sensor_code":sensor_code,"sensor_code_entire":sensor_code_entire, "property_desc":property_desc, "finalcode":finalcode})
     return example_graphs
 
 def upsert_examples(llm, examples: List[str]):
@@ -87,10 +90,10 @@ def upsert_examples(llm, examples: List[str]):
     DB = Chroma(embedding_function=llm.embedder)
     texts, metas, ids = [], [], []
     for example in examples:
-        desc, gold_graph, sensor_code = example.get("task_text"), example.get("gold_graph"), example.get("sensor_code")
+        desc, gold_graph, sensor_code,sensor_code_entire, property_desc, finalcode  = example.get("task_text"), example.get("gold_graph"), example.get("sensor_code"),example.get("sensor_code_entire"), example.get("property_desc"), example.get("finalcode")
         _id = hashlib.sha1(desc.encode("utf-8")).hexdigest()
         texts.append(desc)
-        metas.append({"desc": desc, "gold_graph": gold_graph, "sensor_code" : sensor_code})
+        metas.append({"desc": desc, "gold_graph": gold_graph, "sensor_code" : sensor_code,"sensor_code_entire":sensor_code_entire, "property_desc":property_desc, "finalcode":finalcode })
         ids.append(_id)
     DB.add_texts(texts=texts, metadatas=metas, ids=ids)
     return DB
@@ -99,9 +102,10 @@ def select_graph_examples(DB: Chroma, task_desc: str, k: int) -> List[str]:
     if not k or k<=0:
         return [], []
     results = DB.similarity_search(task_desc or "", k=k)
-    graph_out,sensor_out = [], []
+    graph_out,sensor_out, property_out = [], [], []
     for d in results:
         md = d.metadata or {}
         graph_out.extend([md.get("desc", d.page_content)] + ([md["gold_graph"]] if md.get("gold_graph") else []))
         sensor_out.extend([md.get("desc", d.page_content) + "\n" + md["gold_graph"], md["sensor_code"]])
-    return graph_out, sensor_out
+        property_out.extend([md.get("property_desc", d.page_content) + "\n" + md["sensor_code_entire"], md["finalcode"]])
+    return graph_out, sensor_out, property_out

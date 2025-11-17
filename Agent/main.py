@@ -35,6 +35,7 @@ class BuildState(TypedDict):
     sensor_rag_examples: List[str]
 
     property_human_text: str
+    property_rag_examples: List[str]
     final_code_text: str
 
 def build_graph(
@@ -73,8 +74,8 @@ def build_graph(
         return "reform"
 
     def graph_rag_selector(state: BuildState) -> BuildState:
-        graph_out, sensor_out = select_graph_examples(graph_DB, state.get("Task_definition", "") or "", graph_rag_k)
-        return {"graph_rag_examples": graph_out or [], "sensor_rag_examples": sensor_out or []}
+        graph_out, sensor_out, property_out = select_graph_examples(graph_DB, state.get("Task_definition", "") or "", graph_rag_k)
+        return {"graph_rag_examples": graph_out or [], "sensor_rag_examples": sensor_out or [], "property_rag_examples": property_out or []}
 
     def sensor_agent_node(state: BuildState) -> BuildState:
         print("Sensor agent node")
