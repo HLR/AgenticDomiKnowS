@@ -1,4 +1,4 @@
-ID,name,domain,dataset,description,description_constraint,graph,constraints,wholegraph,dummysensor,class type,difficulty,predefined dataset,classes
+ID,name,domain,dataset,description,description_constraint,graph,constraints,wholegraph,dummysensor,property,finalcode,,
 1,Hierarchical News Classification,NLP,20 News Dataset,"Objective: The objective of the task is to perform hierarchical news topic classification in the domain of NLP using the 20 News Dataset. 
 
 The categories are hierarchical and have three levels of hierarchy. Not every news article belongs to a level. Not every news at lower levels has a parent, and not every news at a higher level has children. 
@@ -160,14 +160,123 @@ for datanode in program.populate(dataset=dataset):
         print(""news"", i, ""level2 :"", child.getResult(level2, ""local"", ""argmax""))
         print(""news"", i, ""level2 ILP:"", child.getResult(level2, ""ILP""))
         print(""news"", i, ""level3 :"", child.getResult(level3, ""local"", ""argmax""))
-        print(""news"", i, ""level3 ILP:"", child.getResult(level3, ""ILP""))",multi,3,yes,"
-Basic Concepts: ['news_group','news','level1_list','level2_list','level3_list'] 
+        print(""news"", i, ""level3 ILP:"", child.getResult(level3, ""ILP""))",The news concept should read a feature called news_text that is used to predict its categories.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['comp', 'rec', 'sci', 'misc', 'talk', 'alt', 'soc', 'os', 'sys', 'windows', 'graphics', 'motorcycles', 'sport', 'autos', 'religion', 'electronics', 'med', 'space', 'forsale', 'politics', 'crypt', 'None' ,'misc', 'guns', 'ibm', 'mac', 'baseball', 'hockey', 'mideast']
- 
+with Graph('20news') as graph:
+    news_group = Concept(name=""news_group"")
 
+    news = Concept(name='news')
+    news_group_contains, = news_group.contains(news)
 
-"
+    level1_list = [""comp"", ""rec"", ""sci"", ""misc"", ""talk"", ""alt"", ""soc"", ""None""]
+    level2_list = [""os"", ""sys"", ""windows"", ""graphics"", ""motorcycles"", ""sport"", ""autos"", ""religion"", ""electronics"", ""med"", ""space"", ""forsale"", ""politics"", ""crypt"", ""None""]
+    level3_list = [""guns"", ""ibm"", ""mac"", ""baseball"", ""hockey"", ""mideast"", ""None""]
+
+    level1 = news(name=""level1"", ConceptClass=EnumConcept, values=level1_list)
+    level2 = news(name=""level2"", ConceptClass=EnumConcept, values=level2_list)
+    level3 = news(name=""level3"", ConceptClass=EnumConcept, values=level3_list)
+
+    hierarchy_1 = {
+        ""comp"": {""graphics"", ""os"", ""sys"", ""windows""},
+        ""rec"": {""autos"", ""motorcycles"", ""sport""},
+        ""sci"": {""crypt"", ""electronics"", ""med"", ""space""},
+        ""misc"": {""forsale""},
+        ""talk"": {""politics"", ""religion""},
+        ""alt"": {},
+        ""soc"": {},
+        ""None"": {},
+    }
+    hierarchy_2 = {
+        ""windows"": {},
+        ""os"": {},
+        ""religion"": {},
+        ""politics"": {""guns"", ""mideast""},
+        ""sys"": {""ibm"", ""mac""},
+        ""sport"": {""hockey"", ""baseball""}
+    }
+
+    for parent in hierarchy_1.keys():
+        if hierarchy_1[parent]:
+            ifL(existsL(*[level2.__getattr__(child) for child in hierarchy_1[parent]]), level1.__getattr__(parent))
+        else:
+            ifL(level1.__getattr__(parent), andL(level2.__getattr__(""None""), level3.__getattr__(""None"")))
+
+    for parent in hierarchy_2.keys():
+        if hierarchy_2[parent]:
+            ifL(existsL(*[level3.__getattr__(child) for child in hierarchy_2[parent]]), level2.__getattr__(parent))
+        else:
+            ifL(level2.__getattr__(parent), level3.__getattr__(""None""))
+
+def random_20news_instance():
+    news_group = [0]
+    num_news = 6
+    news_items = list(range(num_news))
+    level1_vals = [random.randint(0, 7) for _ in news_items]
+    level2_vals = [random.randint(0, 14) for _ in news_items]
+    level3_vals = [random.randint(0, 6) for _ in news_items]
+
+    data = {
+        ""news_group_id"": news_group,
+        ""news_id"": [i for i in range(len(news_items))],
+        ""news_text"": [i for i in range(len(news_items))],
+        ""level1_id"": [i for i in range(len(news_items))],
+        ""level2_id"": [i for i in range(len(news_items))],
+        ""level3_id"": [i for i in range(len(news_items))],
+        ""level1"": level1_vals,
+        ""level2"": level2_vals,
+        ""level3"": level3_vals,
+    }
+
+    ng_news_contains = []
+    for ng in data[""news_group_id""]:
+        for n in data[""news_id""]:
+            ng_news_contains.append((ng, n))
+    data[""news_group_news_contains""] = [ng_news_contains]
+    return data
+
+dataset = [random_20news_instance() for _ in range(1)]
+
+news_group['news_group_id'] = ReaderSensor(keyword='news_group_id')
+news['news_id'] = ReaderSensor(keyword='news_id')
+news['news_text'] = ReaderSensor(keyword='news_text')
+news[news_group_contains] = EdgeReaderSensor(news_group['news_group_id'], news['news_id'], keyword='news_group_news_contains', relation=news_group_contains)
+
+level1['level1_id'] = ReaderSensor(keyword='level1_id')
+level2['level2_id'] = ReaderSensor(keyword='level2_id')
+level3['level3_id'] = ReaderSensor(keyword='level3_id')
+
+level1[level1] = LabelReaderSensor(keyword='level1')
+level2[level2] = LabelReaderSensor(keyword='level2')
+level3[level3] = LabelReaderSensor(keyword='level3')
+
+news[level1] = LLMLearner(news[""news_text""], prompt=""Classify the news article and predict the most related category."",classes=level1_list)
+news[level2] = LLMLearner(news[""news_text""], prompt=""Classify the news article and predict the most related category."",classes=level2_list)
+news[level3] = LLMLearner(news[""news_text""], prompt=""Classify the news article and predict the most related category."",classes=level3_list)
+
+program = SolverPOIProgram(graph, poi=[news_group, news, level1, level2, level3], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for i, child in enumerate(datanode.getChildDataNodes()):
+        print(""news"", i, ""level1 :"", child.getResult(level1, ""local"", ""argmax""))
+        print(""news"", i, ""level1 ILP:"", child.getResult(level1, ""ILP""))
+        print(""news"", i, ""level2 :"", child.getResult(level2, ""local"", ""argmax""))
+        print(""news"", i, ""level2 ILP:"", child.getResult(level2, ""ILP""))
+        print(""news"", i, ""level3 :"", child.getResult(level3, ""local"", ""argmax""))
+        print(""news"", i, ""level3 ILP:"", child.getResult(level3, ""ILP""))",,
 2,Hierarchica Image Classification,Vision,Animals and Flowers Pictures,"Objective: Hierarchical Image Classification in the Animals and Flowers Pictures dataset domain.
 
 Here, we have two primary classes that should be assigned to each image: Animals and Flowers.
@@ -312,9 +421,142 @@ for datanode in program.populate(dataset=dataset):
         print(""sunflower :"", child.getResult(sunflower, ""local"", ""argmax""))
         print(""sunflower ILP:"", child.getResult(sunflower, ""ILP""))
         print(""tulip :"", child.getResult(tulip, ""local"", ""argmax""))
-        print(""tulip ILP:"", child.getResult(tulip, ""ILP""))",binary,2,no,"Basic Concepts: ['image'] 
+        print(""tulip ILP:"", child.getResult(tulip, ""ILP""))",The image concept should read a feature called image_pixels that is used to predict its categories.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['animal', 'cat', 'dog', 'monkey', 'squirrel', 'flower', 'daisy', 'dandelion', 'rose', 'sunflower', 'tulip']"
+with Graph('AnimalAndFlower') as graph:
+    image_group = Concept(name='image_group')
+    image = Concept(name='image')
+    image_group_contains, = image_group.contains(image)
+
+    animal = image(name='animal')
+    cat = animal(name='cat')
+    dog = animal(name='dog')
+    monkey = animal(name='monkey')
+    squirrel = animal(name='squirrel')
+
+    flower = image(name='flower')
+    daisy = flower(name='daisy')
+    dandelion = flower(name='dandelion')
+    rose = flower(name='rose')
+    sunflower = flower(name='sunflower')
+    tulip = flower(name='tulip')
+
+    ifL(flower, orL(daisy, dandelion, rose, sunflower, tulip))
+    ifL(animal, orL(cat, dog, monkey, squirrel))
+
+    ifL( image, exactL(cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip, 1))
+    ifL(image, xorL(animal, flower, 1))
+
+def random_animalandflower_instance():
+    n_images = 6
+    image_group_ids = [0]
+    image_ids = list(range(n_images))
+
+    animals = ['cat','dog','monkey','squirrel']
+    flowers = ['daisy','dandelion','rose','sunflower','tulip']
+    leaves = animals + flowers
+
+    labels = {name: [0]*n_images for name in ['animal','flower'] + leaves}
+    for i in range(n_images):
+        k = random.randint(0, len(leaves)-1)
+        for name in leaves:
+            labels[name][i] = 0
+        labels[leaves[k]][i] = 1
+        labels['animal'][i] = 1 if k < len(animals) else 0
+        labels['flower'][i] = 1 if k >= len(animals) else 0
+
+    contains_pairs = [(image_group_ids[0], img_id) for img_id in image_ids]
+
+    data = {
+        ""image_group_id"": image_group_ids,
+        ""image_id"": image_ids,
+        ""image_pixels"": image_ids,
+        ""image_group_image_contains"": [contains_pairs],
+    }
+    data.update(labels)
+    return data
+
+dataset = [random_animalandflower_instance() for _ in range(1)]
+
+image_group['image_group_id'] = ReaderSensor(keyword='image_group_id')
+image['image_id'] = ReaderSensor(keyword='image_id')
+image['image_pixels'] = ReaderSensor(keyword='image_pixels')
+
+image[image_group_contains] = EdgeReaderSensor(image_group['image_group_id'], image['image_id'], keyword='image_group_image_contains', relation=image_group_contains)
+
+image[animal] = LabelReaderSensor(keyword='animal')
+image[flower] = LabelReaderSensor(keyword='flower')
+image[cat] = LabelReaderSensor(keyword='cat')
+image[dog] = LabelReaderSensor(keyword='dog')
+image[monkey] = LabelReaderSensor(keyword='monkey')
+image[squirrel] = LabelReaderSensor(keyword='squirrel')
+image[daisy] = LabelReaderSensor(keyword='daisy')
+image[dandelion] = LabelReaderSensor(keyword='dandelion')
+image[rose] = LabelReaderSensor(keyword='rose')
+image[sunflower] = LabelReaderSensor(keyword='sunflower')
+image[tulip] = LabelReaderSensor(keyword='tulip')
+
+image[animal] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an animal or not."",classes=[""false"",""true""])
+image[flower] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an flower or not."",classes=[""false"",""true""])
+image[cat] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an cat or not."",classes=[""false"",""true""])
+image[dog] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an dog or not."",classes=[""false"",""true""])
+image[monkey] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an monkey or not."",classes=[""false"",""true""])
+image[squirrel] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an squirrel or not."",classes=[""false"",""true""])
+image[daisy] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an daisy or not."",classes=[""false"",""true""])
+image[dandelion] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an dandelion or not."",classes=[""false"",""true""])
+image[rose] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an rose or not."",classes=[""false"",""true""])
+image[sunflower] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an sunflower or not."",classes=[""false"",""true""])
+image[tulip] = LLMLearner(image[""image_pixels""], prompt=""Classify the image and predict whether it is an tulip or not."",classes=[""false"",""true""])
+
+program = SolverPOIProgram(
+    graph,
+    poi=[image_group, image, animal, flower, cat, dog, monkey, squirrel, daisy, dandelion, rose, sunflower, tulip],
+    inferTypes=['local/argmax'],
+    loss=MacroAverageTracker(NBCrossEntropyLoss()),
+    metric=PRF1Tracker()
+)
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for child in datanode.getChildDataNodes():
+        print(""animal :"", child.getResult(animal, ""local"", ""argmax""))
+        print(""animal ILP:"", child.getResult(animal, ""ILP""))
+        print(""flower :"", child.getResult(flower, ""local"", ""argmax""))
+        print(""flower ILP:"", child.getResult(flower, ""ILP""))
+
+        print(""cat :"", child.getResult(cat, ""local"", ""argmax""))
+        print(""cat ILP:"", child.getResult(cat, ""ILP""))
+        print(""dog :"", child.getResult(dog, ""local"", ""argmax""))
+        print(""dog ILP:"", child.getResult(dog, ""ILP""))
+        print(""monkey :"", child.getResult(monkey, ""local"", ""argmax""))
+        print(""monkey ILP:"", child.getResult(monkey, ""ILP""))
+        print(""squirrel :"", child.getResult(squirrel, ""local"", ""argmax""))
+        print(""squirrel ILP:"", child.getResult(squirrel, ""ILP""))
+
+        print(""daisy :"", child.getResult(daisy, ""local"", ""argmax""))
+        print(""daisy ILP:"", child.getResult(daisy, ""ILP""))
+        print(""dandelion :"", child.getResult(dandelion, ""local"", ""argmax""))
+        print(""dandelion ILP:"", child.getResult(dandelion, ""ILP""))
+        print(""rose :"", child.getResult(rose, ""local"", ""argmax""))
+        print(""rose ILP:"", child.getResult(rose, ""ILP""))
+        print(""sunflower :"", child.getResult(sunflower, ""local"", ""argmax""))
+        print(""sunflower ILP:"", child.getResult(sunflower, ""ILP""))
+        print(""tulip :"", child.getResult(tulip, ""local"", ""argmax""))
+        print(""tulip ILP:"", child.getResult(tulip, ""ILP""))",,
 3,Hierarchica Image Classification,Vision,CIFAR10,"Objective: The objective of the Hierarchical Image Classification task is to accurately classify images from the CIFAR10 dataset based on their visual content, using AI and machine learning techniques.
 
 This dataset has ten image classes: airplane, dog, truck, automobile, bird, cat, deer, frog, horse, and ship. Additionally, we group these images into two primary groups: vehicle and animal.","
@@ -372,9 +614,70 @@ for datanode in program.populate(dataset=dataset):
     print(f""coarse ILP:"", datanode.getResult(coarse, ""ILP""))
 
     print(f""fine :"",datanode.getResult(fine,""local"",""argmax""))
-    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))",multi,1,yes,"Basic Concepts: ['image'] 
+    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))",The image concept should read a feature called image_pixels that is used to predict its categories.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', 'bird', 'cat', 'deer', 'frog', 'horse', 'ship']"
+with Graph('CIFAR10_hier') as graph:
+    image = Concept(name='image')
+
+    animals = ['bird','cat','deer','dog','frog','horse']
+    vehicles = ['airplane','automobile','ship','truck']
+    coarse = image(name='coarse', ConceptClass=EnumConcept, values=['animal', 'vehicle'])
+    fine = image(name='fine', ConceptClass=EnumConcept, values=animals + vehicles)
+
+    ifL(orL(*[fine.__getattr__(l) for l in animals]), coarse.__getattr__('animal'))
+    ifL(orL(*[fine.__getattr__(l) for l in vehicles]), coarse.__getattr__('vehicle'))
+
+def random_cifar10_instance():
+    image_id = [0]
+    coarse_vals = [random.randint(0,1)]
+    fine_vals = [random.randint(0, 9)]
+
+    data = {
+        ""image_id"": image_id,
+        ""image_pixels"": image_id,
+        ""coarse_id"":  [i for i in range(len(coarse_vals))],
+        ""fine_id"":  [i for i in range(len(fine_vals))],
+        ""coarse"": coarse_vals,
+        ""fine"": fine_vals,
+    }
+    return data
+
+dataset = [random_cifar10_instance() for _ in range(1)]
+
+image['image_id'] = ReaderSensor(keyword='image_id')
+image['image_pixels'] = ReaderSensor(keyword='image_pixels')
+coarse['coarse_id'] = ReaderSensor(keyword='coarse_id')
+fine['fine_id'] = ReaderSensor(keyword='fine_id')
+
+image[coarse] = LabelReaderSensor(keyword='coarse')
+image[fine] = LabelReaderSensor(keyword='fine')
+
+image[coarse] = LLMLearner(image[""image_pixels""], prompt=""Classify the image as animal or vehicle."", classes=['animal','vehicle'])
+image[fine] = LLMLearner(image[""image_pixels""], prompt=""Classify the image into its fine class."", classes=animals + vehicles)
+
+program = SolverPOIProgram(graph, poi=[image, coarse, fine], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    print(f""coarse :"", datanode.getResult(coarse, ""local"", ""argmax""))
+    print(f""coarse ILP:"", datanode.getResult(coarse, ""ILP""))
+
+    print(f""fine :"", datanode.getResult(fine, ""local"", ""argmax""))
+    print(f""fine ILP:"", datanode.getResult(fine, ""ILP""))",,
 4,Email Spam Classification,NLP,Emails,"Objective: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.","Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.","with Graph('email_spam_consistency') as graph:
     email = Concept(name='email')
 
@@ -386,19 +689,41 @@ Task Concepts: ['vehicle', 'animal', 'airplane', 'dog', 'truck', 'automobile', '
     m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
     m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
 
-    xorL(m1.spam, m2.not_spam)","
+    xorL(m1.spam, m2.not_spam)","import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
+
+with Graph('email_spam_consistency') as graph:
+    email = Concept(name='email')
+
+    m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+    m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+
+    xorL(m1.spam, m2.not_spam)
+
 def random_emailspam_instance():
     email_id = [0]
-    m1 = [random.randint(0,1)]
-    m2 = [random.randint(0, 1)]
+    m1_labels = [random.randint(0,1)]
+    m2_labels = [random.randint(0, 1)]
 
     data = {
         ""email_id"": email_id,
         ""m1_id"":  [i for i in range(len(m1))],
         ""m2_id"":  [i for i in range(len(m2))],
-        ""email"": email,
-        ""m1"": m1,
-        ""m2"": m2,
+        ""m1"": m1_labels,
+        ""m2"": m2_labels,
     }
     return data
 
@@ -414,7 +739,7 @@ m2[m2] = LabelReaderSensor(keyword='m2')
 email[m1] = DummyLearner('email_id', output_size=2)
 email[m2] = DummyLearner('email_id', output_size=2)
 
-program = SolverPOIProgram(graph,poi=[email,m1,m2],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
+program = SolverPOIProgram(graph,poi=[email],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
 for datanode in program.populate(dataset=dataset):
     datanode.inferILPResults()
 
@@ -422,10 +747,70 @@ for datanode in program.populate(dataset=dataset):
     print(f""m1 ILP:"", datanode.getResult(m1, ""ILP""))
 
     print(f""m2 :"",datanode.getResult(m2,""local"",""argmax""))
-    print(f""m2 ILP:"", datanode.getResult(m2, ""ILP""))",binary,1,no,"
-Basic Concepts: ['email'] 
+    print(f""m2 ILP:"", datanode.getResult(m2, ""ILP""))",The email concept should get be assigned features email_header_text and email_body_text and use them to predict spam or not spam.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
+from Examples.emailspam.data import email_data
 
-Task Concepts: ['Spam', 'Regular']"
+with Graph('email_spam_consistency') as graph:
+    email = Concept(name='email')
+
+    m1 = email(name='model1_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+    m2 = email(name='model2_pred', ConceptClass=EnumConcept, values=['spam', 'not_spam'])
+
+    xorL(m1.spam, m2.not_spam)
+
+def random_emailspam_instance():
+    email_id = [0]
+    m1_labels = [random.randint(0,1)]
+    m2_labels = [random.randint(0, 1)]
+
+    data = {
+        ""email_id"": email_id,
+        ""email_header_text"": email_id,
+        ""email_body_text"": email_id,
+        ""m1_id"":  [i for i in range(len(m1))],
+        ""m2_id"":  [i for i in range(len(m2))],
+        ""m1"": m1_labels,
+        ""m2"": m2_labels,
+    }
+    return data
+
+dataset = [random_emailspam_instance() for _ in range(1)]
+
+email['email_id'] = ReaderSensor(keyword='email_id')
+email['email_header_text'] = ReaderSensor(keyword='email_header_text')
+email['email_body_text'] = ReaderSensor(keyword='email_body_text')
+m1['m1_id'] = ReaderSensor(keyword='m1_id')
+m2['m2_id'] = ReaderSensor(keyword='m2_id')
+
+m1[m1] = LabelReaderSensor(keyword='m1')
+m2[m2] = LabelReaderSensor(keyword='m2')
+
+email[m1] = LLMLearner(email[""email_header_text""],email[""email_body_text""], prompt=""Classify the emails as spam or not_spam."",classes=['spam', 'not_spam'])
+email[m2] = LLMLearner(email[""email_header_text""],email[""email_body_text""], prompt=""Classify the emails as spam or not_spam."",classes=['spam', 'not_spam'])
+
+program = SolverPOIProgram(graph,poi=[email],inferTypes=['local/argmax'],loss=MacroAverageTracker(NBCrossEntropyLoss()),metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults(email)
+
+    print(f""m1 :"",datanode.getResult(m1,""local"",""argmax""))
+    print(f""m1 ILP:"", datanode.getResult(m1, ""ILP""))
+
+    print(f""m2 :"",datanode.getResult(m2,""local"",""argmax""))
+    print(f""m2 ILP:"", datanode.getResult(m2, ""ILP""))",,
 5,Sentiment Analysis,NLP,IMDB,"Objective: The objective of the Sentiment Analysis task in NLP is to determine the sentiment (positive or negative) expressed in a given review, specifically using the IMDB dataset.","    A sentiment is either positive or negative; it can't be both.	  
  ","with Graph('IMDB') as graph:
     review = Concept(name='review')
@@ -436,7 +821,29 @@ Task Concepts: ['Spam', 'Regular']"
     positive = review(name='positive')
     negative = review(name='negative')
 
-    xorL(positive, negative)","
+    xorL(positive, negative)","import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
+
+with Graph('IMDB') as graph:
+    review = Concept(name='review')
+    positive = review(name='positive')
+    negative = review(name='negative')
+
+    xorL(positive, negative)
+
 def random_IMDB_instance():
     review_id = [0]
     positive = [random.randint(0,1)]
@@ -457,15 +864,65 @@ review[negative] = LabelReaderSensor(keyword='negative')
 review[positive] = DummyLearner('review_id', output_size=2)
 review[negative] = DummyLearner('review_id', output_size=2)
 
-program = SolverPOIProgram(graph, poi=[review, positive, negative], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+program = SolverPOIProgram(graph, poi=[review], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
 for datanode in program.populate(dataset=dataset):
     datanode.inferILPResults()
     print(""positive :"", datanode.getResult(positive, ""local"", ""argmax""))
     print(""positive ILP:"", datanode.getResult(positive, ""ILP""))
     print(""negative :"", datanode.getResult(negative, ""local"", ""argmax""))
-    print(""negative ILP:"", datanode.getResult(negative, ""ILP""))",binary,1,no,"Basic Concepts: ['review'] 
+    print(""negative ILP:"", datanode.getResult(negative, ""ILP""))",The review concept should read a feature called review_text that is used to predict its sentiment.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['positive', 'negative']"
+with Graph('IMDB') as graph:
+    review = Concept(name='review')
+    positive = review(name='positive')
+    negative = review(name='negative')
+
+    xorL(positive, negative)
+
+def random_IMDB_instance():
+    review_id = [0]
+    positive_labels = [random.randint(0,1)]
+    negative_labels = [1 - positive_labels[0]]
+    data = {
+        ""review_id"": review_id,
+        ""review_text"": [""This is a sample review text.""],
+        ""positive"": positive_labels,
+        ""negative"": negative_labels,
+    }
+    return data
+
+dataset = [random_IMDB_instance() for _ in range(1)]
+
+review['review_id'] = ReaderSensor(keyword='review_id')
+review['review_text'] = ReaderSensor(keyword='review_text')
+
+review[positive] = LabelReaderSensor(keyword='positive')
+review[negative] = LabelReaderSensor(keyword='negative')
+
+review[positive] = LLMLearner(review[""review_text""], prompt=""Determine if the  movie review is positive."", classes=[""false"", ""true""])
+review[negative] = LLMLearner(review[""review_text""], prompt=""Determine if the  movie review is negative."", classes=[""false"", ""true""])
+
+program = SolverPOIProgram(graph, poi=[review], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    print(""positive :"", datanode.getResult(positive, ""local"", ""argmax""))
+    print(""positive ILP:"", datanode.getResult(positive, ""ILP""))
+    print(""negative :"", datanode.getResult(negative, ""local"", ""argmax""))
+    print(""negative ILP:"", datanode.getResult(negative, ""ILP""))",,
 6,Procedural Text Understanding,NLP,ProPara,"Objective: The objective of the Procedural Text Understanding task is to develop AI models that can understand and reason about procedural texts in the field of Natural Language Processing (NLP) using the ProPara dataset.
 
 Given a procedural paragraph, the model must show the state of procedures in consequent steps. In this manner, each procedure contains steps, each of which is identified by its location, which can be non-existence, known, or unknown.
@@ -580,7 +1037,7 @@ def random_propara_instance():
 
         ""procedure_step_contains"": [proc_step_pairs],
 
-        ""action"": [action_edges],
+        ""action_edges"": [action_edges],
         ""action_id"": action_ids,
         ""create"": create_labels,
         ""destroy"": destroy_labels,
@@ -595,7 +1052,7 @@ step[""step_id""] = ReaderSensor(keyword=""step_id"")
 
 step[procedure_contain_step] = EdgeReaderSensor(procedure[""procedure_id""], step[""step_id""], keyword=""procedure_step_contains"", relation=procedure_contain_step)
 
-action[action_arg1.reversed, action_arg2.reversed] = ManyToManyReaderSensor(step[""step_id""], step[""step_id""], keyword=""action"")
+action[action_arg1.reversed, action_arg2.reversed] = ManyToManyReaderSensor(step[""step_id""], step[""step_id""], keyword=""action_edges"")
 
 action[""action_id""] = ReaderSensor(keyword=""action_id"")
 
@@ -635,9 +1092,158 @@ for datanode in program.populate(dataset=dataset):
             print(""action"", current_action, ""destroy :"", current_action.getResult(destroy, ""local"", ""argmax""))
             print(""action"", current_action, ""destroy ILP:"", current_action.getResult(destroy, ""ILP""))
             print(""action"", current_action, ""other :"", current_action.getResult(other, ""local"", ""argmax""))
-            print(""action"", current_action, ""other ILP:"", current_action.getResult(other, ""ILP""))",binray,4,yes,"Basic Concepts: ['procedure','step','before','action'] 
+            print(""action"", current_action, ""other ILP:"", current_action.getResult(other, ""ILP""))",The step concept should read a feature called step_text that is used to predict its label. Two text of the step should be used to predict the label of an action.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['create','destroy','other', 'non_existence','unknown_loc', 'known_loc']"
+with Graph('propara') as graph:
+
+    procedure = Concept(name=""procedure"")
+    step = Concept(name=""step"")
+    (procedure_contain_step, ) = procedure.contains(step)
+
+    non_existence = step(name=""non_existence"")
+    unknown_loc = step(name=""unknown_location"")
+    known_loc = step(name=""known_location"")
+
+    action = Concept(name=""action"")
+    action_arg1, action_arg2 = action.has_a(arg1=step, arg2=step)
+
+    create = action(name=""create"")
+    destroy = action(name=""destroy"")
+    other = action(name=""other"")
+
+    ifL(step(""x""), exactL(known_loc(path=(""x"")), unknown_loc(path=(""x"")), non_existence(path=(""x"")), 1))
+    ifL(action(""x""), exactL(create(path=(""x"")), destroy(path=(""x"")), other(path=(""x"")), 1))
+
+    ifL(create(""x""),
+      andL(
+          non_existence(""y1"",path=(""x"", action_arg1)),
+          orL(
+              unknown_loc(path=(""x"", action_arg2)),
+              known_loc(path=(""x"", action_arg2))
+          )
+      )
+    )
+
+    ifL(destroy(""x""),
+        andL(
+            orL(
+                    known_loc(path=(""x"", action_arg1)),
+                    unknown_loc(path=(""x"", action_arg1))
+                ),
+                non_existence(path=(""x"", action_arg2))
+        )
+    )
+
+def random_propara_instance():
+    procedure_ids = [0]
+    num_steps = 6
+    step_ids = list(range(num_steps))
+
+    non_existence_labels = [random.randint(0, 1) for _ in step_ids]
+    unknown_location_labels = [random.randint(0, 1) for _ in step_ids]
+    known_location_labels = [random.randint(0, 1) for _ in step_ids]
+
+    step_text = [f""Step {sid}: description of process event {sid}."" for sid in step_ids]
+
+    proc_step_pairs = [(procedure_ids[0], sid) for sid in step_ids]
+
+    action_edges = []
+    for i in range(num_steps - 1):
+        action_edges.append((i, i+1))
+    action_ids = list(range(len(action_edges)))
+
+    create_labels = []
+    destroy_labels = []
+    other_labels = []
+    for _ in action_ids:
+        t = random.choice([0, 1, 2])
+        create_labels.append(1 if t == 0 else 0)
+        destroy_labels.append(1 if t == 1 else 0)
+        other_labels.append(1 if t == 2 else 0)
+
+    data = {
+        ""procedure_id"": procedure_ids,
+        ""step_id"": step_ids,
+        ""step_text"": step_text,
+
+        ""non_existence"": non_existence_labels,
+        ""unknown_location"": unknown_location_labels,
+        ""known_location"": known_location_labels,
+
+        ""procedure_step_contains"": [proc_step_pairs],
+
+        ""action_edges"": [action_edges],
+        ""action_id"": action_ids,
+
+        ""create"": create_labels,
+        ""destroy"": destroy_labels,
+        ""other"": other_labels,
+    }
+    return data
+
+dataset = [random_propara_instance() for _ in range(1)]
+
+procedure[""procedure_id""] = ReaderSensor(keyword=""procedure_id"")
+step[""step_id""] = ReaderSensor(keyword=""step_id"")
+step[""step_text""] = ReaderSensor(keyword=""step_text"")
+
+step[procedure_contain_step] = EdgeReaderSensor(procedure[""procedure_id""], step[""step_id""], keyword=""procedure_step_contains"", relation=procedure_contain_step)
+
+action[action_arg1.reversed, action_arg2.reversed] = ManyToManyReaderSensor(step[""step_id""], step[""step_id""], keyword=""action_edges"")
+
+action[""action_id""] = ReaderSensor(keyword=""action_id"")
+
+step[non_existence] = LabelReaderSensor(keyword=""non_existence"")
+step[unknown_loc] = LabelReaderSensor(keyword=""unknown_location"")
+step[known_loc] = LabelReaderSensor(keyword=""known_location"")
+
+action[create] = LabelReaderSensor(keyword=""create"")
+action[destroy] = LabelReaderSensor(keyword=""destroy"")
+action[other] = LabelReaderSensor(keyword=""other"")
+
+step[non_existence] = LLMLearner(step[""step_text""], prompt=""Given a process step description, classify whether the participant is in a non-existence state after this step."", classes=[""false"",""true""])
+step[unknown_loc] = LLMLearner(step[""step_text""], prompt=""Given a process step description, classify whether the participant exists but its location is unknown after this step."", classes=[""false"",""true""])
+step[known_loc] = LLMLearner(step[""step_text""], prompt=""Given a process step description, classify whether the participant exists with a known location after this step."", classes=[""false"",""true""])
+
+action[create] = LLMLearner(step[""step_text""], step[""step_text""], prompt=""Given two consecutive process step descriptions (before and after), classify whether something is created between them."", classes=[""false"",""true""], rel=""action_edges"")
+action[destroy] = LLMLearner(step[""step_text""], step[""step_text""], prompt=""Given two consecutive process step descriptions (before and after), classify whether something is destroyed between them."", classes=[""false"",""true""], rel=""action_edges"")
+action[other] = LLMLearner(step[""step_text""], step[""step_text""], prompt=""Given two consecutive process step descriptions (before and after), classify whether the transition is other (neither creation nor destruction)."", classes=[""false"",""true""], rel=""action_edges"")
+
+program = SolverPOIProgram(graph, poi=[procedure, step, non_existence, unknown_loc, known_loc, action, create, destroy, other], inferTypes=[""local/argmax""], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    for idx, st in enumerate(datanode.getChildDataNodes()):
+        print(""step"", idx, ""non_existence :"", st.getResult(non_existence, ""local"", ""argmax""))
+        print(""step"", idx, ""non_existence ILP:"", st.getResult(non_existence, ""ILP""))
+        print(""step"", idx, ""unknown_location :"", st.getResult(unknown_loc, ""local"", ""argmax""))
+        print(""step"", idx, ""unknown_location ILP:"", st.getResult(unknown_loc, ""ILP""))
+        print(""step"", idx, ""known_location :"", st.getResult(known_loc, ""local"", ""argmax""))
+        print(""step"", idx, ""known_location ILP:"", st.getResult(known_loc, ""ILP""))
+
+        if not idx == len(datanode.getChildDataNodes())-1:
+            current_action = st.impactLinks[""arg1""][0]
+            print(""action"", current_action, ""create :"", current_action.getResult(create, ""local"", ""argmax""))
+            print(""action"", current_action, ""create ILP:"", current_action.getResult(create, ""ILP""))
+            print(""action"", current_action, ""destroy :"", current_action.getResult(destroy, ""local"", ""argmax""))
+            print(""action"", current_action, ""destroy ILP:"", current_action.getResult(destroy, ""ILP""))
+            print(""action"", current_action, ""other :"", current_action.getResult(other, ""local"", ""argmax""))
+            print(""action"", current_action, ""other ILP:"", current_action.getResult(other, ""ILP""))",,
 7,Causal Reasoning Over Procedural Text,NLP,WIQA,"Objective: The objective of the task is to develop an AI/Machine learning model that can perform causal reasoning over procedural text in the domain of NLP using the WIQA dataset.
 
 Each paragraph in this task is a procedural text that describes the cause-and-effect relations between a series of events. Consequently, each paragraph contains a list of questions about the relations between the events in this paragraph, which would be more (positive effect), less (negative effect), or no effect.
@@ -782,9 +1388,141 @@ for datanode in program.populate(dataset=dataset):
         print(f""question {num} is_more ILP:"",question.getResult(is_more,""ILP""))
         print(f""question {num} is_less ILP:"",question.getResult(is_less,""ILP""))
         print(f""question {num} no_effect ILP:"",question.getResult(no_effect,""ILP""))
-",binray,3,yes,"Basic Concepts: ['paragraph','question','symmetric','transitive'] 
+","The paragraph concept should read a feature called paragraph_text and the question concept should read a feature called question_text.
+Both these features should be used to determine the label of a question.","import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['is_more','is_less','no_effect']"
+print(""Graph Declaration:"")
+Graph.clear()
+Concept.clear()
+Relation.clear()
+
+with Graph('WIQA_graph') as graph:
+    paragraph = Concept(name='paragraph')
+    question = Concept(name='question')
+    para_quest_contains, = paragraph.contains(question)
+
+    is_more = question(name='is_more')
+    is_less = question(name='is_less')
+    no_effect = question(name='no_effect')
+
+    symmetric = Concept(name='symmetric')
+    s_arg1, s_arg2 = symmetric.has_a(s_arg1=question, s_arg2=question)
+
+    transitive = Concept(name='transitive')
+    t_arg1, t_arg2, t_arg3 = transitive.has_a(t_arg1=question, t_arg2=question, t_arg3=question)
+
+    ifL(question(""x""), exactL(is_more(path=(""x"")), is_less(path=(""x"")), no_effect(path=(""x"")), 1))
+
+    ifL(symmetric('x'), ifL(is_more(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
+    ifL(symmetric('x'), ifL(is_less(path=('x', s_arg1)), is_less(path=('x', s_arg2))))
+
+    ifL(transitive('x'), ifL(andL(is_more(path=('x', t_arg1)), is_more(path=('x', t_arg2))), is_more(path=('x', t_arg3))))
+    ifL(transitive('x'), ifL(andL(is_less(path=('x', t_arg1)), is_less(path=('x', t_arg2))), is_less(path=('x', t_arg3))))
+
+def random_wiqa_instance():
+    paragraph_id = [0]
+    questions_id = [i for i in range(5)]
+    is_more, is_less, no_effect = [], [], []
+    for _ in range(5):
+        lbl = random.choice([0, 1, 2])
+        is_more.append(1 if lbl == 0 else 0)
+        is_less.append(1 if lbl == 1 else 0)
+        no_effect.append(1 if lbl == 2 else 0)
+
+    data = {
+        ""paragraph_id"": paragraph_id,
+        ""paragraph_text"": [f""Paragraph {pid} describing a process."" for pid in paragraph_id],
+        ""question_id"":  questions_id,
+        ""question_text"": [f""Question {qid}: what happens if X increases?"" for qid in questions_id],
+        ""is_more_id"":  [i for i in range(len(is_more))],
+        ""is_less_id"":  [i for i in range(len(is_less))],
+        ""no_effect_id"":  [i for i in range(len(no_effect))],
+
+        ""is_more"": is_more,
+        ""is_less"": is_less,
+        ""no_effect"": no_effect,
+    }
+
+    para_quest_contains = list()
+    for para in data[""paragraph_id""]:
+        for quest in data[""question_id""]:
+            para_quest_contains.append((para, quest))
+    data[""para_quest_contains""] = [para_quest_contains]
+
+    symmetric = list()
+    for s_arg1 in data[""question_id""]:
+        for s_arg2 in data[""question_id""]:
+            if s_arg1 != s_arg2 and random.random() < 0.2:
+                symmetric.append((s_arg1, s_arg2))
+    data[""symmetric""] = [symmetric]
+
+    transitive = []
+    q_ids = data[""question_id""]
+    n = len(q_ids)
+    for i in q_ids:
+        for j in q_ids:
+            for k in q_ids:
+                if i == j or k == i or k == j:
+                    continue
+                if random.random() < 0.15:
+                    transitive.append((i, j, k))
+
+    data[""transitive""] = [transitive]
+    return data
+
+dataset = [random_wiqa_instance() for _ in range(1)]
+
+paragraph['paragraph_id'] = ReaderSensor(keyword='paragraph_id')
+paragraph['paragraph_text'] = ReaderSensor(keyword='paragraph_text')
+paragraph['symmetric'] = ReaderSensor(keyword='symmetric')
+paragraph['transitive'] = ReaderSensor(keyword='transitive')
+
+question['question_id'] = ReaderSensor(keyword='question_id')
+question['question_text'] = ReaderSensor(keyword='question_text')
+question['is_more_id'] = ReaderSensor(keyword='is_more_id')
+question['is_less_id'] = ReaderSensor(keyword='is_less_id')
+question['no_effect_id'] = ReaderSensor(keyword='no_effect_id')
+
+question[para_quest_contains] = EdgeReaderSensor(paragraph['paragraph_id'], question['question_id'], keyword='para_quest_contains', relation=para_quest_contains)
+symmetric[s_arg1.reversed, s_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'], keyword='symmetric')
+transitive[t_arg1.reversed, t_arg2.reversed, t_arg3.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'], question['question_id'], keyword='transitive')
+
+question[is_more] = LabelReaderSensor(keyword='is_more')
+question[is_less] = LabelReaderSensor(keyword='is_less')
+question[no_effect] = LabelReaderSensor(keyword='no_effect')
+
+question[is_more] = LLMLearner(paragraph[""paragraph_text""], question[""question_text""], prompt=""Given the paragraph and the question, predict if the correct label is 'is_more' (true) or not (false)."", classes=[""false"", ""true""])
+question[is_less] = LLMLearner(paragraph[""paragraph_text""], question[""question_text""], prompt=""Given the paragraph and the question, predict if the correct label is 'is_less' (true) or not (false)."", classes=[""false"", ""true""])
+question[no_effect] = LLMLearner(paragraph[""paragraph_text""], question[""question_text""], prompt=""Given the paragraph and the question, predict if the correct label is 'no_effect' (true) or not (false)."", classes=[""false"", ""true""])
+
+program = SolverPOIProgram(graph, poi=[paragraph, question, is_less, is_more, no_effect, symmetric, transitive], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for num, question_dn in enumerate(datanode.getChildDataNodes()):
+        print(""question relations"", question_dn.impactLinks)
+
+        print(f""question {num} is_more:"", question_dn.getResult(is_more, 'local', ""argmax""))
+        print(f""question {num} is_less:"", question_dn.getResult(is_less, 'local', ""argmax""))
+        print(f""question {num} no_effect:"", question_dn.getResult(no_effect, 'local', ""argmax""))
+
+        print(f""question {num} is_more ILP:"", question_dn.getResult(is_more, ""ILP""))
+        print(f""question {num} is_less ILP:"", question_dn.getResult(is_less, ""ILP""))
+        print(f""question {num} no_effect ILP:"", question_dn.getResult(no_effect, ""ILP""))",,
 8,Belief-Consistent Question Answering,NLP,BeliefBank,"Objective: The Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.
 
 Here, we have a collection of entities and a list of sentences that describe those entities. Some of these sentences are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two sentence that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly. "," The constraints here are the relationships between sentences that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an sentence applies to an entity. In that case, all sentences with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.
@@ -860,9 +1598,88 @@ for datanode in program.populate(dataset=dataset):
     datanode.inferILPResults()
     for idx, fnode in enumerate(datanode.getChildDataNodes()):
         print(""fact"", idx, ""fact_check :"", fnode.getResult(fact_check, ""local"", ""argmax""))
-        print(""fact"", idx, ""fact_check ILP:"", fnode.getResult(fact_check, ""ILP""))",binray,2,yes,"Basic Concepts: ['subject','implication','nimplication'] 
+        print(""fact"", idx, ""fact_check ILP:"", fnode.getResult(fact_check, ""ILP""))",subject and facts concepts should read features called subject_text and facts_text respectively. Both these features should be used to predict if a fact is true or false.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['facts']"
+with Graph('belief_bank') as graph:
+
+    subject = Concept(name='subject')
+    facts = Concept(name='facts')
+    subject_facts_contains, = subject.contains(facts)
+
+    fact_check = facts(name='fact_check')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(iarg1=facts, iarg2=facts)
+
+    nimplication = Concept(name='nimplication')
+    ni_arg1, ni_arg2 = nimplication.has_a(narg1=facts, narg2=facts)
+
+    ifL(andL(fact_check('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), fact_check(path=('s', i_arg2)))
+    ifL(andL(fact_check('x'), existsL(nimplication('s', path=('x', ni_arg1.reversed)))), notL(fact_check(path=('s', ni_arg2))))
+
+def random_belief_bank_instance():
+    subject_ids = [0]
+    facts_ids = list(range(6))
+    fact_check_labels = [random.randint(0, 1) for _ in facts_ids]
+
+    contains_pairs = [(subject_ids[0], f) for f in facts_ids]
+
+    implication_pairs = []
+    for _ in range(5):
+        a, b = random.sample(facts_ids, 2)
+        implication_pairs.append((a, b))
+
+    nimplication_pairs = []
+    for _ in range(5):
+        a, b = random.sample(facts_ids, 2)
+        nimplication_pairs.append((a, b))
+
+    data = {
+        ""subject_id"": subject_ids,
+        ""facts_id"": facts_ids,
+        ""subject_text"": [""Subject about various facts."" for _ in subject_ids],
+        ""facts_text"": [f""Fact {i} statement text."" for i in facts_ids],
+        ""fact_check"": fact_check_labels,
+        ""subject_facts_contains"": [contains_pairs],
+        ""implication"": [implication_pairs],
+        ""nimplication"": [nimplication_pairs],
+    }
+    return data
+
+dataset = [random_belief_bank_instance() for _ in range(1)]
+
+subject['subject_id'] = ReaderSensor(keyword='subject_id')
+facts['facts_id'] = ReaderSensor(keyword='facts_id')
+subject['subject_text'] = ReaderSensor(keyword='subject_text')
+facts['facts_text'] = ReaderSensor(keyword='facts_text')
+
+facts[fact_check] = LabelReaderSensor(keyword='fact_check')
+
+facts[subject_facts_contains] = EdgeReaderSensor(subject['subject_id'], facts['facts_id'], keyword='subject_facts_contains', relation=subject_facts_contains)
+implication[i_arg1.reversed, i_arg2.reversed] = ManyToManyReaderSensor(facts['facts_id'], facts['facts_id'], keyword='implication')
+nimplication[ni_arg1.reversed, ni_arg2.reversed] = ManyToManyReaderSensor(facts['facts_id'], facts['facts_id'], keyword='nimplication')
+
+facts[fact_check] = LLMLearner(subject[""subject_text""], facts[""facts_text""], prompt=""Decide if the given fact about the subject is true or false."", classes=[""false"", ""true""])
+
+program = SolverPOIProgram(graph, poi=[subject, facts, fact_check, implication, nimplication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for idx, fnode in enumerate(datanode.getChildDataNodes()):
+        print(""fact"", idx, ""fact_check :"", fnode.getResult(fact_check, ""local"", ""argmax""))
+        print(""fact"", idx, ""fact_check ILP:"", fnode.getResult(fact_check, ""ILP""))",,
 9,Logical Reasoning Question Answering,NLP,RuleTaker,"Objective: The objective of the task is to develop an AI/Machine learning model that can accurately answer logical reasoning questions in the Natural Language Processing (NLP) domain using the RuleTaker dataset.
 
 Here, we have a paragraph that describes logical reasoning rules in natural language. For each paragraph, we have a list of questions that ask for the True or False state of a fact. The model should look at the paragraph to determine whether the fact is stated or inferred based on the implication rules.
@@ -928,9 +1745,81 @@ for datanode in program.populate(dataset=dataset):
     for idx, qnode in enumerate(datanode.getChildDataNodes()):
         print(""relations"", qnode.impactLinks)
         print(f""question {idx} qlabel :"", qnode.getResult(qlabel, ""local"", ""argmax""))
-        print(f""question {idx} qlabel ILP:"", qnode.getResult(qlabel, ""ILP""))",binray,2,yes,"Basic Concepts: ['Context','Question','implication'] 
+        print(f""question {idx} qlabel ILP:"", qnode.getResult(qlabel, ""ILP""))",The context and question concepts should read features called context_text and question_text respectively and question should use both of these features to predict its label.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['qlabel']"
+with Graph('ruletaker_bank') as graph:
+
+    context = Concept(name='context')
+    question = Concept(name='question')
+    context_question_contains, = context.contains(question)
+
+    qlabel = question(name='qlabel')
+    implication = Concept(name='implication')
+    i_arg1, i_arg2 = implication.has_a(arg1=question, arg2=question)
+
+    ifL(andL(qlabel('x'), existsL(implication('s', path=('x', i_arg1.reversed)))), qlabel(path=('s', i_arg2)))
+
+
+def random_ruletaker_bank_instance():
+    context_id = [0]
+    num_questions = 6
+    question_ids = list(range(num_questions))
+    qlabel_vals = [random.randint(0, 1) for _ in question_ids]
+
+    contains_pairs = [(0, qid) for qid in question_ids]
+
+    all_pairs = [(i, j) for i in question_ids for j in question_ids if i != j]
+    random.shuffle(all_pairs)
+    implication_pairs = all_pairs[:max(5, len(all_pairs)//2)]
+
+    data = {
+        ""context_id"": context_id,
+        ""context_text"": [""This is a synthetic context describing facts and rules.""],  # one per context
+        ""question_id"": question_ids,
+        ""question_text"": [f""Question {i} text"" for i in question_ids],              # one per question
+        ""qlabel"": qlabel_vals,
+        ""context_question_contains"": [contains_pairs],
+        ""implication"": [implication_pairs],
+    }
+    return data
+
+dataset = [random_ruletaker_bank_instance() for _ in range(1)]
+
+context['context_id'] = ReaderSensor(keyword='context_id')
+question['question_id'] = ReaderSensor(keyword='question_id')
+
+context['context_text'] = ReaderSensor(keyword='context_text')
+question['question_text'] = ReaderSensor(keyword='question_text')
+
+question[context_question_contains] = EdgeReaderSensor(context['context_id'], question['question_id'], keyword='context_question_contains', relation=context_question_contains)
+implication[i_arg1.reversed, i_arg2.reversed] = ManyToManyReaderSensor(question['question_id'], question['question_id'], keyword='implication')
+
+question[qlabel] = LabelReaderSensor(keyword='qlabel')
+
+question[qlabel] = LLMLearner(context['context_text'], question['question_text'], prompt=""Given the context and the question, predict if the question label is true or false."", classes=[""false"", ""true""])
+
+program = SolverPOIProgram(graph, poi=[context, question, qlabel, implication], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    for idx, qnode in enumerate(datanode.getChildDataNodes()):
+        print(""relations"", qnode.impactLinks)
+        print(f""question {idx} qlabel :"", qnode.getResult(qlabel, ""local"", ""argmax""))
+        print(f""question {idx} qlabel ILP:"", qnode.getResult(qlabel, ""ILP""))",,
 10,Digit Classification of Images with the Help of Additional Provided Pair Sum,Vision,MNIST,"Objective: The objective of this task is to classify digits in images from the MNIST dataset using additional provided pair sum information.
 
 In the MNIST dataset, the model has to distinguish pictures of digits from 0 to 9. Here, the sum of the pairs of digits is also provided.
@@ -1021,9 +1910,92 @@ for datanode in program.populate(dataset=dataset):
     for idx, img_node in enumerate(datanode.getChildDataNodes()):
         print(""image relations"", img_node.impactLinks)
         print(""image"", idx, ""digits :"", img_node.getResult(digit, ""local"", ""argmax""))
-        print(""image"", idx, ""digits ILP:"", img_node.getResult(digit, ""ILP""))",binary,3,yes,"Basic Concepts: ['image_batch','image','digit','image_pair','summations'] 
+        print(""image"", idx, ""digits ILP:"", img_node.getResult(digit, ""ILP""))",The image concept should read a feature called image_pixels that is used to predict its number and sum of 2 digits.,"import sys
+sys.path.append('../../../../')
+sys.path.append('../../../')
+sys.path.append('../')
+sys.path.append('../../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.program import *
 
-Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9','s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18']"
+with Graph(name='MNIST_sum') as graph:
+    image_batch = Concept(name='image_batch')
+    image = Concept(name='image')
+    digit = image(name='digits', ConceptClass=EnumConcept, values=['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9'])
+    image_contains, = image_batch.contains(image)
+
+    image_pair = Concept(name='pair')
+    s = image_pair(name='summations', ConceptClass=EnumConcept, values=['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10', 's11', 's12', 's13', 's14', 's15', 's16', 's17', 's18'])
+    pair_d0, pair_d1 = image_pair.has_a(digit0=image, digit1=image)
+
+    for sum_val in range(19):
+        sum_combinations = []
+        for d0_val in range(sum_val + 1):
+            d1_val = sum_val - d0_val
+            if d0_val >= 10 or d1_val >= 10:
+                continue
+            sum_combinations.append(andL(getattr(digit, ""n""+str(d0_val))(path=('x', pair_d0)),
+                                         getattr(digit, ""n""+str(d1_val))(path=('x', pair_d1))))
+        if len(sum_combinations) == 1:
+            ifL(getattr(s, ""s""+str(sum_val))('x'), sum_combinations[0])
+        else:
+            ifL(getattr(s, ""s""+str(sum_val))('x'), orL(*sum_combinations))
+
+def random_mnist_sum_instance():
+    n_images = 6
+    image_batch_id = [0]
+    image_id = list(range(n_images))
+
+    digits = [random.randint(0, 9) for _ in range(n_images)]
+    image_batch_image_contains = [(0, i) for i in image_id]
+    pair_tuples = [(a, b) for a in image_id for b in image_id if a != b]
+    pair_id = list(range(len(pair_tuples)))
+    summations = [min(digits[a] + digits[b], 18) for a, b in pair_tuples]
+
+    data = {
+        ""image_batch_id"": image_batch_id,
+        ""image_id"": image_id,
+        ""image_pixels"": image_id,
+        ""pair_id"": pair_id,
+        ""digits"": digits,
+        ""summations"": summations,
+        ""image_batch_image_contains"": [image_batch_image_contains],
+        ""pair_has_a"": [pair_tuples],
+    }
+    return data
+
+dataset = [random_mnist_sum_instance() for _ in range(1)]
+
+image_batch['image_batch_id'] = ReaderSensor(keyword='image_batch_id')
+image['image_id'] = ReaderSensor(keyword='image_id')
+image['image_pixels'] = ReaderSensor(keyword='image_pixels')
+image_pair['pair_id'] = ReaderSensor(keyword='pair_id')
+
+image[digit] = LabelReaderSensor(keyword='digits')
+image_pair[s] = LabelReaderSensor(keyword='summations')
+
+image[image_contains] = EdgeReaderSensor(image_batch['image_batch_id'], image['image_id'], keyword='image_batch_image_contains', relation=image_contains)
+image_pair[pair_d0.reversed, pair_d1.reversed] = ManyToManyReaderSensor(image['image_id'], image['image_id'], keyword='pair_has_a')
+
+digit_classes = ['n0','n1','n2','n3','n4','n5','n6','n7','n8','n9']
+sum_classes = ['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11','s12','s13','s14','s15','s16','s17','s18']
+image[digit] = LLMLearner(image[""image_pixels""], prompt=""Classify the MNIST image into one of the digit classes."", classes=digit_classes)
+image_pair[s] = LLMLearner(image[""image_pixels""], image[""image_pixels""], prompt=""Given two MNIST digit images, predict their sum."", classes=sum_classes, rel='pair_has_a')
+
+program = SolverPOIProgram(graph, poi=[image, digit, image_pair, s], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    for idx, img_node in enumerate(datanode.getChildDataNodes()):
+        print(""image relations"", img_node.impactLinks)
+        print(""image"", idx, ""digits :"", img_node.getResult(digit, ""local"", ""argmax""))
+        print(""image"", idx, ""digits ILP:"", img_node.getResult(digit, ""ILP""))",,
 11,Number Placement Puzzle,CSP,Sudoku,"Objective: The Number Placement Puzzle task aims to solve Sudoku puzzles using AI and machine learning techniques in the Constraint Satisfaction Problem (CSP) domain.
 
 The input is a partially filled Sudoku puzzle that must be filled. The model should model the entire Suduko, its rows, columns, and tables.","No number should be repeated more than once inside any row, column, or table.","with Graph('sudoko') as graph:
@@ -1175,9 +2147,165 @@ for datanode in program.populate(dataset=dataset):
         ilp_grid[r][c] = cell.getResult(empty_entry_label, 'ILP')
 
     _print_grid(""Table with dummy predictions:"", local_grid)
-    _print_grid(""Table after ILP:"", ilp_grid)",multi,2,yes,"Basic Concepts: ['sudoku','empty_entry','same_row','same_col','same_table','empty_entry_label'] 
+    _print_grid(""Table after ILP:"", ilp_grid)",The sokudu concept should read a feature called sokudu_table which includes the fixed numbers. This feature + the id of a cell should be used by a cell to predict its numbers.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9']"
+with Graph('sudoko') as graph:
+
+    sudoku = Concept('sodoku')
+
+    empty_entry = Concept(name='empty_entry')
+    (empty_rel,) = sudoku.contains(empty_entry)
+
+    same_row = Concept(name='same_row')
+    (same_row_arg1, same_row_arg2) = same_row.has_a(row1=empty_entry, row2=empty_entry)
+
+    same_col = Concept(name='same_col')
+    (same_col_arg1, same_col_arg2) = same_col.has_a(col1=empty_entry, col2=empty_entry)
+
+    same_table = Concept(name='same_table')
+    (same_table_arg1, same_table_arg2) = same_table.has_a(entry1=empty_entry, entry2=empty_entry)
+
+    empty_entry_label = empty_entry(name='empty_entry_label', ConceptClass=EnumConcept, values=[f'n{i}' for i in range(9)])
+
+    for val in [f'{i}' for i in range(9)]:
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_row('z', path=('x', same_row_arg1.reversed)), getattr(empty_entry_label, f'n{val}')('y', path=('z', same_row_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_col('z', path=('x', same_col_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_col_arg2))))))
+        ifL(getattr(empty_entry_label, f'n{val}')('x'), notL(existsL(andL(same_table('z', path=('x', same_table_arg1.reversed)),getattr(empty_entry_label, f'n{val}')('y', path=('z', same_table_arg2))))))
+
+
+def random_sudoku_instance():
+    sudoku_id = [0]
+    empty_entry_id = [i for i in range(9*9)]
+
+    fixed = [False] * (9*9)
+    labels = [None] * (9*9)
+    k_fixed = 9*2-3
+    fixed_idxs = random.sample(empty_entry_id, k_fixed)
+    for idx in fixed_idxs:
+        fixed[idx] = True
+        labels[idx] = random.randint(0, 8)
+
+    for i in range(9*9):
+        if labels[i] is None:
+            labels[i] = random.randint(0, 8)
+
+    # Build the sokudu_table feature: -1 for empty cells, 0..8 for fixed cells
+    sokudu_table = [labels[i] if fixed[i] else -1 for i in range(9*9)]
+
+    same_row_pairs = []
+    for r in range(9):
+        cells = [r * 9 + c for c in range(9)]
+        for i in cells:
+            for j in cells:
+                if i != j:
+                    same_row_pairs.append((i, j))
+
+    same_col_pairs = []
+    for c in range(9):
+        cells = [r * 9 + c for r in range(9)]
+        for i in cells:
+            for j in cells:
+                if i != j:
+                    same_col_pairs.append((i, j))
+
+    same_table_pairs = []
+    for br in range(0, 9, 3):
+        for bc in range(0, 9, 3):
+            cells = []
+            for dr in range(3):
+                for dc in range(3):
+                    cells.append((br + dr) * 9 + (bc + dc))
+            for i in cells:
+                for j in cells:
+                    if i != j:
+                        same_table_pairs.append((i, j))
+
+    data = {
+        'sudoku_id': sudoku_id,
+        'sokudu_table': sokudu_table,
+        'empty_entry_id': empty_entry_id,
+        'empty_entry_label': labels,
+        'same_row': [same_row_pairs],
+        'same_col': [same_col_pairs],
+        'same_table': [same_table_pairs],
+    }
+
+    empty_rel = list()
+    for table in data[""sudoku_id""]:
+        for cell in data[""empty_entry_id""]:
+            empty_rel.append((table, cell))
+    data[""empty_rel""] = [empty_rel]
+    return data
+
+dataset = [random_sudoku_instance() for _ in range(1)]
+
+sudoku['sudoku_id'] = ReaderSensor(keyword='sudoku_id')
+sudoku['sokudu_table'] = ReaderSensor(keyword='sokudu_table')
+
+empty_entry['empty_entry_id'] = ReaderSensor(keyword='empty_entry_id')
+empty_entry[empty_entry_label] = LabelReaderSensor(keyword='empty_entry_label')
+
+empty_entry[empty_rel] = EdgeReaderSensor(sudoku['sudoku_id'], empty_entry['empty_entry_id'],keyword='empty_rel', relation=empty_rel)
+
+same_row[same_row_arg1.reversed, same_row_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_row')
+same_col[same_col_arg1.reversed, same_col_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_col')
+same_table[same_table_arg1.reversed, same_table_arg2.reversed] = ManyToManyReaderSensor(empty_entry['empty_entry_id'], empty_entry['empty_entry_id'], keyword='same_table')
+
+# Replace dummy learner with LLMLearner using sokudu_table and cell id as inputs
+empty_entry[empty_entry_label] = LLMLearner(
+    sudoku[""sokudu_table""],
+    empty_entry[""empty_entry_id""],
+    prompt=""Given a Sudoku table with some fixed numbers (-1 indicates empty) and a target cell id (0..80), predict the class for that cell among n0..n8."",
+    classes=[f'n{i}' for i in range(9)]
+)
+
+program = SolverPOIProgram(
+    graph,
+    poi=[sudoku, empty_entry, empty_entry_label, same_row, same_col, same_table],
+    inferTypes=['local/argmax'],
+    loss=MacroAverageTracker(NBCrossEntropyLoss()),
+    metric=PRF1Tracker()
+)
+
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+
+    cells = datanode.getChildDataNodes()
+    n = 9
+    def _print_grid(title, grid):
+        print(title)
+        for r in range(n):
+            row = []
+            for c in range(n):
+                val = grid[r][c]
+                row.append('.' if val is None or val == '' else str(val))
+            print(' '.join(f""{x:>2}"" for x in row))
+        print()
+
+    local_grid = [[None for _ in range(n)] for _ in range(n)]
+    ilp_grid = [[None for _ in range(n)] for _ in range(n)]
+
+    for idx, cell in enumerate(cells):
+        r, c = divmod(idx, n)
+        local_grid[r][c] = cell.getResult(empty_entry_label, 'local', 'argmax')
+        ilp_grid[r][c] = cell.getResult(empty_entry_label, 'ILP')
+
+    _print_grid(""Table with LLMLearner predictions:"", local_grid)
+    _print_grid(""Table after ILP:"", ilp_grid)",,
 12,Eight Queens Puzzle,CSP,Partially Filled Chess Board,"Objective: This task aims to solve the Eight Queens Puzzle using AI/Machine learning techniques in the domain of Constraint Satisfaction Problems (CSP) based on a Partially Filled Chess Board dataset.
 
 Here, the input would be a chess board with some queens already placed on it. The chess board with its cells should be modeled, and the remaining queens should be correctly placed.",No two queens should be able to attack each other.,"with Graph('eight_queens') as graph:
@@ -1314,6 +2442,150 @@ for datanode in program.populate(dataset=dataset):
     print(""ILP (Q/E) grid:"")
     for r in range(size):
         row = ilp_labels[r*size:(r+1)*size]
-        print(' '.join(row))",binary,2,yes,"Basic Concepts: ['queen_placed','same_row','same_column','same_diagonal'] 
+        print(' '.join(row))",The board concept should read a feature called chess_board which includes the fixed queens. This feature + the id of a cell should be used by a cell to predict its cell_state.,"import sys
+sys.path.append('../../../')
+sys.path.append('../../')
+sys.path.append('./')
+sys.path.append('../')
+import torch, random
+from domiknows.program.loss import *
+from domiknows.program.metric import *
+from domiknows.sensor.pytorch.learners import *
+from domiknows.sensor.pytorch.sensors import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.graph.logicalConstrain import *
+from domiknows.graph import *
+from domiknows.sensor.pytorch.relation_sensors import *
+from domiknows.program import *
 
-Task Concepts: ['chess_board']"
+with Graph('eight_queens') as graph:
+    board = Concept(name='board')
+    cell = Concept(name='cell')
+    (board_contains_cell,) = board.contains(cell)
+
+    cell_state = cell(name='cell_state', ConceptClass=EnumConcept, values=['Q', 'E'])
+
+    same_row = Concept(name='same_row')
+    (sr_arg1, sr_arg2) = same_row.has_a(rarg1=cell, rarg2=cell)
+
+    same_col = Concept(name='same_col')
+    (sc_arg1, sc_arg2) = same_col.has_a(carg1=cell, carg2=cell)
+
+    same_diag = Concept(name='same_diag')
+    (sd_arg1, sd_arg2) = same_diag.has_a(darg1=cell, darg2=cell)
+
+    ifL(same_row('r'), notL(existsL(andL(cell_state.Q(path=('r', sr_arg1)), cell_state.Q(path=('r', sr_arg2))))))
+    ifL(same_col('c'), notL(existsL(andL(cell_state.Q(path=('c', sc_arg1)), cell_state.Q(path=('c', sc_arg2))))))
+    ifL(same_diag('d'), notL(existsL(andL(cell_state.Q(path=('d', sd_arg1)), cell_state.Q(path=('d', sd_arg2))))))
+
+    ifL(board('b'), exactL(cell_state.Q('x', path=('b', board_contains_cell)), 8))
+
+def random_chess_graph_instance():
+    size = 8
+    board_ids = [0]
+    cell_ids = list(range(size * size))
+    queen_labels = [random.randint(0, 1) for _ in cell_ids]
+
+    def rc(cell_id):
+        return divmod(cell_id, size)
+
+    rows = {r: [] for r in range(size)}
+    cols = {c: [] for c in range(size)}
+    diag_main = {}
+    diag_anti = {}
+
+    for cid in cell_ids:
+        r, c = rc(cid)
+        rows[r].append(cid)
+        cols[c].append(cid)
+        diag_main.setdefault(r - c, []).append(cid)
+        diag_anti.setdefault(r + c, []).append(cid)
+
+    def all_pairs(lst):
+        pairs = []
+        n = len(lst)
+        for i in range(n):
+            for j in range(i + 1, n):
+                pairs.append((lst[i], lst[j]))
+        return pairs
+
+    same_row_pairs = []
+    for r in rows:
+        same_row_pairs.extend(all_pairs(rows[r]))
+
+    same_col_pairs = []
+    for c in cols:
+        same_col_pairs.extend(all_pairs(cols[c]))
+
+    same_diag_pairs = []
+    for key in diag_main:
+        same_diag_pairs.extend(all_pairs(diag_main[key]))
+    for key in diag_anti:
+        same_diag_pairs.extend(all_pairs(diag_anti[key]))
+
+    board_grid = []
+    for r in range(size):
+        row_chars = []
+        for c in range(size):
+            cid = r * size + c
+            row_chars.append('Q' if queen_labels[cid] == 1 else '.')
+        board_grid.append(''.join(row_chars))
+    chess_board_feature = '\n'.join(board_grid)
+
+    data = {
+        ""chess_board_id"": board_ids,
+        ""chess_board"": [chess_board_feature],
+        ""queen_placed_id"": cell_ids,
+        ""queen_placed"": queen_labels,
+        ""same_row"": [same_row_pairs],
+        ""same_column"": [same_col_pairs],
+        ""same_diagonal"": [same_diag_pairs],
+    }
+
+    board_contains_cell = []
+    for b in data[""chess_board_id""]:
+        for cell_id in data[""queen_placed_id""]:
+            board_contains_cell.append((b, cell_id))
+    data[""board_contains_cell""] = [board_contains_cell]
+
+    return data
+
+dataset = [random_chess_graph_instance() for _ in range(1)]
+
+board['chess_board_id'] = ReaderSensor(keyword='chess_board_id')
+board['chess_board'] = ReaderSensor(keyword='chess_board')
+
+cell['queen_placed_id'] = ReaderSensor(keyword='queen_placed_id')
+
+cell[board_contains_cell] = EdgeReaderSensor(board['chess_board_id'], cell['queen_placed_id'], keyword='board_contains_cell', relation=board_contains_cell)
+
+same_row[sr_arg1.reversed, sr_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_row')
+same_col[sc_arg1.reversed, sc_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_column')
+same_diag[sd_arg1.reversed, sd_arg2.reversed] = ManyToManyReaderSensor(cell['queen_placed_id'], cell['queen_placed_id'], keyword='same_diagonal')
+
+cell_state[cell_state] = LabelReaderSensor(keyword='queen_placed')
+
+cell[cell_state] = LLMLearner(board[""chess_board""], cell[""queen_placed_id""], prompt=""Given the 8x8 chess board with fixed queens (Q) and empty cells (.), and a zero-based cell index (row-major order), predict if the cell contains a Queen (Q) or is Empty (E). "", classes=['Q', 'E'])
+
+program = SolverPOIProgram(graph, poi=[board, cell, same_row, same_col, same_diag], inferTypes=['local/argmax'], loss=MacroAverageTracker(NBCrossEntropyLoss()), metric=PRF1Tracker())
+for datanode in program.populate(dataset=dataset):
+    datanode.inferILPResults()
+    local_labels = []
+    ilp_labels = []
+    for idx, cnode in enumerate(datanode.getChildDataNodes()):
+        local_idx = cnode.getResult(cell_state, ""local"", ""argmax"")
+        ilp_idx = cnode.getResult(cell_state, ""ILP"")
+
+        local_labels.append('Q' if local_idx == 0 else 'E')
+        ilp_labels.append('Q' if ilp_idx == 0 else 'E')
+
+    size = 8
+    print(""Local argmax (Q/E) grid:"")
+    for r in range(size):
+        row = local_labels[r*size:(r+1)*size]
+        print(' '.join(row))
+
+    print(""ILP (Q/E) grid:"")
+    for r in range(size):
+        row = ilp_labels[r*size:(r+1)*size]
+        print(' '.join(row))",,
