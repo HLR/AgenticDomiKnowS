@@ -584,7 +584,7 @@ export default function MainApp() {
                         : 'text-gray-400 cursor-not-allowed opacity-50'
                     }`}
                   >
-                    🎉 Final Code
+                    Property Assingment
                   </button>
                 </div>
               )}

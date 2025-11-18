@@ -132,7 +132,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Success Banner */}
-          {submitted && (
+          {/* {submitted && (
             <div className="bg-green-50 border-2 border-green-500 rounded-2xl p-6 shadow-lg animate-bounce">
               <div className="flex items-center">
                 <span className="text-4xl mr-4"></span>
@@ -142,7 +142,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
 
           {/* Graph Code */}
