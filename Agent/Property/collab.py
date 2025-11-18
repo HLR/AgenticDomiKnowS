@@ -104,6 +104,7 @@ def create_notebook(code: str, filename: str) -> None:
         "!git clone https://github.com/HLR/AgenticDomiKnowS.git\n"
         "%cd AgenticDomiKnowS\n"
         "!git checkout execution\n"
+        "!pip install -r domiknows-requirements.txt\n"
     )
     nb.cells.append(nbf.v4.new_code_cell(git_code))
 
