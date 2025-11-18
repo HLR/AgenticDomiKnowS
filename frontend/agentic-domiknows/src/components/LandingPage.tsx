@@ -69,7 +69,7 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
             {/* Username Input */}
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username or Email
+                Username
               </label>
               <input
                 id="username"
@@ -78,7 +78,7 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-black"
-                placeholder="username or email"
+                placeholder="username"
                 disabled={isLoading}
               />
             </div>
