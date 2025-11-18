@@ -261,6 +261,56 @@ async def get_graph_image(
         },
     )
 
+@app.get("/download-notebook/{session_id}")
+async def download_notebook(
+    session_id: str,
+    _user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Download the generated Jupyter notebook for a specific session.
+    Notebooks are stored in notebooks/{session_id}.ipynb
+    """
+    print("=" * 80)
+    print("📓 NOTEBOOK DOWNLOAD REQUEST")
+    print(f"📊 Session ID: {session_id}")
+    
+    # Construct the file path
+    notebook_filename = f"{session_id}.ipynb"
+    notebook_path = os.path.join("notebooks", notebook_filename)
+    
+    print(f"📂 Looking for notebook at: {notebook_path}")
+    print(f"📂 Absolute path: {os.path.abspath(notebook_path)}")
+    print(f"📂 File exists: {os.path.exists(notebook_path)}")
+    
+    # List all files in notebooks directory for debugging
+    if os.path.exists("notebooks"):
+        all_notebooks = os.listdir("notebooks")
+        print(f"📂 All files in notebooks/: {all_notebooks}")
+    else:
+        print("⚠️ notebooks directory does not exist!")
+    
+    print("=" * 80)
+    
+    # Check if file exists
+    if not os.path.exists(notebook_path):
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Notebook not found for session {session_id}. Looking for: {notebook_path}"
+        )
+    
+    # Return the notebook file
+    return FileResponse(
+        notebook_path,
+        media_type="application/x-ipynb+json",
+        filename=notebook_filename,
+        headers={
+            "Content-Disposition": f"attachment; filename={notebook_filename}",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
 if __name__ == "__main__":
     import uvicorn
     import argparse

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_ENDPOINTS } from '@/config/api';
 
 interface BuildState {
   Task_ID: string;
@@ -83,38 +84,32 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
     }
   };
 
-  const handleDownloadCode = () => {
-    const combinedCode = `# Task: ${buildState.Task_definition}
-# Task ID: ${buildState.Task_ID}
-# Generated on: ${new Date().toISOString()}
+  const handleDownloadCode = async () => {
+    try {
+      // Download the notebook file from the backend
+      const response = await fetch(API_ENDPOINTS.downloadNotebook(sessionId), {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-# ============================================
-# GRAPH CODE
-# ============================================
+      if (!response.ok) {
+        throw new Error('Failed to download notebook');
+      }
 
-${latestGraphCode}
-
-# ============================================
-# SENSOR CODE
-# ============================================
-
-${latestSensorCode}
-
-# ============================================
-# USER FEEDBACK
-# ============================================
-# ${feedback || 'No feedback provided'}
-`;
-
-    const blob = new Blob([combinedCode], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `domiknows_${buildState.Task_ID}_final.py`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Create a blob from the response
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sessionId}.ipynb`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading notebook:', error);
+      alert('Failed to download notebook. Please try again.');
+    }
   };
 
   return (
@@ -204,20 +199,13 @@ ${latestSensorCode}
             />
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Only Submit Button */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <button
-                onClick={handleDownloadCode}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg flex items-center justify-center"
-              >
-                <span className="mr-2 text-xl">📥</span>
-                Download Complete Code
-              </button>
-              <button
                 onClick={handleSubmitFeedback}
                 disabled={isSubmitting || submitted}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg flex items-center justify-center disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg flex items-center justify-center disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
                   <>
@@ -226,7 +214,7 @@ ${latestSensorCode}
                   </>
                 ) : submitted ? (
                   <>
-                    <span className="mr-2 text-xl"></span>
+                    <span className="mr-2 text-xl">✅</span>
                     Feedback Submitted
                   </>
                 ) : (
@@ -246,10 +234,24 @@ ${latestSensorCode}
                 <span className="mr-2">🎯</span>
                 Final Generated Code
               </h3>
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+              {/* <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
                 <div className="prose max-w-none text-gray-800">
                   {buildState.final_code_text}
                 </div>
+              </div> */}
+
+              {/* Download Button - Below Final Code */}
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <p className="text-sm text-gray-700 mb-4 text-center">
+                  📓 Download the completed code as a Jupyter Notebook by clicking the button below:
+                </p>
+                <button
+                  onClick={handleDownloadCode}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg flex items-center justify-center"
+                >
+                  <span className="mr-2 text-xl">📥</span>
+                  Download Complete Code (Jupyter Notebook)
+                </button>
               </div>
             </div>
           )}

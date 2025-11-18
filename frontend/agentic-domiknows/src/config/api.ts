@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
   continueGraph: `${API_BASE_URL}/continue-graph`,
   graphImage: (taskId: string, attempt: number) => 
     `${API_BASE_URL}/graph-image/${taskId}/${attempt}`,
+  downloadNotebook: (sessionId: string) => 
+    `${API_BASE_URL}/download-notebook/${sessionId}`,
   logout: `${API_BASE_URL}/logout`,
   resetSession: `${API_BASE_URL}/reset-session`,
 } as const;
