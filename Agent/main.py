@@ -4,6 +4,8 @@ import sys; sys.path.append("../")
 from Agent.LLM.llm import LLM
 from Agent.Graph.graph_prompt import get_graph_prompt, get_graph_reviewer_prompt
 from Agent.Graph.graph_agent import graph_swe_agent, graph_exe_agent, graph_reviewer_agent
+from Agent.Property.property_agent import property_agent
+from Agent.Property.collab import create_notebook
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 from langgraph.graph import StateGraph, END, START
 from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples
@@ -96,8 +98,13 @@ def build_graph(
     def property_agent_node(state: BuildState) -> BuildState:
         human_response = interrupt("Did human set up the properties")
         property_human_text = human_response.get("property_human_text", "")
-        # TODO
-        return {"final_code_text" : "Please refer to this link TODO"}
+        final_code_text = property_agent(llm, property_human_text, state.get("entire_sensor_codes")[-1], state.get("property_rag_examples"))
+        try:
+            file_name = str(state.get("Task_ID","tmp"))
+            create_notebook(final_code_text, f"static/{file_name}.ipynb")
+        except:
+            print("Error creating notebook")
+        return {"final_code_text" : final_code_text}
 
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)
@@ -163,7 +170,7 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
 def main(argv: Optional[List[str]] = None):
     parser = argparse.ArgumentParser(description="Coding LangGraph pipeline")
     parser.add_argument("--task-id", type=int, default=0, help="Task ID")
-    parser.add_argument("--task-description",type=str,default="Create a graph related to agriculture and its intricacies",help="Description of the graph to build",)
+    parser.add_argument("--task-description",type=str,default="Create a minimal email example with no constraints",help="Description of the graph to build",)
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
