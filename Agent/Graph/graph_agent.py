@@ -35,7 +35,7 @@ def graph_exe_agent(graph_code,task_id,len_code_list):
     captured_prints, captured_stderr, captured_error, graph = exec_code(code,return_graph=True)
     # Check if graph was created and visualize it (don't include .png - it's added automatically)
     if graph:
-        graph.visualize(f"graph_images/{task_id}_{len_code_list}")
+        graph.visualize(f"graph_images/{task_id}_{len_code_list}.png")
     return captured_error
 
 def graph_reviewer_agent(llm, Task_definition, code, rag_selected):
