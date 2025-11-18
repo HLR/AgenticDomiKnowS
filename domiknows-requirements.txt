@@ -14,4 +14,3 @@ spacy
 colorama
 timm
 einops
-nbformat
