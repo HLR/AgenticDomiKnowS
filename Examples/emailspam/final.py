@@ -13,7 +13,6 @@ from domiknows.graph.logicalConstrain import *
 from domiknows.graph import *
 from domiknows.sensor.pytorch.relation_sensors import *
 from domiknows.program import *
-from Examples.emailspam.data import email_data
 
 with Graph('email_spam_consistency') as graph:
     email = Concept(name='email')
