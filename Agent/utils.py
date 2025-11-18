@@ -21,25 +21,27 @@ def extract_python_code(text: str) -> str:
     code = m.group(1) if m else text
     return textwrap.dedent(code).strip("\n")
 
-def exec_code(code):
+def exec_code(code, return_graph=False):
     _stdout_buf = io.StringIO()
     _stderr_buf = io.StringIO()
     captured_prints = ""
     captured_stderr = ""
     captured_error = ""
+    graph = None
     try:
         ns = {"__package__": None, "__builtins__": __builtins__}
         with redirect_stdout(_stdout_buf), redirect_stderr(_stderr_buf):
             exec(compile(code, "<code_exec>", "exec"), ns, ns)
         captured_prints = _stdout_buf.getvalue()
         captured_stderr = _stderr_buf.getvalue()
+        graph = ns["graph"]
     except Exception:
         captured_error = traceback.format_exc()
         captured_stderr = _stderr_buf.getvalue()
     finally:
         _stdout_buf.close()
         _stderr_buf.close()
-
+    if return_graph: return captured_prints, captured_stderr, captured_error, graph
     return captured_prints, captured_stderr, captured_error
 
 code_prefix = """
