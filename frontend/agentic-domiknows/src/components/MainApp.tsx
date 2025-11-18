@@ -732,7 +732,7 @@ export default function MainApp() {
                 <GraphVisualization 
                   result={graphResult!} 
                   taskId={buildState?.Task_ID}
-                  graphAttempt={buildState?.graph_attempt}
+                  graphAttempt={buildState?.graph_code_draft?.length || 0}
                   codeHistory={buildState?.graph_code_draft || []}
                 />
               </div>
