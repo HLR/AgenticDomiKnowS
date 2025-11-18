@@ -213,15 +213,41 @@ async def get_graph_image(
     Retrieve the graph visualization image for a specific task and attempt.
     Images are stored in graph_images/{task_id}_{attempt}.png
     """
+    print("=" * 80)
+    print("GRAPH IMAGE REQUEST")
+    print(f"Task ID: {task_id}")
+    print(f"attempt: {attempt}")
+    
     # Construct the file path
     image_filename = f"{task_id}_{attempt}.png"
     image_path = os.path.join("graph_images", image_filename)
+    
+    print(f"Looking for image at: {image_path}")
+    print(f"Absolute path: {os.path.abspath(image_path)}")
+    
+    # Always prefer .png.png version (the actual graph visualization)
+    image_path_double_ext = f"{image_path}.png"
+    if os.path.exists(image_path_double_ext):
+        print(f"Using double extension file: {image_path_double_ext}")
+        image_path = image_path_double_ext
+    
+    print(f"Final path to use: {image_path}")
+    print(f"File exists: {os.path.exists(image_path)}")
+    
+    # List all files in graph_images directory for debugging
+    if os.path.exists("graph_images"):
+        all_images = os.listdir("graph_images")
+        print(f"📂 All files in graph_images/: {all_images}")
+    else:
+        print("graph_images directory does not exist!")
+    
+    print("=" * 80)
     
     # Check if file exists
     if not os.path.exists(image_path):
         raise HTTPException(
             status_code=404, 
-            detail=f"Graph image not found for task {task_id} at attempt {attempt}"
+            detail=f"Graph image not found for task {task_id} at attempt {attempt}. Looking for: {image_path}"
         )
     
     # Return the image file
