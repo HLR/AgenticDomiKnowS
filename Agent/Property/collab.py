@@ -30,6 +30,10 @@ def create_notebook(code: str, filename: str) -> None:
 
     The function is robust to missing sections; any missing part will simply be
     skipped or merged into the "Sensors/Rest" cell as appropriate.
+    
+    Note:
+    - If the provided filename includes directories that do not exist, they
+      will be created automatically.
     """
 
     if not isinstance(code, str) or code.strip() == "":
@@ -130,6 +134,11 @@ def create_notebook(code: str, filename: str) -> None:
     sensors_src = join(sensors_block)
     if sensors_src:
         nb.cells.append(nbf.v4.new_code_cell(sensors_src))
+
+    # Ensure parent directories exist (if any were provided)
+    out_dir = os.path.dirname(out_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
 
     # Write notebook to file
     with open(out_path, "w", encoding="utf-8") as f:

@@ -101,7 +101,7 @@ def build_graph(
         final_code_text = property_agent(llm, property_human_text, state.get("entire_sensor_codes")[-1], state.get("property_rag_examples"))
         try:
             file_name = str(state.get("Task_ID","tmp"))
-            create_notebook(final_code_text, f"static/{file_name}.ipynb")
+            create_notebook(final_code_text, f"notebooks/{file_name}.ipynb")
         except Exception as e:
             print(f"Error creating notebook: {e}")
         return {"final_code_text" : final_code_text}
