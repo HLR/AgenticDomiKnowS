@@ -49,10 +49,10 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+      <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Agentic DomiKnows (ADS)
           </h1>
           <p className="text-xl text-gray-600 mb-2">
@@ -64,7 +64,7 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200">
+        <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 max-w-md mx-auto">
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Username Input */}
             <div>
