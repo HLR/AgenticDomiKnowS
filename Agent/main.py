@@ -102,8 +102,8 @@ def build_graph(
         try:
             file_name = str(state.get("Task_ID","tmp"))
             create_notebook(final_code_text, f"static/{file_name}.ipynb")
-        except:
-            print("Error creating notebook")
+        except Exception as e:
+            print(f"Error creating notebook: {e}")
         return {"final_code_text" : final_code_text}
 
     builder = StateGraph(BuildState)
