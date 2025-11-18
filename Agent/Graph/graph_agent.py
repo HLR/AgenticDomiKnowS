@@ -30,9 +30,10 @@ def graph_swe_agent(llm, Task_definition, rag_selected, graph_code_draft, graph_
     code = llm(msgs)
     return code
 
-def graph_exe_agent(graph_code):
+def graph_exe_agent(graph_code,task_id,len_code_list):
     code = extract_python_code(graph_code)
-    captured_prints, captured_stderr, captured_error = exec_code(code)
+    captured_prints, captured_stderr, captured_error, graph = exec_code(code,return_graph=True)
+    graph.visualize(f"graph_images/{task_id}_{len_code_list}.png")
     return captured_error
 
 def graph_reviewer_agent(llm, Task_definition, code, rag_selected):

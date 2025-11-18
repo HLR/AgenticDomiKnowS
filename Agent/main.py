@@ -50,8 +50,8 @@ def build_graph(
         return {"graph_attempt": int(state.get("graph_attempt", 0)) + 1, "graph_code_draft": list(state.get("graph_code_draft", [])) + [code], "graph_reviewer_agent_approved": False, "graph_exe_agent_approved": False, "graph_human_notes": ""}
 
     def graph_exe_agent_node(state: BuildState) -> BuildState:
-        captureed_error = graph_exe_agent(code_prefix+extract_python_code(state.get("graph_code_draft", [""])[-1]))
-        return {"graph_exe_notes": state.get("graph_exe_notes", []) + [captureed_error] ,"graph_exe_agent_approved": captureed_error == ""}
+        captured_error = graph_exe_agent(code_prefix+extract_python_code(state.get("graph_code_draft", [""])[-1]), state.get("Task_ID", ""), len(state.get("graph_code_draft", [])))
+        return {"graph_exe_notes": state.get("graph_exe_notes", []) + [captured_error] ,"graph_exe_agent_approved": captured_error == ""}
 
     def graph_reviewer_agent_node(state: BuildState) -> BuildState:
         review_text, approved = graph_reviewer_agent(llm, state.get("Task_definition", ""), list(state.get("graph_code_draft", []))[-1], list(state.get("graph_rag_examples", [])))
