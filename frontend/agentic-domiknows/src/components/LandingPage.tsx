@@ -53,13 +53,13 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-            DomiKnows
+            Agentic DomiKnows (ADS)
           </h1>
           <p className="text-xl text-gray-600 mb-2">
             Welcome Back
           </p>
           <p className="text-gray-500">
-            Sign in to access your knowledge graphs
+            Sign in to genarate domiknows conceptual graph.
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
         {/* Footer */}
         <div className="mt-8 text-center">
           <a 
-            href="https://domiknows.github.io/" 
+            href="https://github.com/HLR/DomiKnowS/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-sm text-gray-500 hover:text-gray-700"

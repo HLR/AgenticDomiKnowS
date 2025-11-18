@@ -632,11 +632,11 @@ export default function MainApp() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-8">
+        {/* <div className="text-center mb-8">
           <p className="text-lg text-gray-600">
             AI-Powered Knowledge Graph Generation
           </p>
-        </div>
+        </div> */}
 
         {/* Conditionally render based on active tab */}
         {activeTab === 'graph' ? (

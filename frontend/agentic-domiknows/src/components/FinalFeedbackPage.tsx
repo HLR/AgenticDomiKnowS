@@ -121,9 +121,9 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
             <div>
               <h2 className="text-2xl font-bold text-gray-800 flex items-center">
                 <span className="mr-3"></span>
-                Final Feedback and Code
+                Dataset feature assingments
               </h2>
-              <p className="text-sm text-gray-600 mt-1">Review the complete generated code and provide feedback</p>
+              <p className="text-sm text-gray-600 mt-1">Here you need to connect the dataset features to conepts of graph</p>
             </div>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
           </div>
 
           {/* Sensor Code */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
+          {/* <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                 <span className="mr-2">🔧</span>
@@ -179,25 +179,47 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
                 <code>{latestSensorCode || '# No sensor code generated'}</code>
               </pre>
             </div>
-          </div>
+          </div> */}
 
           {/* Feedback Section */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <span className="mr-2">💭</span>
-              Final Feedback (Optional)
+              Specify dataset features on how they relate to each concept.
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Please provide any final thoughts, suggestions, or comments about the generated code:
+              Each feature of the dataset needs to be assigned to a concept and please explain how each feature is used for pridicting the labels.
             </p>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900"
-              placeholder="Your feedback here... (e.g., The code looks great! I might need to adjust the sensor parameters for my specific use case.)"
               disabled={submitted}
             />
+
+            {/* Example prompts */}
+            {!submitted && !feedback && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <p className="text-sm text-gray-500 mb-3">Need inspiration? Try these examples:</p>
+                <div className="space-y-2">
+                  {[
+                    "Subject and facts concepts should read features called subject_text and facts_text respectively. Both these features should be used to predict if a fact is true or false.",
+                    "The context and question concepts should read features called context_text and question_text respectively and question should use both of these features to predict its label.",
+                    "The image concept should read a feature called image_pixels that is used to predict its number and sum of 2 digits.",
+                  ].map((example, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setFeedback(example)}
+                      className="block w-full text-left text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded-lg transition-colors"
+                    >
+                      "{example}"
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+
 
           {/* Action Buttons - Only Submit Button */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
@@ -215,12 +237,12 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
                 ) : submitted ? (
                   <>
                     <span className="mr-2 text-xl">✅</span>
-                    Feedback Submitted
+                    Instructions Submitted
                   </>
                 ) : (
                   <>
                     <span className="mr-2 text-xl">🚀</span>
-                    Submit Feedback & Complete
+                    Submit Instructions & Complete
                   </>
                 )}
               </button>
@@ -243,7 +265,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
               {/* Download Button - Below Final Code */}
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
                 <p className="text-sm text-gray-700 mb-4 text-center">
-                  📓 Download the completed code as a Jupyter Notebook by clicking the button below:
+                  📓 Download the completed code as a Jupyter Notebook by clicking the button below (for spimplicity we recommend use Google Colab to exucte the file): 
                 </p>
                 <button
                   onClick={handleDownloadCode}
@@ -257,7 +279,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
           )}
 
           {/* Completion Message */}
-          {submitted && (
+          {/* {submitted && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
               <div className="text-4xl mb-3">🎉</div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">Thank you for your feedback!</h3>
@@ -267,7 +289,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
                   : 'Your feedback has been recorded and will help improve future generations.'}
               </p>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </div>

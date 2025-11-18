@@ -34,7 +34,7 @@ export default function ChatInterface({ onSubmit, isProcessing }: ChatInterfaceP
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the knowledge graph you want to create using the DomiKnows framework. Be as detailed as possible..."
+            placeholder="Describe the conceptual graph you want to create using the DomiKnows framework. Be as detailed as possible..."
             className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200 bg-gray-50 focus:bg-white text-gray-900 placeholder-gray-500 font-medium"
             rows={5}
             disabled={isProcessing}
@@ -56,8 +56,8 @@ export default function ChatInterface({ onSubmit, isProcessing }: ChatInterfaceP
             </div>
           ) : (
             <div className="flex items-center justify-center">
-              <span className="mr-2">✨</span>
-              <span>Generate Knowledge Graph</span>
+              
+              <span>Generate Graph</span>
             </div>
           )}
         </button>
@@ -69,9 +69,8 @@ export default function ChatInterface({ onSubmit, isProcessing }: ChatInterfaceP
           <p className="text-sm text-gray-500 mb-3">Need inspiration? Try these examples:</p>
           <div className="space-y-2">
             {[
-              "Create a knowledge graph for movie recommendations",
-              "Build a constraint system for course scheduling",
-              "Model relationships in a social network"
+              "Example 1: In our dataset of emails labeled spam or legitimate, each record includes a header, body, and spam label. We want to build two independent models that, given an email header and body, each predict whether the email is spam.	Add constraints on the two models outputs to enforce consistency. For example, if Model 1 predicts spam, Model 2 must not predict not spam and vice versa.",
+              "Example 2: Build a constraint system for course schedulThe Belief-Consistent Question Answering task in NLP aims to develop a system that can accurately answer questions based on the BeliefBank dataset while ensuring the answers are consistent with the beliefs expressed in the dataset.Here, we have a collection of entities and a list of sentences that describe those entities. Some of these sentences are correct, and some are not. Additionally, we have a graph of constraints that describe a relation between two sentence that describe a positive or negative correlation. For example, if an entity is a bird, then this entity can also fly. On the other hand, if an entity is a reptile, then it cannot fly.  The constraints here are the relationships between sentences that are provided in the constarint graph. These constraints are either negative or positive. Suppose a model decides an sentence applies to an entity. In that case, all sentences with a positive correlation must also be correct, and all those with a negative relationship with this attribute must be false.",
             ].map((example, index) => (
               <button
                 key={index}
