@@ -146,7 +146,7 @@ async def init_graph(
     new_state["Task_ID"] = str(session_id)
     config = {"configurable": {"thread_id": "ID: " + str(session_id)}}
     sess["data"]["config"] = config
-    graph.invoke(new_state, config=config)
+    await graph.ainvoke(new_state, config=config)
     build_state = typed_dict_to_model(graph.get_state(config=config).values, BuildStateModel)
     await log_graph_state(
         event="init",
@@ -183,8 +183,8 @@ async def step_graph(
     print("=" * 80)
     
     if new_changes:
-        graph.invoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
-    graph.invoke(None, config=ctx["session"]["data"]["config"])
+        await graph.ainvoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
+    await graph.ainvoke(None, config=ctx["session"]["data"]["config"])
     
     final_state = graph.get_state(config=config).values
     print("=" * 80)
