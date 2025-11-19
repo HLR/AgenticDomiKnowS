@@ -8,8 +8,8 @@ class LLM:
     def __init__(self,reasoning_effort="medium"):
         self.reasoning_effort = reasoning_effort
         self.api_key = os.environ["OPENAI_API_KEY"]
-        self.swe_llm = ChatOpenAI(model="gpt-5", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
-        self.reviewer_llm = ChatOpenAI(model="gpt-5", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
+        self.swe_llm = ChatOpenAI(model="gpt-5-2025-08-07", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
+        self.reviewer_llm = ChatOpenAI(model="gpt-5-2025-08-07", reasoning={"effort": self.reasoning_effort}, api_key=self.api_key)
         self.embedder = OpenAIEmbeddings(model="text-embedding-3-large", openai_api_key=self.api_key)
 
     def __call__(self, msgs):
