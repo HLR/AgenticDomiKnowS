@@ -9,7 +9,7 @@ from Agent.main import pre_process_graph
 from Agent.utils import load_all_examples_info
 from langgraph.types import Command
 
-def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: str) -> Dict[str, str]:
+def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: str) -> Dict[str, Any]:
     buf_out = io.StringIO()
     buf_err = io.StringIO()
 
@@ -34,27 +34,29 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
 
             while True:
                 snap = graph.get_state(config=config)
-                if not snap.next:
+                if not snap.next or snap.next[0]=='property_agent_node':
                     break
                 graph.invoke(Command(resume={"graph_human_approved":True}), config=config)
 
             state: Dict[str, Any] = dict(snap.values or {})
-            sensor_code = state.get("sensor_code", "") or ""
-            entire_sensor_code = state.get("entire_sensor_code", "") or ""
-            sensor_code_error = state.get("sensor_code_error", "") or ""
+            sensor_codes = state.get("sensor_codes", []) or []
+            entire_sensor_codes = state.get("entire_sensor_codes", []) or []
+            sensor_code_outputs = state.get("sensor_code_outputs", []) or []
 
             return {
-                "sensor_code": sensor_code,
-                "entire_sensor_code": entire_sensor_code,
-                "sensor_code_error": sensor_code_error,
+                "sensor_codes": list(sensor_codes),
+                "entire_sensor_codes": list(entire_sensor_codes),
+                "sensor_code_outputs": list(sensor_code_outputs),
             }
 
     except Exception:
         err_text = traceback.format_exc()
+        # On failure, return lists consistent with the new schema
         return {
-            "sensor_code": "",
-            "entire_sensor_code": "",
-            "sensor_code_error": err_text,
+            "sensor_codes": [],
+            "entire_sensor_codes": [],
+            # Store the error text as an output entry so it appears in CSV
+            "sensor_code_outputs": [err_text],
         }
     finally:
         buf_out.close()
@@ -66,7 +68,7 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("--csv-path", type=str, default="../datasets/lang_to_code_test.csv")
     parser.add_argument("--output-path", type=str, default="../datasets/")
     parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
-    parser.add_argument("--reasoning-effort", default="low", choices=["minimal", "low", "medium", "high"], help="Set the LLM reasoning effort level",)
+    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal", "low", "medium", "high"], help="Set the LLM reasoning effort level",)
 
     args = parser.parse_args(argv)
 
@@ -91,7 +93,7 @@ def main(argv: List[str] | None = None) -> int:
 
     print(f"Starting {len(tasks)} tasks with {args.workers} workers. Output -> {out_path}")
 
-    results: List[Dict[str, str]] = []
+    results: List[Dict[str, Any]] = []
     with ProcessPoolExecutor(max_workers=args.workers) as ex:
         fut_to_idx = {
             ex.submit(
@@ -108,11 +110,19 @@ def main(argv: List[str] | None = None) -> int:
             res_row = fut.result()
             results.append(res_row)
 
-    fieldnames = [
-        "sensor_code",
-        "entire_sensor_code",
-        "sensor_code_error",
-    ]
+    # Determine dynamic column names based on the maximum lengths of returned lists
+    max_sensor_codes = 0
+    max_entire_codes = 0
+    max_outputs = 0
+    for res in results:
+        max_sensor_codes = max(max_sensor_codes, len(res.get("sensor_codes", []) or []))
+        max_entire_codes = max(max_entire_codes, len(res.get("entire_sensor_codes", []) or []))
+        max_outputs = max(max_outputs, len(res.get("sensor_code_outputs", []) or []))
+
+    fieldnames: List[str] = []
+    fieldnames += [f"sensor_code_{i+1}" for i in range(max_sensor_codes)]
+    fieldnames += [f"entire_sensor_code_{i+1}" for i in range(max_entire_codes)]
+    fieldnames += [f"sensor_code_output_{i+1}" for i in range(max_outputs)]
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -120,11 +130,23 @@ def main(argv: List[str] | None = None) -> int:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for res in results:
-            row = {
-                "sensor_code": res.get("sensor_code", ""),
-                "entire_sensor_code": res.get("entire_sensor_code", ""),
-                "sensor_code_error": res.get("sensor_code_error", ""),
-            }
+            row: Dict[str, Any] = {}
+            sensor_codes = list(res.get("sensor_codes", []) or [])
+            entire_sensor_codes = list(res.get("entire_sensor_codes", []) or [])
+            sensor_code_outputs = list(res.get("sensor_code_outputs", []) or [])
+
+            # Populate per-indexed columns, padding with empty strings as needed
+            for i in range(max_sensor_codes):
+                row[f"sensor_code_{i+1}"] = sensor_codes[i] if i < len(sensor_codes) else ""
+            for i in range(max_entire_codes):
+                row[f"entire_sensor_code_{i+1}"] = (
+                    entire_sensor_codes[i] if i < len(entire_sensor_codes) else ""
+                )
+            for i in range(max_outputs):
+                row[f"sensor_code_output_{i+1}"] = (
+                    sensor_code_outputs[i] if i < len(sensor_code_outputs) else ""
+                )
+
             writer.writerow(row)
 
     print(f"Completed. Wrote {len(results)} rows to {out_path}")
