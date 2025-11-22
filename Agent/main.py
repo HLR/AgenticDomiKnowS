@@ -2,7 +2,7 @@ from __future__ import annotations
 import argparse
 import sys; sys.path.append("../")
 from Agent.LLM.llm import LLM
-from Agent.Graph.graph_prompt import get_graph_prompt, get_graph_reviewer_prompt
+from Agent.utils import exec_code
 from Agent.Graph.graph_agent import graph_swe_agent, graph_exe_agent, graph_reviewer_agent
 from Agent.Property.property_agent import property_agent
 from Agent.Property.collab import create_notebook
@@ -12,6 +12,8 @@ from Agent.utils import extract_python_code, code_prefix, load_all_examples_info
 from langgraph.checkpoint.memory import InMemorySaver
 from Agent.Sensor.sensor_agent import sensor_agent
 from langgraph.types import interrupt, Command
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class BuildState(TypedDict):
     Task_ID: str
@@ -39,6 +41,7 @@ class BuildState(TypedDict):
     property_human_text: str
     property_rag_examples: List[str]
     final_code_text: str
+    final_code_output: str
 
 def build_graph(
     llm: Optional[Callable[[Any], str]] = None,
@@ -99,12 +102,13 @@ def build_graph(
         human_response = interrupt("Did human set up the properties")
         property_human_text = human_response.get("property_human_text", "")
         final_code_text = property_agent(llm, property_human_text, state.get("entire_sensor_codes")[-1], state.get("property_rag_examples"))
+        captured_prints, captured_stderr, captured_error = exec_code(final_code_text)
         try:
             file_name = str(state.get("Task_ID","tmp"))
             create_notebook(final_code_text, f"notebooks/{file_name}.ipynb")
         except Exception as e:
             print(f"Error creating notebook: {e}")
-        return {"final_code_text" : final_code_text}
+        return {"final_code_text" : final_code_text, "final_code_output": captured_prints+captured_stderr+captured_error}
 
     builder = StateGraph(BuildState)
     builder.add_node("graph_swe_agent_node", graph_swe_agent_node)

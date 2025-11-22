@@ -56,15 +56,18 @@ def _run_single(task_id: str, task_name: str, task_text: str, gold_graph: str, p
 
             state: Dict[str, Any] = dict(snap.values or {})
             final_code_text = state.get("final_code_text", "") or ""
+            final_code_output = state.get("final_code_output", "") or ""
 
             return {
                 "final_code_text": final_code_text,
+                "final_code_output": final_code_output,
             }
 
     except Exception:
         err_text = traceback.format_exc()
         return {
             "final_code_text": err_text,
+            "final_code_output": err_text,
         }
     finally:
         buf_out.close()
@@ -122,6 +125,7 @@ def main(argv: List[str] | None = None) -> int:
 
     fieldnames = [
         "final_code_text",
+        "final_code_output",
     ]
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -132,6 +136,7 @@ def main(argv: List[str] | None = None) -> int:
         for res in results:
             row = {
                 "final_code_text": res.get("final_code_text", ""),
+                "final_code_output": res.get("final_code_output", ""),
             }
             writer.writerow(row)
 
