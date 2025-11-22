@@ -80,11 +80,11 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("--output-path", type=str, default="../datasets/")
     parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal", "low", "medium", "high"], help="Set the LLM reasoning effort level")
+    parser.add_argument("--samples", type=int, default=2, help="Number of repeated runs to execute and save (files will be suffixed 0..N-1 if N>1)")
 
     args = parser.parse_args(argv)
 
     csv_path = Path(args.csv_path)
-    out_path = Path(args.output_path + f"/{args.reasoning_effort}_" + "property_test_results.csv")
 
     rows: List[Dict[str, str]] = []
     with csv_path.open("r", newline="", encoding="utf-8") as f:
@@ -103,44 +103,62 @@ def main(argv: List[str] | None = None) -> int:
         property_text = (row.get("property") or "").strip()
         tasks.append((task_id, task_name, task_text, gold_graph, property_text))
 
-    print(f"Starting {len(tasks)} tasks with {args.workers} workers. Output -> {out_path}")
+    # Normalize samples value
+    total_samples = args.samples if isinstance(args.samples, int) else 1
+    if total_samples <= 0:
+        print(f"[warn] --samples was {args.samples}, defaulting to 1")
+        total_samples = 1
 
-    results: List[Dict[str, str]] = []
-    with ProcessPoolExecutor(max_workers=args.workers) as ex:
-        fut_to_idx = {
-            ex.submit(
-                _run_single,
-                task_id,
-                task_name,
-                task_text,
-                gold_graph,
-                property_text,
-                args.reasoning_effort,
-            ): i
-            for i, (task_id, task_name, task_text, gold_graph, property_text) in enumerate(tasks)
-        }
-        for fut in as_completed(fut_to_idx):
-            res_row = fut.result()
-            results.append(res_row)
+    for sample_idx in range(total_samples):
+        # Decide output filename per sample
+        if total_samples > 1:
+            out_path = Path(args.output_path + f"/{args.reasoning_effort}_" + f"property_test_results_{sample_idx}.csv")
+        else:
+            out_path = Path(args.output_path + f"/{args.reasoning_effort}_" + "property_test_results.csv")
 
-    fieldnames = [
-        "final_code_text",
-        "final_code_output",
-    ]
+        print(
+            (
+                f"Starting sample {sample_idx + 1}/{total_samples}: "
+                f"{len(tasks)} tasks with {args.workers} workers. Output -> {out_path}"
+            )
+        )
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for res in results:
-            row = {
-                "final_code_text": res.get("final_code_text", ""),
-                "final_code_output": res.get("final_code_output", ""),
+        results: List[Dict[str, str]] = []
+        with ProcessPoolExecutor(max_workers=args.workers) as ex:
+            fut_to_idx = {
+                ex.submit(
+                    _run_single,
+                    task_id,
+                    task_name,
+                    task_text,
+                    gold_graph,
+                    property_text,
+                    args.reasoning_effort,
+                ): i
+                for i, (task_id, task_name, task_text, gold_graph, property_text) in enumerate(tasks)
             }
-            writer.writerow(row)
+            for fut in as_completed(fut_to_idx):
+                res_row = fut.result()
+                results.append(res_row)
 
-    print(f"Completed. Wrote {len(results)} rows to {out_path}")
+        fieldnames = [
+            "final_code_text",
+            "final_code_output",
+        ]
+
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with out_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for res in results:
+                row = {
+                    "final_code_text": res.get("final_code_text", ""),
+                    "final_code_output": res.get("final_code_output", ""),
+                }
+                writer.writerow(row)
+
+        print(f"Completed sample {sample_idx + 1}/{total_samples}. Wrote {len(results)} rows to {out_path}")
     return 0
 
 
