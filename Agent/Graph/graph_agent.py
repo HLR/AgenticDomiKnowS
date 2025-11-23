@@ -52,5 +52,5 @@ def graph_reviewer_agent(llm, Task_definition, code, rag_selected):
             msgs.append({"role": "assistant", "content": assistant_msg})
         i += 2
     msgs.append({"role": "user", "content": Task_definition + code})
-    review_text = llm.review(msgs)
+    review_text = llm(msgs)
     return review_text, "approve" in review_text.lower()

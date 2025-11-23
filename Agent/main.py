@@ -57,7 +57,7 @@ def build_graph(
         return {"graph_exe_notes": state.get("graph_exe_notes", []) + [captured_error] ,"graph_exe_agent_approved": captured_error == ""}
 
     def graph_reviewer_agent_node(state: BuildState) -> BuildState:
-        review_text, approved = graph_reviewer_agent(llm, state.get("Task_definition", ""), list(state.get("graph_code_draft", []))[-1], list(state.get("graph_rag_examples", [])))
+        review_text, approved = graph_reviewer_agent(llm.review, state.get("Task_definition", ""), list(state.get("graph_code_draft", []))[-1], list(state.get("graph_rag_examples", [])))
         return {"graph_review_notes": list(state.get("graph_review_notes", [])) + [review_text], "graph_reviewer_agent_approved": approved,}
 
     def join_review_exe(state: BuildState) -> BuildState:
@@ -88,7 +88,7 @@ def build_graph(
         sensor_codes_list, entire_sensor_codes_list, sensor_code_outputs = [], [], []
         attempts = int(state.get("sensor_attempt", 0))
         while attempts:
-            code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"), prev_code, outputs)
+            code, sensor_code, captured_prints, captured_stderr, captured_error = sensor_agent(llm.make_sensor, state.get("Task_definition", ""), state.get("graph_code_draft")[-1], state.get("sensor_rag_examples"), prev_code, outputs)
             attempts -= 1
             outputs = captured_prints+captured_stderr+captured_error
             prev_code = sensor_code
@@ -101,7 +101,7 @@ def build_graph(
     def property_agent_node(state: BuildState) -> BuildState:
         human_response = interrupt("Did human set up the properties")
         property_human_text = human_response.get("property_human_text", "")
-        final_code_text = property_agent(llm, property_human_text, state.get("entire_sensor_codes")[-1], state.get("property_rag_examples"))
+        final_code_text = property_agent(llm.assign_property, property_human_text, state.get("entire_sensor_codes")[-1], state.get("property_rag_examples"))
         captured_prints, captured_stderr, captured_error = exec_code(final_code_text)
         try:
             file_name = str(state.get("Task_ID","tmp"))
@@ -162,7 +162,6 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
         "final_code_text": ""
     }
 
-    
     print("=== INITIAL STATE CREATED ===")
     llm = LLM(reasoning_effort=reasoning_effort)
     graph_DB = upsert_examples(llm, examples=graph_examples or [])
@@ -178,7 +177,7 @@ def main(argv: Optional[List[str]] = None):
     parser.add_argument("--graph-examples",nargs="+",type=str,default=load_all_examples_info(),help="List of other examples (paths or text) for RAG",)
     parser.add_argument("--graph-rag-k", type=int, default=5, help="Number of relevant examples to retrieve with RAG (0 to disable) for the graph")
     parser.add_argument("--max-graphs-check",type=int,default=3 ,help="Maximum revision attempts before triggering human final approval",)
-    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
+    parser.add_argument("--reasoning-effort", nargs="+", default=["low","low","low"], choices=["minimal","low","medium","high"], help="Set the LLM reasoning effort level")
     args = parser.parse_args(argv)
 
     initial_state, graph = pre_process_graph(
