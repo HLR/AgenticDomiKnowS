@@ -38,7 +38,8 @@ app.add_middleware(
 #app.add_middleware(MongoLoggingMiddleware)
 
 initial_state, graph = pre_process_graph(
-        reasoning_effort=["low","medium","medium"],
+        #reasoning_effort=["low","medium","medium"],
+        reasoning_effort="minimal",
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_examples_info("static/"),
@@ -181,13 +182,18 @@ async def step_graph(
     print(f"📊 Changes detected: {new_changes}")
     print(f"📊 graph_human_approved in incoming state: {state.get('graph_human_approved')}")
     print(f"📊 graph_human_approved in prev_state: {prev_state.get('graph_human_approved')}")
+    print("next steps 1: ",graph.get_state(config=config).next)
     print("=" * 80)
 
+    if 'property_human_text' in new_changes:
+        await graph.ainvoke(None, config=ctx["session"]["data"]["config"])
+        if new_changes:
+            await graph.ainvoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
     await graph.ainvoke(None, config=ctx["session"]["data"]["config"])
+    print("next steps 2: ",graph.get_state(config=config).next)
     if new_changes:
         await graph.ainvoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
-
-    
+    print("next steps 3: ", graph.get_state(config=config).next)
     final_state = graph.get_state(config=config).values
     print("=" * 80)
     print("📤 RETURNING STATE TO FRONTEND")
