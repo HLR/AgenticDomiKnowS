@@ -923,7 +923,9 @@ class Graph(BaseGraphTree):
         concept_graph.attr(label=f"Graph: {self.name}") 
 
         for concept_name, concept in self.concepts.items():
-            concept_graph.node(concept_name)
+            print(concept_name)
+            if not concept_name=="constraint":
+                concept_graph.node(concept_name)
 
         for subgraph_name, subgraph in self.subgraphs.items():
             sub_graph_viz = subgraph.visualize(filename=None)
