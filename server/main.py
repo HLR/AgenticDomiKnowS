@@ -164,6 +164,7 @@ async def step_graph(
     ctx = Depends(current_session),
     user: CurrentUser = Depends(get_current_user),
 ):
+    del buildstate["final_code_output"]
     session_store = ctx["session"]
     session_store.setdefault("data", {})
     config = session_store["data"].get("config")
@@ -181,10 +182,11 @@ async def step_graph(
     print(f"📊 graph_human_approved in incoming state: {state.get('graph_human_approved')}")
     print(f"📊 graph_human_approved in prev_state: {prev_state.get('graph_human_approved')}")
     print("=" * 80)
-    
+
+    await graph.ainvoke(None, config=ctx["session"]["data"]["config"])
     if new_changes:
         await graph.ainvoke(Command(resume=new_changes), config=ctx["session"]["data"]["config"])
-    await graph.ainvoke(None, config=ctx["session"]["data"]["config"])
+
     
     final_state = graph.get_state(config=config).values
     print("=" * 80)
