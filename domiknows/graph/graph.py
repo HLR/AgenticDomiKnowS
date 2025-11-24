@@ -920,7 +920,7 @@ class Graph(BaseGraphTree):
         '''
         import graphviz
         concept_graph = graphviz.Digraph(name=f"{self.name}")
-        concept_graph.attr(label=f"Graph: {self.name}") 
+        #concept_graph.attr(label=f"Graph: {self.name}")
 
         for concept_name, concept in self.concepts.items():
             print(concept_name)
