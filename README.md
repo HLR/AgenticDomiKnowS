@@ -4,7 +4,7 @@ AI-powered knowledge graph generation system with human-in-the-loop validation. 
 
 ## Prerequisites
 
-- Python 3.9 or above
+- Python 3.13
 - Node.js 16+ and npm
 - OpenAI API KEY
   
