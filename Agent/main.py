@@ -65,7 +65,7 @@ def build_graph(
 
     def graph_human_agent(state: BuildState) -> BuildState:
         human_response = interrupt("Did human approve?")
-        graph_human_approved, graph_human_notes = human_response.get("graph_human_approved", ""), human_response.get("graph_human_notes", "")
+        graph_human_approved, graph_human_notes = human_response.get("graph_human_approved", False), human_response.get("graph_human_notes", "")
         if graph_human_approved: return {"graph_human_approved" : graph_human_approved, "graph_human_notes": graph_human_notes}
         return {"graph_human_approved" : graph_human_approved, "graph_human_notes": graph_human_notes, "graph_review_notes": [], "graph_reviewer_agent_approved": False, "graph_exe_notes": [], "graph_exe_agent_approved": False, "graph_attempt": 0}
 
