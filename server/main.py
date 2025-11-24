@@ -38,11 +38,11 @@ app.add_middleware(
 #app.add_middleware(MongoLoggingMiddleware)
 
 initial_state, graph = pre_process_graph(
-        reasoning_effort="medium",
+        reasoning_effort=["low","medium","medium"],
         task_id="Deploy",
         task_description="Create a Graph",
         graph_examples=load_all_examples_info("static/"),
-        graph_rag_k=3,
+        graph_rag_k=5,
         max_graphs_check=3
     )
 
