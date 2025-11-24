@@ -59,6 +59,8 @@ def _run_single(task_id: str, task_name: str, task_text: str, gold_graph: str, p
             final_code_output = state.get("final_code_output", "") or ""
 
             return {
+                "ID": str(task_id),
+                "name": str(task_name),
                 "final_code_text": final_code_text,
                 "final_code_output": final_code_output,
             }
@@ -66,6 +68,8 @@ def _run_single(task_id: str, task_name: str, task_text: str, gold_graph: str, p
     except Exception:
         err_text = traceback.format_exc()
         return {
+            "ID": str(task_id),
+            "name": str(task_name),
             "final_code_text": err_text,
             "final_code_output": err_text,
         }
@@ -78,9 +82,9 @@ def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Agent Property over CSV tasks in parallel")
     parser.add_argument("--csv-path", type=str, default="../datasets/lang_to_code_test.csv")
     parser.add_argument("--output-path", type=str, default="../datasets/")
-    parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
-    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal", "low", "medium", "high"], help="Set the LLM reasoning effort level")
-    parser.add_argument("--samples", type=int, default=2, help="Number of repeated runs to execute and save (files will be suffixed 0..N-1 if N>1)")
+    parser.add_argument("--workers", type=int, default=12)
+    parser.add_argument("--reasoning-effort", default=["low","medium","medium"], choices=["minimal", "low", "medium", "high"], help="Set the LLM reasoning effort level")
+    parser.add_argument("--samples", type=int, default=5, help="Number of repeated runs to execute and save (files will be suffixed 0..N-1 if N>1)")
 
     args = parser.parse_args(argv)
 
@@ -141,7 +145,19 @@ def main(argv: List[str] | None = None) -> int:
                 res_row = fut.result()
                 results.append(res_row)
 
+        # Sort results by numeric ID if possible, otherwise lexicographically
+        def _sort_key(r: Dict[str, str]):
+            sid = r.get("ID", "")
+            try:
+                return (0, int(str(sid).strip()))
+            except Exception:
+                return (1, str(sid))
+
+        results.sort(key=_sort_key)
+
         fieldnames = [
+            "ID",
+            "name",
             "final_code_text",
             "final_code_output",
         ]
@@ -153,6 +169,8 @@ def main(argv: List[str] | None = None) -> int:
             writer.writeheader()
             for res in results:
                 row = {
+                    "ID": res.get("ID", ""),
+                    "name": res.get("name", ""),
                     "final_code_text": res.get("final_code_text", ""),
                     "final_code_output": res.get("final_code_output", ""),
                 }

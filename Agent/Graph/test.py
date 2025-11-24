@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, csv, io, os, json, traceback
+import argparse, csv, io, traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import redirect_stdout, redirect_stderr
 from datetime import datetime
@@ -9,11 +9,10 @@ from Agent.main import pre_process_graph
 from Agent.utils import load_all_examples_info
 from langgraph.types import Command
 
-def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: bool) -> List[Dict[str, Any]]:
+def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: List[str], reasoning_effort: str) -> List[Dict[str, Any]]:
     """
     Run a single task end-to-end without calling Agent.main.main.
     Returns a list of CSV row dicts — one row per graph attempt with its reviews.
-    Also captures a raw JSON snapshot of the agent state at each attempt.
     """
     buf_out = io.StringIO()
     buf_err = io.StringIO()
@@ -32,41 +31,21 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
                 task_description=task_text,
                 graph_examples=list(graph_examples or []),
                 graph_rag_k=5,
-                max_graphs_check=2,
+                max_graphs_check=5,
             )
 
             # Drive the graph loop similarly to Agent.main.main
             config = {"configurable": {"thread_id": "ID: " + str(task_id)}}
             graph.invoke(initial_state, config=config, stream_mode="updates")
 
-            # Collect per-iteration snapshots so we can attach them to attempts later
-            iteration_snapshots: List[Dict[str, Any]] = []
-
             while True:
                 snap = graph.get_state(config=config)
-                # Deep-copy to plain JSON-serializable dict to avoid later mutation
-                try:
-                    snapshot_copy = json.loads(json.dumps(dict(snap.values or {})))
-                except Exception:
-                    # Fallback to shallow copy if something is not JSON-serializable
-                    snapshot_copy = dict(snap.values or {})
-                iteration_snapshots.append(snapshot_copy)
 
                 if not snap.next or snap.next[0]=='sensor_agent_node':
                     break
                 graph.invoke(Command(resume={"graph_human_approved": True}), config=config)
 
             state: Dict[str, Any] = dict(snap.values or {})
-
-            # Build a lookup from attempt number -> snapshot dict
-            attempt_to_snapshot: Dict[int, Dict[str, Any]] = {}
-            for s in iteration_snapshots:
-                try:
-                    a = int(s.get("graph_attempt", 0))
-                    if a > 0 and a not in attempt_to_snapshot:
-                        attempt_to_snapshot[a] = s
-                except Exception:
-                    continue
 
             drafts: List[str] = list(state.get("graph_code_draft", []) or [])
             reviews: List[str] = list(state.get("graph_review_notes", []) or [])
@@ -80,13 +59,6 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
                 reviewer_approved = ("approve" in (review_i or "").lower())
                 exe_approved = (exec_i or "").strip() == ""
 
-                # Attach the raw JSON snapshot for this attempt (if available)
-                snapshot_dict = attempt_to_snapshot.get(i + 1)
-                try:
-                    snapshot_json = json.dumps(snapshot_dict, ensure_ascii=False)
-                except Exception:
-                    snapshot_json = "" if snapshot_dict is None else str(snapshot_dict)
-
                 rows.append({
                     "id": task_id,
                     "name": task_name,
@@ -97,7 +69,6 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
                     "exec_notes": exec_i,
                     "reviewer_approved": reviewer_approved,
                     "exe_approved": exe_approved,
-                    "agent_snapshot": snapshot_json,
                 })
 
     except Exception:
@@ -113,7 +84,6 @@ def _run_single(task_id: str, task_name: str, task_text: str, graph_examples: Li
             "exec_notes": err_text,
             "reviewer_approved": False,
             "exe_approved": False,
-            "agent_snapshot": "",
         })
     finally:
         stdout = buf_out.getvalue()
@@ -131,13 +101,13 @@ def main(argv: List[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run Agent.main over CSV tasks in parallel")
     parser.add_argument("--csv-path", type=str, default="../datasets/lang_to_code_test.csv")
     parser.add_argument("--output-path", type=str, default="../datasets/")
-    parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
-    parser.add_argument("--reasoning-effort", default="minimal", choices=["minimal", "low", "medium", "high"],help="Set the LLM reasoning effort level")
+    parser.add_argument("--workers", type=int, default=12)
+    parser.add_argument("--reasoning-effort", default="low", choices=["minimal", "low", "medium", "high"],help="Set the LLM reasoning effort level")
+    parser.add_argument("--samples", type=int, default=1, help="Number of repeated runs to execute and save (files will be suffixed 0..N-1 if N>1)")
 
     args = parser.parse_args(argv)
 
     csv_path = Path(args.csv_path)
-    out_path = Path(args.output_path+f"/{args.reasoning_effort}_"+"graph_test_results.csv")
 
     rows: List[Dict[str, str]] = []
     with csv_path.open("r", newline="", encoding="utf-8") as f:
@@ -155,71 +125,103 @@ def main(argv: List[str] | None = None) -> int:
         task_text = (desc + ("\n\n" + constr if constr else "")) if desc or constr else ""
         tasks.append((task_id, task_name, task_text, gold_graph))
 
-    print(f"Starting {len(tasks)} tasks with {args.workers} workers. Output -> {out_path}")
-    # Collect rows from all tasks
-    results: List[Dict[str, Any]] = []
-    with ProcessPoolExecutor(max_workers=args.workers) as ex:
-        fut_to_idx = {
-            ex.submit(
-                _run_single,
-                task_id,
-                task_name,
-                task_text,
-                load_all_examples_info("", gold_graph),
-                args.reasoning_effort,
-            ): i
-            for i, (task_id, task_name, task_text, gold_graph) in enumerate(tasks)
-        }
-        for fut in as_completed(fut_to_idx):
-            res_rows = fut.result()  # List[Dict]
-            results.extend(res_rows)
+    # Normalize samples value
+    total_samples = args.samples if isinstance(args.samples, int) else 1
+    if total_samples <= 0:
+        print(f"[warn] --samples was {args.samples}, defaulting to 1")
+        total_samples = 1
 
-    # Sort rows by task id then attempt for readability
-    try:
-        results.sort(key=lambda r: (str(r.get("id", "")), int(r.get("attempt", 0)) if str(r.get("attempt", "")).isdigit() else 0))
-    except Exception:
-        pass
+    for sample_idx in range(total_samples):
+        # Decide output filename per sample
+        output_dir = Path(args.output_path)
+        if total_samples > 1:
+            out_path = output_dir / f"{args.reasoning_effort}_graph_test_results_{sample_idx}.csv"
+        else:
+            out_path = output_dir / f"{args.reasoning_effort}_graph_test_results.csv"
 
-    fieldnames = [
-        "id",
-        "name",
-        "task_description",
-        "attempt",
-        "graph_code",
-        "agent_snapshot",
-        "reviewer_review",
-        "exec_notes",
-        "reviewer_approved",
-        "exe_approved",
-        "stdout",
-        "stderr",
-        "generated_at",
-        "reasoning_effort",
-    ]
-    generated_at = datetime.now().isoformat(timespec="seconds")
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for res in results:
-            row = {
-                "id": res.get("id", ""),
-                "name": res.get("name", ""),
-                "task_description": res.get("task_description", ""),
-                "attempt": res.get("attempt", ""),
-                "graph_code": res.get("graph_code", ""),
-                "agent_snapshot": res.get("agent_snapshot", ""),
-                "reviewer_review": res.get("reviewer_review", ""),
-                "exec_notes": res.get("exec_notes", ""),
-                "reviewer_approved": res.get("reviewer_approved", False),
-                "exe_approved": res.get("exe_approved", False),
-                "stdout": res.get("stdout", ""),
-                "stderr": res.get("stderr", ""),
-                "generated_at": generated_at,
-                "reasoning_effort": args.reasoning_effort,
+        print(
+            (
+                f"Starting sample {sample_idx + 1}/{total_samples}: "
+                f"{len(tasks)} tasks with {args.workers} workers. Output -> {out_path}"
+            )
+        )
+
+        # Collect rows from all tasks
+        results: List[Dict[str, Any]] = []
+        with ProcessPoolExecutor(max_workers=args.workers) as ex:
+            fut_to_idx = {
+                ex.submit(
+                    _run_single,
+                    task_id,
+                    task_name,
+                    task_text,
+                    load_all_examples_info("", gold_graph),
+                    args.reasoning_effort,
+                ): i
+                for i, (task_id, task_name, task_text, gold_graph) in enumerate(tasks)
             }
-            writer.writerow(row)
+            for fut in as_completed(fut_to_idx):
+                res_rows = fut.result()  # List[Dict]
+                results.extend(res_rows)
 
-    print(f"Completed. Wrote {len(results)} rows to {out_path}")
+        # Sort rows by numeric id when possible (fallback to lexicographic), then by attempt
+        try:
+            def _sort_key(r: Dict[str, Any]):
+                sid = r.get("id", "")
+                try:
+                    id_key = (0, int(str(sid).strip()))
+                except Exception:
+                    id_key = (1, str(sid))
+                try:
+                    att = int(str(r.get("attempt", 0)).strip())
+                except Exception:
+                    att = 0
+                return (id_key[0], id_key[1], att)
+
+            results.sort(key=_sort_key)
+        except Exception:
+            pass
+
+        fieldnames = [
+            "id",
+            "name",
+            "task_description",
+            "attempt",
+            "graph_code",
+            "reviewer_review",
+            "exec_notes",
+            "reviewer_approved",
+            "exe_approved",
+            "stdout",
+            "stderr",
+            "generated_at",
+            "reasoning_effort",
+        ]
+        generated_at = datetime.now().isoformat(timespec="seconds")
+        # Ensure the output directory exists before writing
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with out_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for res in results:
+                row = {
+                    "id": res.get("id", ""),
+                    "name": res.get("name", ""),
+                    "task_description": res.get("task_description", ""),
+                    "attempt": res.get("attempt", ""),
+                    "graph_code": res.get("graph_code", ""),
+                    "reviewer_review": res.get("reviewer_review", ""),
+                    "exec_notes": res.get("exec_notes", ""),
+                    "reviewer_approved": res.get("reviewer_approved", False),
+                    "exe_approved": res.get("exe_approved", False),
+                    "stdout": res.get("stdout", ""),
+                    "stderr": res.get("stderr", ""),
+                    "generated_at": generated_at,
+                    "reasoning_effort": args.reasoning_effort,
+                }
+                writer.writerow(row)
+
+        print(f"Completed sample {sample_idx + 1}/{total_samples}. Wrote {len(results)} rows to {out_path}")
     return 0
 
 if __name__ == "__main__":
