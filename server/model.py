@@ -43,6 +43,8 @@ def typed_dict_to_model(data: dict, model_cls: Type[T]) -> T:
 
 
 def model_to_typed_dict(model_instance) -> dict:
+    if type(model_instance) is tuple:
+        return model_instance[0].model_dump()
     return model_instance.model_dump()
 
 
