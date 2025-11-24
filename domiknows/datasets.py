@@ -82,26 +82,36 @@ WOS_dataset = [
 # label meanings: 2: B, 0: I, 1: O
 IOB_dataset = [
     {
+        "sentence_id":[0],
+        "token_ids":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17],
         "tokens" : ["Sydney", "Airport", "announces", "range", "of", "new", "sustainability", "goals", "Finland", "is", "on", "track", "to", "be", "carbon", "neutral", "by", "2035"],
         "labels": [2, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 0, 1, 2],
         "labels_tags" : ["B", "I", "O", "O", "O", "O", "O", "O", "B", "O", "O", "O", "O", "O", "B", "I", "O", "B"]
     },
     {
+        "sentence_id":[0],
+        "token_ids":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
         "tokens": ["United", "Nations", "Environment", "Programme", "launches", "climate", "report", "in", "New", "York", "on", "April", "5", ",", "2025"],
         "labels": [2, 0, 0, 0, 1, 1, 1, 1, 2, 0, 1, 2, 0, 1, 0],
         "labels_tags": ["B", "I", "I", "I", "O", "O", "O", "O", "B", "I", "O", "B", "I", "O", "I"]
     },
     {
+        "sentence_id":[0],
+        "token_ids":[0,1,2,3,4,5,6,7,8,9],
         "tokens": ["European", "Commission", "presents", "Green", "Deal", "roadmap", "in", "Brussels", "on", "Tuesday"],
         "labels": [2, 0, 1, 2, 0, 1, 1, 2, 1, 2],
         "labels_tags": ["B", "I", "O", "B", "I", "O", "O", "B", "O", "B"]
     },
     {
+        "sentence_id":[0],
+        "token_ids":[0,1,2,3,4,5,6,7,8,9,10,11],
         "tokens": ["World", "Health", "Organization", "issues", "alert", "about", "new", "virus", "strain", "in", "South", "America"],
         "labels": [2, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 0],
         "labels_tags": ["B", "I", "I", "O", "O", "O", "O", "O", "O", "O", "B", "I"]
     },
     {
+        "sentence_id":[0],
+        "token_ids":[0,1,2,3,4,5,6,7,8,9,10],
         "tokens": ["Tesla", "announces", "expansion", "of", "Gigafactory", "Berlin", "on", "March", "15", ",", "2026"],
         "labels": [2, 1, 1, 1, 2, 0, 1, 2, 0, 1, 2],
         "labels_tags": ["B", "O", "O", "O", "B", "I", "O", "B", "I", "O", "B"]
