@@ -7,7 +7,7 @@ from fastapi import FastAPI, Response, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import sys; sys.path.append("../")
-import os
+import os, copy
 from Agent.main import pre_process_graph
 from server.model import typed_dict_to_model, BuildStateModel, typed_dict_changes
 from server.session import *
@@ -142,7 +142,7 @@ async def init_graph(
     sess.setdefault("user_id", user.username)
     session_id = ctx["sid"]
 
-    new_state = initial_state.copy()
+    new_state = copy.deepcopy(initial_state)
     new_state["Task_definition"] = task_description
     new_state["Task_ID"] = str(session_id)
     config = {"configurable": {"thread_id": "ID: " + str(session_id)}}
