@@ -3,26 +3,31 @@
 # i) Amazon Reviews Dataset
 amazon_reviews_dataset = [
     {
+      "review_id": [0],
       "label": [0],
       "title": ["Completely useless"],
       "text": ["The cable didn’t work at all. My phone never recognized it, and it felt flimsy right out of the box. Total waste of money."]
     },
     {
+      "review_id": [0],
       "label": [1],
       "title": ["Below expectations"],
       "text": ["The blender works, but it struggles with anything harder than a banana. Very loud and the plastic feels cheap. I expected better for the price."]
     },
     {
+      "review_id": [0],
       "label": [2],
       "title": ["Just okay"],
       "text": ["The keyboard is fine for basic typing, but the keys are a bit stiff and the backlight is uneven. Not terrible, but nothing special either."]
     },
     {
+      "review_id": [0],
       "label": [3],
       "title": ["Pretty good overall"],
       "text": ["The vacuum has strong suction and is easy to maneuver. The dust container is a bit small, but for the price it’s a solid choice."]
     },
     {
+      "review_id": [0],
       "label": [4],
       "title": ["Exceeded my expectations"],
       "text": ["Amazing sound quality for such a small speaker. Battery life is great, Bluetooth connects instantly, and it feels very well made. I’d buy it again."]
