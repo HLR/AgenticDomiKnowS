@@ -8,7 +8,7 @@ from Agent.Property.property_agent import property_agent
 from Agent.Property.collab import create_notebook
 from typing import Any, Callable, Dict, List, Optional, TypedDict
 from langgraph.graph import StateGraph, END, START
-from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples
+from Agent.utils import extract_python_code, code_prefix, load_all_examples_info, upsert_examples, select_graph_examples, exec_code
 from langgraph.checkpoint.memory import InMemorySaver
 from Agent.Sensor.sensor_agent import sensor_agent
 from langgraph.types import interrupt, Command
@@ -37,6 +37,7 @@ class BuildState(TypedDict):
     entire_sensor_codes: List[str]
     sensor_code_outputs: List[str]
     sensor_rag_examples: List[str]
+    sensor_part_finished: bool
 
     property_human_text: str
     property_rag_examples: List[str]
@@ -98,6 +99,21 @@ def build_graph(
             if not "Traceback" in outputs: break
         return {"sensor_codes": sensor_codes_list, "entire_sensor_codes":entire_sensor_codes_list , "sensor_code_outputs": sensor_code_outputs}
 
+    def sensor_change_agent_node(state: BuildState) -> BuildState:
+        print("Sensor change agent node")
+        human_response = interrupt("Did human change the sensor code?")
+        if not human_response.get("sensor_human_changed", False): return {"sensor_part_finished": True}
+        sensor_code = human_response.get("sensor_codes")[-1]
+        sensor_codes_list, entire_sensor_codes_list, sensor_code_outputs = state.get("sensor_codes", []), state.get("entire_sensor_codes", []), state.get("sensor_code_outputs", [])
+        code = code_prefix + "\n" + state.get("graph_code_draft")[-1] + "\n" + sensor_code
+        captured_prints, captured_stderr, captured_error = exec_code(code)
+        outputs = captured_prints + captured_stderr + captured_error
+        return {"sensor_codes": sensor_codes_list + [sensor_code], "entire_sensor_codes":entire_sensor_codes_list + [code] , "sensor_code_outputs": sensor_code_outputs +[outputs], "sensor_human_changed": False}
+
+    def route_after_sensor_change(state: BuildState) -> str:
+        if bool(state.get("sensor_part_finished")): return "approved"
+        return "reform"
+
     def property_agent_node(state: BuildState) -> BuildState:
         human_response = interrupt("Did human set up the properties")
         property_human_text = human_response.get("property_human_text", "")
@@ -119,6 +135,7 @@ def build_graph(
     builder.add_node("graph_rag_selector", graph_rag_selector)
 
     builder.add_node("sensor_agent_node", sensor_agent_node)
+    builder.add_node("sensor_change_agent_node", sensor_change_agent_node)
 
     builder.add_node("property_agent_node", property_agent_node)
 
@@ -131,11 +148,12 @@ def build_graph(
     builder.add_conditional_edges("join_review_exe", route_after_review, {"to_human": "graph_human_agent", "revise": "graph_swe_agent_node",},)
     builder.add_conditional_edges("graph_human_agent", route_after_human, {"approved": "sensor_agent_node", "reform": "graph_swe_agent_node",},)
 
-    builder.add_edge("sensor_agent_node", "property_agent_node")
+    builder.add_edge("sensor_agent_node", "sensor_change_agent_node")
+    builder.add_conditional_edges("sensor_change_agent_node", route_after_sensor_change, {"approved": "property_agent_node", "reform": "sensor_change_agent_node", }, )
     builder.add_edge("property_agent_node", END)
 
     checkpointer = InMemorySaver()
-    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent","sensor_agent_node","property_agent_node"])
+    graph = builder.compile(checkpointer=checkpointer, interrupt_before=["join_review_exe","graph_human_agent","sensor_agent_node","sensor_change_agent_node","property_agent_node"])
     return graph
 
 def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="", graph_examples=load_all_examples_info(), graph_rag_k=3, max_graphs_check=3):
@@ -158,6 +176,7 @@ def pre_process_graph(reasoning_effort = "medium", task_id=0, task_description="
         "entire_sensor_codes": [],
         "sensor_code_outputs": [],
         "sensor_rag_examples": [],
+        "sensor_part_finished": False,
         "property_human_text": "",
         "final_code_text": ""
     }
