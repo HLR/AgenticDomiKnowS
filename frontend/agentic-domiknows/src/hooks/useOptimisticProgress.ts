@@ -89,7 +89,7 @@ export function useOptimisticProgress(
           step: `ai_review_${i + 1}`,
           message: isApproved 
             ? `Graph Reviewer Agent (Attempt ${i + 1}): ✅ Approved - ${reviewNote.substring(0, 50)}${reviewNote.length > 50 ? '...' : ''}`
-            : `Graph Reviewer Agent (Attempt ${i + 1}): 🔄 ${reviewNote.substring(0, 60)}${reviewNote.length > 60 ? '...' : ''}`,
+            : `Graph Reviewer Agent (Attempt ${i + 1}): 🔄 ${reviewNote}`,
           timestamp: now,
           status: 'completed'
         });
@@ -103,7 +103,7 @@ export function useOptimisticProgress(
           step: `execution_check_${i + 1}`,
           message: passed 
             ? `Graph Execution Agent (Attempt ${i + 1}): ✅ Passed validation`
-            : `Graph Execution Agent (Attempt ${i + 1}): ❌ ${exeNote.substring(0, 50)}${exeNote.length > 50 ? '...' : ''}`,
+            : `Graph Execution Agent (Attempt ${i + 1}): ❌ ${exeNote}`,
           timestamp: now,
           status: 'completed'
         });
