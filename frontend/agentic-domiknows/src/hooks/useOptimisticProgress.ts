@@ -65,7 +65,7 @@ export function useOptimisticProgress(
     if (state.graph_rag_examples.length > 0) {
       steps.push({
         step: 'rag_selection',
-        message: `Selected ${state.graph_rag_examples.length} relevant examples from database`,
+        message: `Retrieved relevant examples from the RAG database`,
         timestamp: now,
         status: 'completed'
       });
@@ -76,7 +76,7 @@ export function useOptimisticProgress(
     for (let i = 0; i < state.graph_attempt; i++) {
       steps.push({
         step: `code_generation_${i + 1}`,
-        message: `Attempt ${i + 1}/${totalAttempts}: Generated code draft`,
+        message: `Attempt ${i + 1}/${totalAttempts}: Generated the graph code draft`,
         timestamp: now,
         status: 'completed'
       });
@@ -88,22 +88,22 @@ export function useOptimisticProgress(
         steps.push({
           step: `ai_review_${i + 1}`,
           message: isApproved 
-            ? `AI Review (Attempt ${i + 1}): ✅ Approved - ${reviewNote.substring(0, 50)}${reviewNote.length > 50 ? '...' : ''}`
-            : `AI Review (Attempt ${i + 1}): 🔄 ${reviewNote.substring(0, 60)}${reviewNote.length > 60 ? '...' : ''}`,
+            ? `Graph Reviewer Agent (Attempt ${i + 1}): ✅ Approved - ${reviewNote.substring(0, 50)}${reviewNote.length > 50 ? '...' : ''}`
+            : `Graph Reviewer Agent (Attempt ${i + 1}): 🔄 ${reviewNote.substring(0, 60)}${reviewNote.length > 60 ? '...' : ''}`,
           timestamp: now,
           status: 'completed'
         });
       }
 
       // Show execution if exists
-      if (state.graph_exe_notes[i]) {
+      if (state.graph_exe_notes[i] !== undefined && state.graph_exe_notes[i] !== null)  {
         const exeNote = state.graph_exe_notes[i];
         const passed = !exeNote.toLowerCase().includes('error') && !exeNote.toLowerCase().includes('failed');
         steps.push({
           step: `execution_check_${i + 1}`,
           message: passed 
-            ? `Execution (Attempt ${i + 1}): ✅ Passed validation` 
-            : `Execution (Attempt ${i + 1}): ❌ ${exeNote.substring(0, 50)}${exeNote.length > 50 ? '...' : ''}`,
+            ? `Graph Execution Agent (Attempt ${i + 1}): ✅ Passed validation`
+            : `Graph Execution Agent (Attempt ${i + 1}): ❌ ${exeNote.substring(0, 50)}${exeNote.length > 50 ? '...' : ''}`,
           timestamp: now,
           status: 'completed'
         });
@@ -208,12 +208,12 @@ export function useOptimisticProgress(
     }, 2500);
     simulationTimerRef.current.push(timer2);
 
-    // Step 4: AI Review (after 4s)
+    // Step 4: Graph Reviewer Agent (after 4s)
     const timer3 = setTimeout(() => {
       simulatedSteps[2].status = 'completed';
       simulatedSteps.push({
         step: 'reviewing',
-        message: 'AI agent reviewing generated code...',
+        message: 'Graph Reviewer Agent reviewing the generated code...',
         timestamp: new Date().toISOString(),
         status: 'active'
       });
