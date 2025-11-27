@@ -176,7 +176,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         >
           <div className="flex items-center justify-center">
             <span className="mr-2">✅</span>
-            Approve & Complete
+            Approve
           </div>
         </button>
 
@@ -195,17 +195,17 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
       {/* Feedback Input */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          Your Feedback {!buildState.graph_reviewer_agent_approved || !buildState.graph_exe_agent_approved ? '(Required for revision)' : '(Optional)'}
+          Explain your requested changes or feedback below:
         </label>
         <textarea
           value={feedback}
           onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Provide specific feedback on what needs to be improved or changed."
+          placeholder="Provide specific feedback on what needs to be improved or changed in the generated graph."
           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500"
           rows={3}
         />
         <div className="text-xs text-gray-500 flex items-center justify-between">
-          <span>💡 This feedback helps the AI understand what to improve</span>
+          <span>💡 Click on the Request Revision button to send the feedback to the Graph Reviewer Agent.</span>
           <span>{feedback.length} characters</span>
         </div>
       </div>
