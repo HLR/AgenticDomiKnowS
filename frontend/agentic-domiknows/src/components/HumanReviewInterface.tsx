@@ -168,6 +168,30 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         </div>
       )}
 
+    {/* Action Buttons */}
+      <div className="flex space-x-4">
+        <button
+          onClick={() => handleApproval(true)}
+          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
+        >
+          <div className="flex items-center justify-center">
+            <span className="mr-2">✅</span>
+            Approve & Complete
+          </div>
+        </button>
+
+        <button
+          onClick={() => handleApproval(false)}
+          disabled={feedback.trim().length === 0}
+          className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:from-orange-600 disabled:hover:to-red-600"
+        >
+          <div className="flex items-center justify-center">
+            <span className="mr-2">🔄</span>
+            Request Revision
+          </div>
+        </button>
+      </div>
+
       {/* Feedback Input */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
@@ -186,30 +210,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex space-x-4">
-        <button
-          onClick={() => handleApproval(true)}
-          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
-        >
-          <div className="flex items-center justify-center">
-            <span className="mr-2">✅</span>
-            Approve & Complete
-          </div>
-        </button>
 
-        <button
-          onClick={() => handleApproval(false)}
-          className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
-        >
-          <div className="flex items-center justify-center">
-            <span className="mr-2">🔄</span>
-            Request Revision
-          </div>
-        </button>
-      </div>
-
-      {/* RAG Examples */}
 
     </div>
   );
