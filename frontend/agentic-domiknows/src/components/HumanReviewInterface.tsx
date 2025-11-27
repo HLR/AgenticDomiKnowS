@@ -62,7 +62,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
 
       {/* Task Definition */}
       <div className="bg-blue-50 rounded-xl p-4">
-        <h4 className="font-medium text-blue-900 mb-2">Original Task</h4>
+        <h4 className="font-medium text-blue-900 mb-2">User Task Description</h4>
         <p className="text-blue-800">{buildState.Task_definition}</p>
       </div>
 
@@ -82,7 +82,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           {buildState.graph_review_notes.length > 1 && (
             <details className="mt-2">
               <summary className="text-xs text-green-600 cursor-pointer hover:text-green-800">
-                View all {buildState.graph_review_notes.length} review notes
+                View previous notes of the Graph Reviewer Agent
               </summary>
               <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                 {buildState.graph_review_notes.slice(0, -1).reverse().map((note, idx) => (
@@ -95,7 +95,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           )}
         </div>
 
-        {/* <div className="bg-purple-50 rounded-xl p-4">
+        <div className="bg-purple-50 rounded-xl p-4">
           <h4 className="font-medium text-purple-900 mb-2 flex items-center">
             <span className="mr-2">⚡</span>
             Execution Status
@@ -109,18 +109,18 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           {buildState.graph_exe_notes.length > 1 && (
             <details className="mt-2">
               <summary className="text-xs text-purple-600 cursor-pointer hover:text-purple-800">
-                View all {buildState.graph_exe_notes.length} execution notes
+                View previous notes of the Graph Execution Agent
               </summary>
               <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                 {buildState.graph_exe_notes.slice(0, -1).reverse().map((note, idx) => (
                   <p key={idx} className="text-xs text-purple-600 border-l-2 border-purple-300 pl-2">
-                    #{buildState.graph_exe_notes.length - idx - 1}: {note}
+                    #{buildState.graph_exe_notes.length - idx - 1}: {note && note.trim() !== '' ? note : 'No Error'}
                   </p>
                 ))}
               </div>
             </details>
           )}
-        </div> */}
+        </div>
       </div>
 
       {/* Generated Code */}
@@ -129,7 +129,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-gray-800 flex items-center">
               <span className="mr-2">💻</span>
-              Latest Generated Code (Draft #{buildState.graph_code_draft.length})
+              Latest Generated Graph (Draft #{buildState.graph_code_draft.length})
             </h4>
             {buildState.graph_code_draft.length > 1 && (
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
