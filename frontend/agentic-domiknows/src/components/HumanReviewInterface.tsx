@@ -71,7 +71,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         <div className="bg-green-50 rounded-xl p-4">
           <h4 className="font-medium text-green-900 mb-2 flex items-center">
             <span className="mr-2">🤖</span>
-            AI Reviewer Status
+            Verdict of the Graph Reviewer Agent
           </h4>
           <p className={`text-sm ${buildState.graph_reviewer_agent_approved ? 'text-green-800' : 'text-orange-800'}`}>
             {buildState.graph_reviewer_agent_approved ? '✅ Approved' : '⏳ Needs Review'}
@@ -98,7 +98,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
         <div className="bg-purple-50 rounded-xl p-4">
           <h4 className="font-medium text-purple-900 mb-2 flex items-center">
             <span className="mr-2">⚡</span>
-            Execution Status
+            Verdict of the Graph Execution Agent
           </h4>
           <p className={`text-sm ${buildState.graph_exe_agent_approved ? 'text-purple-800' : 'text-orange-800'}`}>
             {buildState.graph_exe_agent_approved ? '✅ Passed' : '❌ Failed'}
@@ -210,21 +210,7 @@ export default function HumanReviewInterface({ taskId, buildState, onApproval }:
       </div>
 
       {/* RAG Examples */}
-      {buildState.graph_rag_examples && buildState.graph_rag_examples.length > 0 && (
-        <div className="border-t border-gray-200 pt-4">
-          <h4 className="font-medium text-gray-800 mb-2 flex items-center">
-            <span className="mr-2">📚</span>
-            Reference Examples Used
-          </h4>
-          <div className="flex flex-wrap gap-2">
-            {buildState.graph_rag_examples.map((example, index) => (
-              <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                {example}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
