@@ -139,7 +139,8 @@ export default function ProcessMonitor({ updates, isProcessing, buildState }: Pr
           const isExpanded = expandedSteps.has(index);
           // Make AI review steps always expandable, regardless of length
           const isAIReview = update.step.startsWith('ai_review') || update.message.includes('AI Review');
-          const isLongMessage = update.message.length > 100 || isAIReview;
+          const isExecution = update.step.startsWith('execution_check');
+          const isLongMessage = update.message.length > 100 || isAIReview || isExecution;
           
           return (
             <div 
