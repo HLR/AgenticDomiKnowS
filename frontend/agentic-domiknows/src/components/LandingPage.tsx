@@ -56,10 +56,10 @@ export default function LandingPage({ onChooseNewApp }: LandingPageProps) {
             Agentic DomiKnows (ADS)
           </h1>
           <p className="text-xl text-gray-600 mb-2">
-            Welcome Back
+            Email us at <a href="mailto:">nafarali@msu.edu</a> for a Username and Password.
           </p>
           <p className="text-gray-500">
-            Sign in to genarate domiknows conceptual graph.
+            Sign in to generate DomiKnowS programs using ADS.
           </p>
         </div>
 
