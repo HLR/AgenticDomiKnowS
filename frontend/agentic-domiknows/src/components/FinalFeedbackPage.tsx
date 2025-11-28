@@ -107,13 +107,21 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
     : '';
 
   const handleSubmitFeedback = async () => {
+    // Prevent submitting empty descriptions
+    const trimmed = (feedback || '').trim();
+    if (!trimmed) {
+      // Soft UX prompt – keep minimal to avoid intrusive UI
+      alert('Please enter a property description before submitting.');
+      return;
+    }
+
     setIsSubmitting(true);
-    
+
     try {
       // Send the property_human_text to the backend
       const updatedState = {
         ...buildState,
-        property_human_text: feedback
+        property_human_text: trimmed
       };
 
       const response = await fetch('/api/continue-graph', {
@@ -284,7 +292,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
             <div className="flex flex-col md:flex-row gap-4">
               <button
                 onClick={handleSubmitFeedback}
-                disabled={isSubmitting || submitted}
+                disabled={isSubmitting || submitted || !(feedback || '').trim()}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 shadow-lg flex items-center justify-center disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (
