@@ -769,7 +769,7 @@ export default function MainApp() {
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
               <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="mr-3">📊</span>
-                Build Status Details
+                Agents Shared Memory Overview
               </h3>
               
               {/* Task Definition Display */}
@@ -812,33 +812,66 @@ export default function MainApp() {
               </div>
 
               {/* RAG Examples Section */}
-              {buildState.graph_rag_examples.length > 0 && (
-                <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 mb-4">
-                  <div className="text-sm font-medium text-purple-800 mb-2 flex items-center">
-                    <span className="mr-2">📚</span>
-                    RAG Examples Used ({buildState.graph_rag_examples.length} reference{buildState.graph_rag_examples.length !== 1 ? 's' : ''})
-                  </div>
-                  
-                  <details className="group">
-                    <summary className="text-sm text-purple-600 cursor-pointer hover:text-purple-800 font-medium list-none flex items-center">
-                      <span className="mr-2 group-open:rotate-90 transition-transform">▶</span>
-                      View all examples
-                    </summary>
-                    <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
-                      {buildState.graph_rag_examples.map((example, idx) => (
-                        <div key={idx} className="bg-white rounded-lg p-3 border border-purple-200">
-                          <div className="text-sm font-medium text-purple-800 mb-2">
-                            Example {idx + 1}:
-                          </div>
-                          <div className="text-sm text-purple-700 font-mono bg-purple-25 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
-                            {example}
-                          </div>
-                        </div>
-                      ))}
+              {buildState.graph_rag_examples.length > 0 && (() => {
+                // graph_rag_examples is an interleaved list: [problem1, solution1, problem2, solution2, ...]
+                const items = buildState.graph_rag_examples;
+                const pairCount = Math.floor(items.length / 2);
+                const pairs = Array.from({ length: pairCount }, (_, i) => ({
+                  problem: items[2 * i],
+                  solution: items[2 * i + 1]
+                }));
+                const hasOddTail = items.length % 2 === 1;
+
+                return (
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 mb-4">
+                    <div className="text-sm font-medium text-purple-800 mb-2 flex items-center">
+                      <span className="mr-2">📚</span>
+                      RAG Examples Used ({pairCount} example{pairCount !== 1 ? 's' : ''})
                     </div>
-                  </details>
-                </div>
-              )}
+                    
+                    <details className="group">
+                      <summary className="text-sm text-purple-600 cursor-pointer hover:text-purple-800 font-medium list-none flex items-center">
+                        <span className="mr-2 group-open:rotate-90 transition-transform">▶</span>
+                        View all examples
+                      </summary>
+                      <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
+                        {pairs.map((pair, idx) => (
+                          <div key={idx} className="bg-white rounded-lg p-3 border border-purple-200">
+                            <div className="text-sm font-medium text-purple-800 mb-2">
+                              Example {idx + 1}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div>
+                                <div className="text-xs font-semibold text-purple-600 mb-1">Task Description</div>
+                                <div className="text-sm text-purple-700 font-mono bg-purple-25 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                  {pair.problem}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs font-semibold text-purple-600 mb-1">Graph Code</div>
+                                <div className="text-sm text-purple-700 font-mono bg-purple-25 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                  {pair.solution}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {hasOddTail && (
+                          <div className="bg-white rounded-lg p-3 border border-purple-200">
+                            <div className="text-sm font-medium text-purple-800 mb-2">
+                              Unpaired Reference
+                            </div>
+                            <div className="text-xs text-purple-600 mb-1">Problem (no matching solution provided)</div>
+                            <div className="text-sm text-purple-700 font-mono bg-purple-25 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                              {items[items.length - 1]}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+                );
+              })()}
 
               {/* Review Notes Section */}
               {buildState.graph_review_notes.length > 0 && buildState.graph_review_notes[buildState.graph_review_notes.length - 1] && (
