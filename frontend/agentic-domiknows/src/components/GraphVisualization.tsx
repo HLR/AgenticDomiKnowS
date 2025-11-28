@@ -96,7 +96,7 @@ export default function GraphVisualization({ result, taskId, graphAttempt, codeH
         <div className="flex items-center justify-between p-4">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center">
             <span className="mr-3">🔗</span>
-            Knowledge Graph
+            DomiKnowS Conceptual Graph
           </h3>
           <div className="flex space-x-2">
             <button
@@ -157,7 +157,6 @@ export default function GraphVisualization({ result, taskId, graphAttempt, codeH
                   />
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                  <p>Task ID: <span className="font-mono font-medium">{taskId}</span></p>
                   <p>Attempt: <span className="font-mono font-medium">{graphAttempt}</span></p>
                 </div>
               </div>
