@@ -874,46 +874,132 @@ export default function MainApp() {
               })()}
 
               {/* Review Notes Section */}
-              {buildState.graph_review_notes.length > 0 && buildState.graph_review_notes[buildState.graph_review_notes.length - 1] && (
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 mb-4">
-                  <div className="text-sm font-medium text-amber-800 mb-2 flex items-center">
-                    <span className="mr-2">📝</span>
-                    Latest Review Note
+              {(buildState.graph_review_notes.length > 0 || typeof buildState.graph_reviewer_agent_approved === 'boolean') && (() => {
+                const notes = buildState.graph_review_notes || [];
+                const hasNotes = notes.length > 0;
+                const latestRaw = hasNotes ? notes[notes.length - 1] : '';
+                const latestDisplay = latestRaw && latestRaw.trim() !== '' ? latestRaw : 'No note';
+                const approved = !!buildState.graph_reviewer_agent_approved;
+                return (
+                  <div className={`rounded-lg p-4 border mb-4 ${approved ? 'bg-green-50 border-green-100' : 'bg-orange-50 border-orange-100'}`}>
+                    <div className={`text-sm font-medium mb-2 flex items-center ${approved ? 'text-green-800' : 'text-orange-800'}`}>
+                      <span className="mr-2">📝</span>
+                      AI Review Notes
+                    </div>
+                    <div className={`text-sm font-medium ${approved ? 'text-green-800' : 'text-orange-800'}`}>
+                      Status: {approved ? '✅ Approved' : '⏳ Pending'}
+                    </div>
+                    {hasNotes && (
+                      <div className={`text-sm italic mt-1 ${approved ? 'text-green-700' : 'text-orange-700'}`}>
+                        "{latestDisplay}"
+                      </div>
+                    )}
+                    {hasNotes && (
+                      <details className="mt-2 group">
+                        <summary className={`text-sm cursor-pointer font-medium ${approved ? 'text-green-600 hover:text-green-800' : 'text-orange-600 hover:text-orange-800'}`}>
+                          <span className="mr-1 group-open:rotate-90 transition-transform inline-block">▶</span>
+                          View all reviews
+                        </summary>
+                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                          {notes.map((note, idx) => {
+                            const display = note && note.trim() !== '' ? note : 'No note';
+                            return (
+                              <p key={idx} className={`text-xs border-l-2 pl-2 ${approved ? 'text-green-700 border-green-300' : 'text-orange-700 border-orange-300'}`}>
+                                #{idx + 1}: {display}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  <div className="text-sm text-amber-700 italic">
-                    "{buildState.graph_review_notes[buildState.graph_review_notes.length - 1]}"
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Execution Notes Section */}
-              {buildState.graph_exe_notes.length > 0 && buildState.graph_exe_notes[buildState.graph_exe_notes.length - 1] && (
-                <div className={`rounded-lg p-4 border mb-4 ${buildState.graph_exe_agent_approved ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                  <div className={`text-sm font-medium mb-2 flex items-center ${buildState.graph_exe_agent_approved ? 'text-green-800' : 'text-red-800'}`}>
-                    <span className="mr-2">⚡</span>
-                    Latest Execution Note
+              {(buildState.graph_exe_notes.length > 0 || typeof buildState.graph_exe_agent_approved === 'boolean') && (() => {
+                const notes = buildState.graph_exe_notes || [];
+                const hasNotes = notes.length > 0;
+                const latestRaw = hasNotes ? notes[notes.length - 1] : '';
+                const latestDisplay = latestRaw && latestRaw.trim() !== '' ? latestRaw : 'Passed';
+                const approved = !!buildState.graph_exe_agent_approved;
+                return (
+                  <div className={`rounded-lg p-4 border mb-4 ${approved ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                    <div className={`text-sm font-medium mb-2 flex items-center ${approved ? 'text-green-800' : 'text-red-800'}`}>
+                      <span className="mr-2">⚡</span>
+                      Execution Notes
+                    </div>
+                    <div className={`text-sm font-medium ${approved ? 'text-green-800' : 'text-red-800'}`}>
+                      Status: {approved ? '✅ Passed' : '❌ Failed'}
+                    </div>
+                    {hasNotes && (
+                      <div className={`text-sm italic mt-1 ${approved ? 'text-green-700' : 'text-red-700'}`}>
+                        "{latestDisplay}"
+                      </div>
+                    )}
+                    {hasNotes && (
+                      <details className="mt-2 group">
+                        <summary className={`text-sm cursor-pointer font-medium ${approved ? 'text-green-600 hover:text-green-800' : 'text-red-600 hover:text-red-800'}`}>
+                          <span className="mr-1 group-open:rotate-90 transition-transform inline-block">▶</span>
+                          View all reviews
+                        </summary>
+                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                          {notes.map((note, idx) => {
+                            const display = note && note.trim() !== '' ? note : 'Passed';
+                            return (
+                              <p key={idx} className={`text-xs border-l-2 pl-2 ${approved ? 'text-green-700 border-green-300' : 'text-red-700 border-red-300'}`}>
+                                #{idx + 1}: {display}
+                              </p>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  <div className={`text-sm italic ${buildState.graph_exe_agent_approved ? 'text-green-700' : 'text-red-700'}`}>
-                    "{buildState.graph_exe_notes[buildState.graph_exe_notes.length - 1]}"
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Human Feedback Section */}
-              {buildState.graph_human_notes && buildState.graph_human_notes.trim() !== '' && (
-                <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
-                  <div className="text-sm font-medium text-pink-800 mb-2 flex items-center">
-                    <span className="mr-2">👤</span>
-                    Human Feedback
+              {(() => {
+                const rawHuman: any = buildState.graph_human_notes as any;
+                const humanNotes: string[] = Array.isArray(rawHuman)
+                  ? rawHuman
+                  : (rawHuman && typeof rawHuman === 'string' && rawHuman.trim() !== '' ? [rawHuman] : []);
+
+                if (humanNotes.length === 0) return null;
+
+                const latestHuman = humanNotes[humanNotes.length - 1];
+
+                return (
+                  <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
+                    <div className="text-sm font-medium text-pink-800 mb-2 flex items-center">
+                      <span className="mr-2">👤</span>
+                      Human Feedback
+                    </div>
+                    <div className="text-sm text-pink-700 italic">
+                      "{latestHuman}"
+                    </div>
+                    <div className="text-sm text-pink-600 mt-2">
+                      Status: {buildState.graph_human_approved ? '✅ Approved' : '🔄 Needs Revision'}
+                    </div>
+                    {humanNotes.length > 1 && (
+                      <details className="mt-2 group">
+                        <summary className="text-sm text-pink-600 cursor-pointer hover:text-pink-800 font-medium">
+                          <span className="mr-1 group-open:rotate-90 transition-transform inline-block">▶</span>
+                          View all reviews
+                        </summary>
+                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                          {humanNotes.slice(0, -1).reverse().map((note, idx) => (
+                            <p key={idx} className="text-xs text-pink-700 border-l-2 border-pink-300 pl-2">
+                              #{humanNotes.length - idx - 1}: {note}
+                            </p>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  <div className="text-sm text-pink-700 italic">
-                    "{buildState.graph_human_notes}"
-                  </div>
-                  <div className="text-sm text-pink-600 mt-2">
-                    Status: {buildState.graph_human_approved ? '✅ Approved' : '🔄 Needs Revision'}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         )}
