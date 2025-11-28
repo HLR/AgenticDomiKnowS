@@ -579,11 +579,10 @@ export default function MainApp() {
                   </button>
                   <button
                     onClick={() => setActiveTab('final')}
-                    disabled={activeTab !== 'final'}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                       activeTab === 'final'
                         ? 'bg-white text-purple-600 shadow-sm'
-                        : 'text-gray-400 cursor-not-allowed opacity-50'
+                        : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     Model Declaration II: Property Designation
