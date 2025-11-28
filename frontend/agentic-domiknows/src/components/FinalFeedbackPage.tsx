@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_ENDPOINTS } from '@/config/api';
 
 interface BuildState {
@@ -38,6 +38,63 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
   const [feedback, setFeedback] = useState(buildState.property_human_text || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Persist in-progress edits across tab switches/refreshes within the session
+  const STORAGE_KEY = `property_designation_${buildState.Task_ID}`;
+
+  // Rehydrate any saved draft/submission state for this task on mount or when task changes
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { feedback?: string; submitted?: boolean };
+        if (typeof parsed.feedback === 'string') {
+          setFeedback(parsed.feedback);
+        } else if (buildState.property_human_text) {
+          setFeedback(buildState.property_human_text);
+        }
+        if (typeof parsed.submitted === 'boolean') {
+          setSubmitted(parsed.submitted);
+        }
+      } else {
+        // No saved draft: initialize from buildState
+        setFeedback(buildState.property_human_text || '');
+      }
+    } catch {
+      // Fallback to buildState on any storage error
+      setFeedback(buildState.property_human_text || '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [STORAGE_KEY]);
+
+  // If backend already produced final_code_text, consider the form submitted
+  useEffect(() => {
+    if (buildState.final_code_text) {
+      setSubmitted(true);
+      try {
+        const saved = sessionStorage.getItem(STORAGE_KEY);
+        const existing = saved ? JSON.parse(saved) : {};
+        sessionStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ ...existing, submitted: true })
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }, [buildState.final_code_text, STORAGE_KEY]);
+
+  // Persist draft and submitted flag on changes
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ feedback, submitted })
+      );
+    } catch {
+      // ignore storage errors (e.g., privacy mode)
+    }
+  }, [feedback, submitted, STORAGE_KEY]);
 
   const latestGraphCode = buildState.graph_code_draft && buildState.graph_code_draft.length > 0
     ? buildState.graph_code_draft[buildState.graph_code_draft.length - 1]
