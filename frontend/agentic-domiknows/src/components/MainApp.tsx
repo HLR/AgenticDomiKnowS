@@ -57,6 +57,8 @@ export default function MainApp() {
   const [isWaitingForApprovalUpdate, setIsWaitingForApprovalUpdate] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'graph' | 'sensors' | 'final'>('graph');
+  // Track whether the Sensors step was approved (to gate the Final tab)
+  const [sensorApprovedSession, setSensorApprovedSession] = useState(false);
   const humanReviewRef = useRef<HTMLDivElement>(null);
 
   // Debug buildState changes - only log when received
@@ -102,6 +104,21 @@ export default function MainApp() {
     window.addEventListener('buildstate-updated', handler as EventListener);
     return () => window.removeEventListener('buildstate-updated', handler as EventListener);
   }, []);
+
+  // Rehydrate sensors approval flag from sessionStorage (so Final tab stays enabled after refresh)
+  useEffect(() => {
+    try {
+      if (!buildState?.Task_ID) {
+        setSensorApprovedSession(false);
+        return;
+      }
+      const key = `sensors_approved_${buildState.Task_ID}`;
+      const val = sessionStorage.getItem(key);
+      setSensorApprovedSession(val === 'true');
+    } catch {
+      // ignore storage errors
+    }
+  }, [buildState?.Task_ID]);
 
   const handleSubmitPrompt = async (prompt: string) => {
     setIsProcessing(true);
@@ -463,6 +480,8 @@ export default function MainApp() {
 
   const handleSensorApproval = () => {
     console.log('🎉 Sensor approved! Switching to final tab...');
+    // Lift the gate immediately in this session
+    setSensorApprovedSession(true);
     setActiveTab('final');
   };
 
@@ -543,6 +562,9 @@ export default function MainApp() {
   // Show graph whenever we have code, not just on final approval
   const showGraph = buildState && buildState.graph_code_draft.length > 0 && graphResult;
 
+  // Determine if the Final tab should be enabled (requires Sensors approval)
+  const isFinalTabEnabled = !!(buildState?.sensor_human_approved || sensorApprovedSession);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Header */}
@@ -578,12 +600,20 @@ export default function MainApp() {
                     ⚙️ Model Declaration I: Sensor Assignment
                   </button>
                   <button
-                    onClick={() => setActiveTab('final')}
+                    onClick={() => {
+                      if (isFinalTabEnabled) setActiveTab('final');
+                    }}
+                    aria-disabled={!isFinalTabEnabled}
+                    title={
+                      isFinalTabEnabled
+                        ? 'Proceed to Property Designation'
+                        : 'Complete Sensor Assignment and click "Approve and Continue" to proceed'
+                    }
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                       activeTab === 'final'
                         ? 'bg-white text-purple-600 shadow-sm'
                         : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                    } ${!isFinalTabEnabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                   >
                     Model Declaration II: Property Designation
                   </button>
@@ -735,7 +765,7 @@ export default function MainApp() {
             sessionId={sessionId || 'unknown'}
             onSensorApproved={handleSensorApproval}
           />
-        ) : activeTab === 'final' && buildState ? (
+        ) : activeTab === 'final' && buildState && isFinalTabEnabled ? (
           /* Final Feedback Tab Content */
           <FinalFeedbackPage 
             buildState={buildState}
