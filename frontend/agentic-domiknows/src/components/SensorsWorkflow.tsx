@@ -71,7 +71,7 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
     setProgressUpdates([
       {
         step: 'initialization',
-        message: `🚀 Sensor workflow initialized for: ${buildState.Task_definition}`,
+        message: `🚀 Sensor Assignment initialized for: ${buildState.Task_definition}`,
         timestamp: new Date().toISOString(),
         status: 'completed'
       }
@@ -176,12 +176,9 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
             <div>
               <h2 className="text-2xl font-bold text-gray-800 flex items-center">
                 <span className="mr-3">🔧</span>
-                Sensor Workflow
+                Model Declaration I: Sensor Assignment
               </h2>
-              <p className="text-sm text-gray-600 mt-1">Review and refine your sensor code</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">Session: {sessionId?.slice(0, 8)}...</span>
+              <p className="text-sm text-gray-600 mt-1">Review and Revise the generated sensor code if necessary. Otherwise, approve it as is.</p>
             </div>
           </div>
         </div>
@@ -195,7 +192,7 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
                 <span className="mr-2">📋</span>
-                Task Definition
+                Task Description
               </h3>
               <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
                 {buildState.Task_definition}
