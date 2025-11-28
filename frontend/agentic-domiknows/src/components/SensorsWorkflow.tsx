@@ -27,6 +27,8 @@ interface BuildState {
   sensor_attempt: number;
   sensor_codes: string[];
   sensor_human_changed: boolean;
+  // Persist sensor approval across tabs/refresh within session (frontend-local)
+  sensor_human_approved?: boolean;
   entire_sensor_codes: string[];
   sensor_code_outputs: string[];
   sensor_rag_examples: string[];
@@ -45,6 +47,10 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
   const [editedCode, setEditedCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [progressUpdates, setProgressUpdates] = useState<ProcessUpdate[]>([]);
+  // Track local approval to hide action buttons immediately after approval
+  const [isApproved, setIsApproved] = useState(false);
+  // Derive a stable approval flag that also respects persisted state
+  const approved = isApproved || !!buildState.sensor_human_approved;
 
   // Get the latest sensor code from buildState.sensor_codes array
   const latestSensorCode = buildState.sensor_codes && buildState.sensor_codes.length > 0
@@ -77,6 +83,14 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
       }
     ]);
   }, [buildState.Task_definition]);
+
+  // Keep local flag in sync if we already have a persisted approval in buildState (e.g., after tab switch back)
+  useEffect(() => {
+    if (buildState.sensor_human_approved && !isApproved) {
+      setIsApproved(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildState.sensor_human_approved]);
 
   // Monitor sensor_codes changes and update progress
   useEffect(() => {
@@ -152,12 +166,26 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
   };
 
   const handleApprove = () => {
+    // Mark as approved locally to hide buttons immediately
+    setIsApproved(true);
+    // Ensure we are not in edit mode anymore
+    setIsEditMode(false);
     setProgressUpdates(prev => [...prev, {
       step: 'approved',
       message: '✅ Sensor code approved! Proceeding to final feedback...',
       timestamp: new Date().toISOString(),
       status: 'completed'
     }]);
+    // Persist approval into the shared buildState (frontend) so returning to this tab keeps buttons hidden
+    try {
+      const updatedState = {
+        ...buildState,
+        sensor_human_approved: true,
+      };
+      window.dispatchEvent(new CustomEvent('buildstate-updated', { detail: updatedState }));
+    } catch (e) {
+      // no-op if dispatch fails
+    }
     onSensorApproved();
   };
 
@@ -285,24 +313,26 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
                       )}
 
                       {/* Approve/Edit Buttons */}
-                      <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                          onClick={handleEdit}
-                          disabled={isSubmitting}
-                          className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
-                        >
-                          <span className="mr-2">✏️</span>
-                          Edit Code
-                        </button>
-                        <button
-                          onClick={handleApprove}
-                          disabled={isSubmitting}
-                          className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
-                        >
-                          <span className="mr-2">✅</span>
-                          Approve & Continue
-                        </button>
-                      </div>
+                      {!approved && (
+                        <div className="flex justify-end space-x-3 mt-6">
+                          <button
+                            onClick={handleEdit}
+                            disabled={isSubmitting}
+                            className="px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
+                          >
+                            <span className="mr-2">✏️</span>
+                            Edit Code
+                          </button>
+                          <button
+                            onClick={handleApprove}
+                            disabled={isSubmitting}
+                            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center shadow-lg"
+                          >
+                            <span className="mr-2">✅</span>
+                            Approve & Continue
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

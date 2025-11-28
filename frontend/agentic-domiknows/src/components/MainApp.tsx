@@ -34,6 +34,8 @@ interface BuildState {
   sensor_attempt: number;
   sensor_codes: string[];
   sensor_human_changed: boolean;
+  // Persist sensor approval across tabs/refresh within the current session (frontend-only)
+  sensor_human_approved?: boolean;
   entire_sensor_codes: string[];
   sensor_code_outputs: string[];
   sensor_rag_examples: string[];
