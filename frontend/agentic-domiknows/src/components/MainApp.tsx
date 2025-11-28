@@ -563,7 +563,7 @@ export default function MainApp() {
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    📊 Graph Code
+                    📊 Knowledge Declaration
                   </button>
                   <button
                     onClick={() => setActiveTab('sensors')}
@@ -573,7 +573,7 @@ export default function MainApp() {
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
-                    ⚙️ Sensors
+                    ⚙️ Model Declaration I: Sensor Assignment
                   </button>
                   <button
                     onClick={() => setActiveTab('final')}
@@ -584,16 +584,13 @@ export default function MainApp() {
                         : 'text-gray-400 cursor-not-allowed opacity-50'
                     }`}
                   >
-                    Property Assingment
+                    Model Declaration II: Property Designation
                   </button>
                 </div>
               )}
             </div>
             
             <div className="flex items-center space-x-4">
-              {sessionId && (
-                <span className="text-sm text-gray-500">Session: {sessionId.slice(0, 8)}...</span>
-              )}
               <button 
                 onClick={async () => {
                   try {
@@ -622,7 +619,7 @@ export default function MainApp() {
                     setActiveTab('graph');
                   }
                 }} 
-                className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors"
+                className="bg-gray-500 text-white hover:bg-gray-600 text-base font-medium transition-colors px-3 py-1 rounded"
               >
                 ← New Task
               </button>
