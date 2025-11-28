@@ -102,12 +102,6 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
 
   const handleSaveEdit = async () => {
     setIsSubmitting(true);
-    setProgressUpdates(prev => [...prev, {
-      step: 'saving_edit',
-      message: '💾 Saving edited sensor code...',
-      timestamp: new Date().toISOString(),
-      status: 'active'
-    }]);
 
     try {
       // Append edited code to sensor_codes array and set sensor_human_changed to true
