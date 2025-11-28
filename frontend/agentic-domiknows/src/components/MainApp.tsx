@@ -690,7 +690,7 @@ export default function MainApp() {
                 {!showResult && !showIntermediateResult && buildState && (
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
                     <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                      🔄 Work in Progress
+                      🔄 Knowledge Declaration loop in progress...
                     </h3>
                     <div className="bg-blue-50 rounded-xl p-4">
                       <h4 className="font-medium text-blue-900 mb-2">Current Draft</h4>
@@ -700,10 +700,10 @@ export default function MainApp() {
                       </p>
                       <div className="text-sm mt-2 space-y-1">
                         <p className={buildState.graph_reviewer_agent_approved ? 'text-green-700' : 'text-orange-700'}>
-                          {buildState.graph_reviewer_agent_approved ? '✅' : '⏳'} AI Review: {buildState.graph_reviewer_agent_approved ? 'Approved' : 'In Progress'}
+                          {buildState.graph_reviewer_agent_approved ? '✅' : '⏳'} Graph Reviewer Agent: {buildState.graph_reviewer_agent_approved ? 'Approved' : 'Semantic Error'}
                         </p>
                         <p className={buildState.graph_exe_agent_approved ? 'text-green-700' : 'text-orange-700'}>
-                          {buildState.graph_exe_agent_approved ? '✅' : '⏳'} Execution: {buildState.graph_exe_agent_approved ? 'Passed' : 'In Progress'}
+                          {buildState.graph_exe_agent_approved ? '✅' : '⏳'} Graph Execution Agent: {buildState.graph_exe_agent_approved ? 'Passed' : 'Syntax Error'}
                         </p>
                       </div>
                     </div>
