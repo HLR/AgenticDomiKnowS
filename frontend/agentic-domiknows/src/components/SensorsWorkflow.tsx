@@ -51,6 +51,8 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
   const [isApproved, setIsApproved] = useState(false);
   // Derive a stable approval flag that also respects persisted state
   const approved = isApproved || !!buildState.sensor_human_approved;
+  // Session storage key to make the Approve button single-use per task within the session
+  const STORAGE_KEY = `sensors_approved_${buildState.Task_ID}`;
 
   // Get the latest sensor code from buildState.sensor_codes array
   const latestSensorCode = buildState.sensor_codes && buildState.sensor_codes.length > 0
@@ -89,8 +91,33 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
     if (buildState.sensor_human_approved && !isApproved) {
       setIsApproved(true);
     }
+    // Mirror to sessionStorage so approval remains after other tabs submit and state refreshes
+    try {
+      if (buildState.sensor_human_approved) {
+        sessionStorage.setItem(STORAGE_KEY, 'true');
+      }
+    } catch {
+      // ignore storage errors (e.g., privacy mode)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildState.sensor_human_approved]);
+
+  // On task change/mount, rehydrate approval from sessionStorage so the button is single-use within session
+  useEffect(() => {
+    try {
+      const val = sessionStorage.getItem(STORAGE_KEY);
+      if (val === 'true') {
+        setIsApproved(true);
+      } else if (!buildState.sensor_human_approved) {
+        // If there's no stored approval and backend didn't mark it, ensure local flag is reset for new tasks
+        setIsApproved(false);
+      }
+    } catch {
+      // ignore storage errors
+    }
+    // We intentionally depend only on Task_ID to evaluate per-task single-use behavior
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildState.Task_ID]);
 
   // Monitor sensor_codes changes and update progress
   useEffect(() => {
@@ -176,6 +203,12 @@ export default function SensorsWorkflow({ buildState, sessionId, onSensorApprove
       timestamp: new Date().toISOString(),
       status: 'completed'
     }]);
+    // Persist single-use approval within the session for this Task_ID
+    try {
+      sessionStorage.setItem(STORAGE_KEY, 'true');
+    } catch {
+      // ignore storage errors
+    }
     // Persist approval into the shared buildState (frontend) so returning to this tab keeps buttons hidden
     try {
       const updatedState = {
