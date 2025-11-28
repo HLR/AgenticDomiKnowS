@@ -121,9 +121,9 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
             <div>
               <h2 className="text-2xl font-bold text-gray-800 flex items-center">
                 <span className="mr-3"></span>
-                Dataset feature assingments
+                Model Declaration II: Property Designation
               </h2>
-              <p className="text-sm text-gray-600 mt-1">Here you need to connect the dataset features to conepts of graph</p>
+              <p className="text-sm text-gray-600 mt-1">Here, you should explain how to map the dataset features to graph concepts as properties.</p>
             </div>
           </div>
         </div>
@@ -185,11 +185,10 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <span className="mr-2">💭</span>
-              Specify dataset features on how they relate to each concept.
+              Specify how each dataset feature should be designated to the concepts as properties.
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Each feature of the dataset needs to be assigned to a concept and please explain how each feature is used for pridicting the labels.
-            </p>
+            Assign every feature in the dataset to at least one concept, and explain how each assigned feature is used to predict the labels.            </p>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
@@ -200,7 +199,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
             {/* Example prompts */}
             {!submitted && !feedback && (
               <div className="mt-6 pt-6 border-t border-gray-100">
-                <p className="text-sm text-gray-500 mb-3">Need inspiration? Try these examples:</p>
+                <p className="text-sm text-gray-500 mb-3">Here are some examples of Property Descriptions:</p>
                 <div className="space-y-2">
                   {[
                     "Subject and facts concepts should read features called subject_text and facts_text respectively. Both these features should be used to predict if a fact is true or false.",
@@ -237,12 +236,12 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
                 ) : submitted ? (
                   <>
                     <span className="mr-2 text-xl">✅</span>
-                    Instructions Submitted
+                    Property Description Submitted
                   </>
                 ) : (
                   <>
                     <span className="mr-2 text-xl">🚀</span>
-                    Submit Instructions & Complete
+                    Submit the Property Description
                   </>
                 )}
               </button>
@@ -254,7 +253,7 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                 <span className="mr-2">🎯</span>
-                Final Generated Code
+                Download the final DomiKnowS code in a Jupyter Notebook
               </h3>
               {/* <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
                 <div className="prose max-w-none text-gray-800">
@@ -265,14 +264,21 @@ export default function FinalFeedbackPage({ buildState, sessionId }: FinalFeedba
               {/* Download Button - Below Final Code */}
               <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
                 <p className="text-sm text-gray-700 mb-4 text-center">
-                  📓 Download the completed code as a Jupyter Notebook by clicking the button below (for spimplicity we recommend use Google Colab to exucte the file): 
+                  📓   For simplicity, we recommend running the notebook in{" "}
+                  <a
+                    href="https://colab.research.google.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Google Colab
+                  </a>.
                 </p>
                 <button
                   onClick={handleDownloadCode}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg flex items-center justify-center"
                 >
                   <span className="mr-2 text-xl">📥</span>
-                  Download Complete Code (Jupyter Notebook)
+                  Download the final code (Jupyter Notebook)
                 </button>
               </div>
             </div>
