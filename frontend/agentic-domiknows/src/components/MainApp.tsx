@@ -684,25 +684,7 @@ export default function MainApp() {
                     </div>
                   </div>
                 )}
-                
-                {/* Show intermediate completion when both agents approved but awaiting human review */}
-                {showIntermediateResult && (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6">
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                      🎯 Agents Completed - Awaiting Human Review
-                    </h3>
-                    <div className="bg-blue-50 rounded-xl p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Ready for Review</h4>
-                      <p className="text-blue-800">Task: {buildState.Task_definition}</p>
-                      <p className="text-blue-700 text-sm mt-1">
-                        Completed after {buildState.graph_attempt} attempt(s)
-                      </p>
-                      <p className="text-green-700 text-sm mt-1">
-                        ✅ AI Review: Approved | ✅ Execution: Passed | ⏳ Human: Pending
-                      </p>
-                    </div>
-                  </div>
-                )}
+
                 
                 {/* Show work in progress message during processing */}
                 {!showResult && !showIntermediateResult && buildState && (
